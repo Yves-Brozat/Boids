@@ -10,7 +10,7 @@ int rayon = 100;
 
 
 void setup() {
-  fullScreen(P2D);
+  fullScreen(P2D, SPAN);
   flock = new Flock();
   missionPoint = new PVector(width/2,height/2);
 }

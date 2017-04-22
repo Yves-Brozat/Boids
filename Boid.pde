@@ -23,8 +23,8 @@ class Boid {
 
     position = new PVector(x, y);
     r = 2.0;
-    maxspeed = 15; //2
-    maxforce = 0.1; //0.03
+    maxspeed = 2; //2
+    maxforce = 0.03; //0.03
   }
 
   void run(ArrayList<Boid> boids) {
@@ -121,9 +121,9 @@ class Boid {
     stroke(255-textSize,10);
     strokeWeight(textSize);
     */
-    textSize = int(map(missionPoint.dist(position),1,height/2,255,0));
+    textSize = int(map(missionPoint.dist(position),0,width/2,255,0));
     textSize = constrain(textSize,0,255);
-    stroke(255-textSize,10);
+    stroke(textSize,10);
     strokeWeight(textSize);
     point(0,0);
     popMatrix();
