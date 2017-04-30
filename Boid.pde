@@ -11,7 +11,7 @@ class Boid {
   String letter = alphabet[int(random(0,26))];
   int textSize = 12;
 
-    Boid(float x, float y) {
+  Boid(float x, float y) {
     acceleration = new PVector(0, 0);
 
     // This is a new PVector method not yet implemented in JS
