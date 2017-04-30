@@ -120,21 +120,31 @@ class Boid {
     textSize = constrain(textSize,50,255);
     stroke(255-textSize,10);
     strokeWeight(textSize);
+    point(0,0);
     */
+    /*//FUMEE
     textSize = int(map(missionPoint.dist(position),0,width/2,255,0));
     textSize = constrain(textSize,0,255);
     stroke(textSize,10);
     strokeWeight(textSize);
     point(0,0);
+    */
+    
     popMatrix();
+    
   }
 
   // Wraparound
   void borders() {
+    //MURS
+    if (position.x < -r || position.x > width+r) velocity.x *= -1;
+    if (position.y < -r || position.y > height+r) velocity.y *= -1;
+    /*// BOUCLES
     if (position.x < -r) position.x = width+r;
     if (position.y < -r) position.y = height+r;
-    if (position.y > height+r) position.y = -r;
     if (position.x > width+r) position.x = r;
+    if (position.y > height+r) position.y = -r;
+    */
     /*//SETTINGS POUR SILOUHETTE 
     if (position.x > width+r) {
       position.x = width-r;
@@ -148,7 +158,7 @@ class Boid {
   // Separation
   // Method checks for nearby boids and steers away
   PVector separate (ArrayList<Boid> boids) {
-    float desiredseparation = 25.0f;
+    float desiredseparation = 100;
     PVector steer = new PVector(0, 0, 0);
     int count = 0;
     // For every boid in the system, check if it's too close
@@ -162,6 +172,8 @@ class Boid {
         diff.div(d);        // Weight by distance
         steer.add(diff);
         count++;            // Keep track of how many
+        stroke(255);
+        line(position.x,position.y,other.position.x,other.position.y);
       }
     }
     // Average -- divide by how many
