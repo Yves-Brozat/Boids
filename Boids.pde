@@ -1,10 +1,10 @@
 Flock flock;
 String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 PVector missionPoint; 
-float s = 3.0;
+float s = 1.0;
 float a = 1.0;
 float c = 1.0;
-float m = 0.1;
+float m = 0.001;
 
 int rayon = 100;
 
@@ -19,7 +19,7 @@ void draw() {
   background(0);
   flock.run();
   
-  if (s>3.0) s-=0.1;
+  if (s>1.0) s/=10;
 }
 
 void keyPressed()
@@ -36,7 +36,8 @@ void keyPressed()
 }
 // Add a new boid into the System
 void mouseReleased() {
-  s = 15.0;
+  m = 0.001;
+  s=100;
   rayon = 100;
 }
 
