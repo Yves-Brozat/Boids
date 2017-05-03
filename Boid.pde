@@ -6,9 +6,7 @@ class Boid {
   PVector velocity;
   PVector acceleration;
   float r;
-  float maxforce;    // Maximum steering force
-  float maxspeed;    // Maximum speed
-  String letter = alphabet[int(random(0,26))];
+  String letter = alphabet[int(random(0,alphabet.length))];
   int textSize = 12;
 
   Boid(float x, float y) {
@@ -23,8 +21,6 @@ class Boid {
 
     position = new PVector(x, y);
     r = 2.0;
-    maxspeed = 2; //2
-    maxforce = 0.03; //0.03
   }
 
   void run(ArrayList<Boid> boids) {
@@ -96,18 +92,39 @@ class Boid {
     pushMatrix();
     translate(position.x, position.y);
     rotate(theta);
-    /*//TRIANGLE EXAMPLE
-    beginShape(TRIANGLES);
-    vertex(0, -r*2);
-    vertex(-r, r*2);
-    vertex(r, r*2);
-    endShape();*/
-    /*//LETTRES SILOUHETTES
-    textSize = int(map(missionPoint.dist(position),1,height,0,60));
-    textSize = constrain(textSize,1,60);
-    textSize(textSize);
-    text(letter,0,0);
-    */
+    
+    switch(boidType)
+    {
+      case TRIANGLE : //TRIANGLE EXAMPLE
+      stroke(255);
+      strokeWeight(1);
+      beginShape(TRIANGLES);
+      vertex(0, -r*2);
+      vertex(-r, r*2);
+      vertex(r, r*2);
+      endShape();
+      break;
+      
+      case LETTER : //LETTRES SILOUHETTES
+      textSize = int(map(missionPoint.dist(position),1,height,0,60));
+      textSize = constrain(textSize,1,60);
+      fill(255);
+      textSize(textSize);
+      text(letter,0,0);
+      break;
+      
+      case CIRCLE : //FUMEE
+      textSize = int(map(missionPoint.dist(position),0,width/2,255,0));
+      textSize = constrain(textSize,0,255);
+      stroke(textSize,10);
+      strokeWeight(textSize);
+      point(0,0);
+      break;
+      
+      case LINE : 
+      break;
+    }
+
     /*//EFFET BULLES DE SAVON
     textSize = int(map(missionPoint.dist(position),1,height/2,255,1));
     textSize = constrain(textSize,1,255);
@@ -122,13 +139,7 @@ class Boid {
     strokeWeight(textSize);
     point(0,0);
     */
-    /*//FUMEE
-    textSize = int(map(missionPoint.dist(position),0,width/2,255,0));
-    textSize = constrain(textSize,0,255);
-    stroke(textSize,10);
-    strokeWeight(textSize);
-    point(0,0);
-    */
+
     
     popMatrix();
     
@@ -137,10 +148,10 @@ class Boid {
   // Wraparound
   void borders() {
     //MURS
-    if (position.x < -r || position.x > width+r) velocity.x *= -1;
+    if (position.x < controllerSize-r || position.x > width+r) velocity.x *= -1;
     if (position.y < -r || position.y > height+r) velocity.y *= -1;
     /*// BOUCLES
-    if (position.x < -r) position.x = width+r;
+    if (position.x < controllerSize-r) position.x = width+r;
     if (position.y < -r) position.y = height+r;
     if (position.x > width+r) position.x = r;
     if (position.y > height+r) position.y = -r;
@@ -172,8 +183,12 @@ class Boid {
         diff.div(d);        // Weight by distance
         steer.add(diff);
         count++;            // Keep track of how many
-        stroke(255);
-        line(position.x,position.y,other.position.x,other.position.y);
+        if (boidType == BoidType.LINE)
+        {
+          stroke(255);
+          strokeWeight(1);
+          line(position.x,position.y,other.position.x,other.position.y);
+        }
       }
     }
     // Average -- divide by how many
