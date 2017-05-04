@@ -12,6 +12,7 @@ float m = 0.01;
 float maxforce = 0.03;    // Maximum steering force
 float maxspeed = 2;    // Maximum speed
 int N = 0;
+float masse = 1;
 
 int controllerSize = 200;
 enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE;}
@@ -45,6 +46,9 @@ void setup() {
   controller.addSlider("N")
             .setPosition(50,400)
             .setRange(0,1000);
+  controller.addSlider("masse")
+            .setPosition(50,450)
+            .setRange(0.1,2);
             
   controller.addButton("triangle")
             .setPosition(50,height-50);

@@ -33,6 +33,7 @@ class Boid {
   void applyForce(PVector force) {
     // We could add mass here if we want A = F / M
     acceleration.add(force);
+    acceleration.div(masse);
   }
 
   // We accumulate a new acceleration each time based on three rules
@@ -145,11 +146,25 @@ class Boid {
     
   }
 
-  // Wraparound
+ 
   void borders() {
     //MURS
-    if (position.x < controllerSize-r || position.x > width+r) velocity.x *= -1;
-    if (position.y < -r || position.y > height+r) velocity.y *= -1;
+    if (position.x < controllerSize-r) {
+      velocity.x *= -1;
+      position.x = controllerSize-r;
+    }
+    if (position.x > width+r) {
+      velocity.x *= -1;
+      position.x = width+r;
+    }
+    if (position.y < -r) {
+      velocity.y *= -1;
+      position.y = -r;
+    }
+    if (position.y > height+r) {
+      velocity.y *= -1;
+      position.y = height+r;
+    }
     /*// BOUCLES
     if (position.x < controllerSize-r) position.x = width+r;
     if (position.y < -r) position.y = height+r;
