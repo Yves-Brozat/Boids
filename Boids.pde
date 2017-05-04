@@ -8,9 +8,10 @@ PVector missionPoint;
 float s = 1.0;
 float a = 1.0;
 float c = 1.0;
-float m = 0.001;
+float m = 0.01;
 float maxforce = 0.03;    // Maximum steering force
 float maxspeed = 2;    // Maximum speed
+int N = 0;
 
 int controllerSize = 200;
 enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE;}
@@ -19,7 +20,7 @@ BoidType boidType;
 void setup() {
   fullScreen(P2D, SPAN);
   flock = new Flock();
-  missionPoint = new PVector(width/2,height/2);
+  missionPoint = new PVector(controllerSize/2 + width/2,height/2);
   boidType = BoidType.LINE;
   
   controller = new ControlP5(this);
@@ -41,6 +42,9 @@ void setup() {
   controller.addSlider("maxspeed")
             .setPosition(50,350)
             .setRange(0.01,10);
+  controller.addSlider("N")
+            .setPosition(50,400)
+            .setRange(0,1000);
             
   controller.addButton("triangle")
             .setPosition(50,height-50);
@@ -60,7 +64,13 @@ void draw() {
   background(0);
   fill(30,67,100);
   rect(controllerSize-4,0,4,height);
+  ellipse(missionPoint.x,missionPoint.y,10,10);
   flock.run();
+  
+  if (flock.boids.size() < N)
+    flock.addBoid(new Boid(random(controllerSize,width),random(0,height)));
+  else if (flock.boids.size() > N)
+    flock.boids.remove(flock.boids.size()-1);
 }
 
 void keyPressed()
@@ -79,15 +89,16 @@ void keyPressed()
 void mouseReleased() {
   if (mouseX>controllerSize)
   {
-    m = 0.001;
-    s=4;
+    //m = 0.001;
+    //s=4;
   }
 }
 
 void mousePressed()
 {
-  if (mouseX>controllerSize)
-    m=1.0;
+  if (mouseX>controllerSize){
+    //m=1.0;
+  }
 }
 
 void mouseDragged()
