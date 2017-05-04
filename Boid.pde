@@ -8,9 +8,10 @@ class Boid {
   float r;
   String letter = alphabet[int(random(0,alphabet.length))];
   int textSize = 12;
+  ArrayList<PVector> history;
 
   Boid(float x, float y) {
-    acceleration = new PVector(0, 0);
+    acceleration = new PVector(0, 0);  
 
     // This is a new PVector method not yet implemented in JS
     // velocity = PVector.random2D();
@@ -21,13 +22,14 @@ class Boid {
 
     position = new PVector(x, y);
     r = 2.0;
+    history = new ArrayList<PVector>();
   }
 
   void run(ArrayList<Boid> boids) {
     flock(boids);
     update();
     borders();
-    render();
+    render(boids);
   }
 
   void applyForce(PVector force) {
@@ -56,6 +58,11 @@ class Boid {
 
   // Method to update position
   void update() {
+
+    //Save old position in history
+    PVector v = new PVector(position.x,position.y);
+    history.add(v);
+    if (history.size() > 50) history.remove(0);
     // Update velocity
     velocity.add(acceleration);
     // Limit speed
@@ -83,7 +90,7 @@ class Boid {
     return steer;
   }
 
-  void render() {
+  void render(ArrayList<Boid> boids) {
     // Draw a triangle rotated in the direction of velocity
     float theta = velocity.heading2D() + radians(90);
     // heading2D() above is now heading() but leaving old syntax until Processing.js catches up
@@ -91,39 +98,64 @@ class Boid {
     fill(0);
     stroke(0);
     pushMatrix();
-    translate(position.x, position.y);
-    rotate(theta);
     
-    switch(boidType)
+    for ( int i=0; i< history.size(); i++)
     {
-      case TRIANGLE : //TRIANGLE EXAMPLE
-      stroke(255);
-      strokeWeight(1);
-      beginShape(TRIANGLES);
-      vertex(0, -r*2);
-      vertex(-r, r*2);
-      vertex(r, r*2);
-      endShape();
-      break;
-      
-      case LETTER : //LETTRES SILOUHETTES
-      textSize = int(map(missionPoint.dist(position),1,height,0,60));
-      textSize = constrain(textSize,1,60);
-      fill(255);
-      textSize(textSize);
-      text(letter,0,0);
-      break;
-      
-      case CIRCLE : //FUMEE
-      textSize = int(map(missionPoint.dist(position),0,width/2,255,0));
-      textSize = constrain(textSize,0,255);
-      stroke(textSize,10);
-      strokeWeight(textSize);
-      point(0,0);
-      break;
-      
-      case LINE : 
-      break;
+      switch(boidType)
+      {
+        case TRIANGLE : //TRIANGLE EXAMPLE 
+        pushMatrix();
+        translate(history.get(i).x, history.get(i).y);
+        rotate(theta);
+        stroke(5*i);
+        strokeWeight(1);
+        beginShape(TRIANGLES);
+        vertex(0, -r*2);
+        vertex(-r, r*2);
+        vertex(r, r*2);
+        endShape();
+        popMatrix();
+        break;
+        
+        case LETTER : //LETTRES SILOUHETTES
+        pushMatrix();
+        translate(history.get(i).x, history.get(i).y);
+        rotate(theta);
+        textSize = int(map(missionPoint.dist(history.get(i)),1,height,0,60));
+        textSize = constrain(textSize,1,60);
+        fill(5*i);
+        textSize(textSize);
+        text(letter,0,0);
+        popMatrix();
+        break;
+        
+        case CIRCLE : //FUMEE
+        pushMatrix();
+        translate(history.get(i).x, history.get(i).y);
+        rotate(theta);
+        textSize = int(map(missionPoint.dist(history.get(i)),0,width/2,255,0));
+        textSize = constrain(textSize,0,255);
+        stroke(textSize,10);
+        strokeWeight(textSize);
+        point(0,0);
+        popMatrix();
+        break;
+        
+        case LINE : 
+        pushMatrix();
+        for (Boid other : boids) {
+          float d = PVector.dist(history.get(i), other.position);
+          //int count = 0;
+          if ((d > 0) && (d < 30)) {
+            //count++;            // Keep track of how many
+            stroke(5*i);
+            strokeWeight(1);
+            line(history.get(i).x,history.get(i).y,other.position.x,other.position.y);
+          }
+        }
+        popMatrix();
+        break;
+      }
     }
 
     /*//EFFET BULLES DE SAVON
@@ -193,7 +225,7 @@ class Boid {
   // Separation
   // Method checks for nearby boids and steers away
   PVector separate (ArrayList<Boid> boids) {
-    float desiredseparation = 20;
+    float desiredseparation = 100;
     PVector steer = new PVector(0, 0, 0);
     int count = 0;
     // For every boid in the system, check if it's too close
@@ -207,12 +239,12 @@ class Boid {
         diff.div(d);        // Weight by distance
         steer.add(diff);
         count++;            // Keep track of how many
-        if (boidType == BoidType.LINE)
-        {
-          stroke(255);
-          strokeWeight(1);
-          line(position.x,position.y,other.position.x,other.position.y);
-        }
+        //if (boidType == BoidType.LINE)
+        //{
+        //  stroke(255);
+        //  strokeWeight(1);
+        //  line(position.x,position.y,other.position.x,other.position.y);
+        //}
       }
     }
     // Average -- divide by how many

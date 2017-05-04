@@ -11,7 +11,7 @@ float c = 1.0;
 float m = 0.01;
 float maxforce = 0.03;    // Maximum steering force
 float maxspeed = 2;    // Maximum speed
-int N = 0;
+int N = 1;
 float masse = 1;
 
 int controllerSize = 200;
@@ -78,6 +78,7 @@ public void no_border() { borderType = BorderType.NOBORDER; }
 
 void draw() {
   background(0);
+  noStroke();
   fill(30,67,100);
   rect(controllerSize-4,0,4,height);
   ellipse(missionPoint.x,missionPoint.y,10,10);
