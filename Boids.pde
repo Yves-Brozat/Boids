@@ -16,13 +16,16 @@ float masse = 1;
 
 int controllerSize = 200;
 enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE;}
+enum BorderType {WALLS, BOUCLES, NOBORDER;}
 BoidType boidType;
+BorderType borderType;
 
 void setup() {
   fullScreen(P2D, SPAN);
   flock = new Flock();
   missionPoint = new PVector(controllerSize/2 + width/2,height/2);
   boidType = BoidType.LINE;
+  borderType = BorderType.WALLS;
   
   controller = new ControlP5(this);
   controller.addSlider("m")
@@ -58,11 +61,20 @@ void setup() {
             .setPosition(50,height-90);
   controller.addButton("line")
             .setPosition(50,height-110);
+  controller.addButton("walls")
+            .setPosition(50,height-150);
+  controller.addButton("boucles")
+            .setPosition(50,height-170);
+  controller.addButton("no_border")
+            .setPosition(50,height-190);
 }
 public void triangle(){  boidType = BoidType.TRIANGLE; }
 public void letter(){  boidType = BoidType.LETTER; }
 public void circle(){  boidType = BoidType.CIRCLE; }
 public void line(){  boidType = BoidType.LINE; }
+public void walls() { borderType = BorderType.WALLS; }
+public void boucles() { borderType = BorderType.BOUCLES; }
+public void no_border() { borderType = BorderType.NOBORDER; }
 
 void draw() {
   background(0);

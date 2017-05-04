@@ -148,29 +148,38 @@ class Boid {
 
  
   void borders() {
-    //MURS
-    if (position.x < controllerSize-r) {
-      velocity.x *= -1;
-      position.x = controllerSize-r;
+    switch (borderType)
+    {
+      case WALLS :
+      if (position.x < controllerSize-r) {
+        velocity.x *= -1;
+        position.x = controllerSize-r;
+      }
+      if (position.x > width+r) {
+        velocity.x *= -1;
+        position.x = width+r;
+      }
+      if (position.y < -r) {
+        velocity.y *= -1;
+        position.y = -r;
+      }
+      if (position.y > height+r) {
+        velocity.y *= -1;
+        position.y = height+r;
+      }
+      break;
+    
+      case BOUCLES : 
+      if (position.x < controllerSize-r) position.x = width+r;
+      if (position.y < -r) position.y = height+r;
+      if (position.x > width+r) position.x = controllerSize + r;
+      if (position.y > height+r) position.y = -r;
+      break;
+      
+      case NOBORDER : 
+      break;
     }
-    if (position.x > width+r) {
-      velocity.x *= -1;
-      position.x = width+r;
-    }
-    if (position.y < -r) {
-      velocity.y *= -1;
-      position.y = -r;
-    }
-    if (position.y > height+r) {
-      velocity.y *= -1;
-      position.y = height+r;
-    }
-    /*// BOUCLES
-    if (position.x < controllerSize-r) position.x = width+r;
-    if (position.y < -r) position.y = height+r;
-    if (position.x > width+r) position.x = r;
-    if (position.y > height+r) position.y = -r;
-    */
+    
     /*//SETTINGS POUR SILOUHETTE 
     if (position.x > width+r) {
       position.x = width-r;
@@ -184,7 +193,7 @@ class Boid {
   // Separation
   // Method checks for nearby boids and steers away
   PVector separate (ArrayList<Boid> boids) {
-    float desiredseparation = 100;
+    float desiredseparation = 20;
     PVector steer = new PVector(0, 0, 0);
     int count = 0;
     // For every boid in the system, check if it's too close
