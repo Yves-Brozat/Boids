@@ -15,4 +15,10 @@ class Flock {
     boids.add(b);
   }
 
+  void setSize(int n) {
+    if (flock.boids.size() < n)
+      flock.addBoid(new Boid(random(controllerSize,width),random(0,height)));
+    else if (flock.boids.size() > n)
+      flock.boids.remove(flock.boids.size()-1);
+  }
 }

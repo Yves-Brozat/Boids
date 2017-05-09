@@ -11,6 +11,7 @@ class Boid {
   ArrayList<PVector> history;
 
   Boid(float x, float y) {
+    history = new ArrayList<PVector>();
     acceleration = new PVector(0, 0);  
 
     // This is a new PVector method not yet implemented in JS
@@ -22,7 +23,7 @@ class Boid {
 
     position = new PVector(x, y);
     r = 2.0;
-    history = new ArrayList<PVector>();
+
   }
 
   void run(ArrayList<Boid> boids) {
@@ -45,10 +46,10 @@ class Boid {
     PVector coh = cohesion(boids);   // Cohesion
     PVector mis = mission(missionPoint);
     // Arbitrarily weight these forces
-    sep.mult(s);
-    ali.mult(a);
-    coh.mult(c);
-    mis.mult(m);
+    sep.mult(separation);
+    ali.mult(alignment);
+    coh.mult(cohesion);
+    mis.mult(attraction);
     // Add the force vectors to acceleration
     applyForce(sep);
     applyForce(ali);
@@ -62,7 +63,7 @@ class Boid {
     //Save old position in history
     PVector v = new PVector(position.x,position.y);
     history.add(v);
-    if (history.size() > 50) history.remove(0);
+    if (history.size() > trailLength) history.remove(0);
     // Update velocity
     velocity.add(acceleration);
     // Limit speed
@@ -107,8 +108,8 @@ class Boid {
         pushMatrix();
         translate(history.get(i).x, history.get(i).y);
         rotate(theta);
-        stroke(5*i);
-        strokeWeight(1);
+        fill(255,100/trailLength*i);
+        noStroke();
         beginShape(TRIANGLES);
         vertex(0, -r*2);
         vertex(-r, r*2);
@@ -123,7 +124,7 @@ class Boid {
         rotate(theta);
         textSize = int(map(missionPoint.dist(history.get(i)),1,height,0,60));
         textSize = constrain(textSize,1,60);
-        fill(5*i);
+        fill(255,100/trailLength*i);
         textSize(textSize);
         text(letter,0,0);
         popMatrix();
@@ -131,26 +132,27 @@ class Boid {
         
         case CIRCLE : //FUMEE
         pushMatrix();
-        translate(history.get(i).x, history.get(i).y);
-        rotate(theta);
-        textSize = int(map(missionPoint.dist(history.get(i)),0,width/2,255,0));
-        textSize = constrain(textSize,0,255);
-        stroke(textSize,10);
-        strokeWeight(textSize);
-        point(0,0);
+        textSize = int(map(missionPoint.dist(history.get(i)),1,height,50,0));
+        textSize = constrain(textSize,0,50);
+        fill(255,100/trailLength*i);
+        noStroke();
+        ellipse(history.get(i).x, history.get(i).y,textSize,textSize);
         popMatrix();
         break;
         
         case LINE : 
         pushMatrix();
         for (Boid other : boids) {
-          float d = PVector.dist(history.get(i), other.position);
-          //int count = 0;
-          if ((d > 0) && (d < 30)) {
-            //count++;            // Keep track of how many
-            stroke(5*i);
-            strokeWeight(1);
-            line(history.get(i).x,history.get(i).y,other.position.x,other.position.y);
+          if (other.history.size() >= trailLength)
+          {
+            float d = PVector.dist(history.get(i), other.history.get(i));
+            //int count = 0;
+            if ((d > 0) && (d < 30)) {
+              //count++;            // Keep track of how many
+              stroke(255,100/trailLength*i);
+              strokeWeight(1);
+              line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
+            }
           }
         }
         popMatrix();
