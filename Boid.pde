@@ -61,9 +61,11 @@ class Boid {
   void update() {
 
     //Save old position in history
+    while (history.size() > trailLength) {
+      history.remove(0);
+    }
     PVector v = new PVector(position.x,position.y);
     history.add(v);
-    if (history.size() > trailLength) history.remove(0);
     // Update velocity
     velocity.add(acceleration);
     // Limit speed
@@ -96,19 +98,15 @@ class Boid {
     float theta = velocity.heading2D() + radians(90);
     // heading2D() above is now heading() but leaving old syntax until Processing.js catches up
     
-    fill(0);
-    stroke(0);
-    pushMatrix();
-    
-    for ( int i=0; i< history.size(); i++)
+    switch(boidType)
     {
-      switch(boidType)
+      case TRIANGLE : //TRIANGLE EXAMPLE 
+      for ( int i=0; i< history.size(); i++)
       {
-        case TRIANGLE : //TRIANGLE EXAMPLE 
         pushMatrix();
         translate(history.get(i).x, history.get(i).y);
         rotate(theta);
-        fill(255,100/trailLength*i);
+        fill(255,100/history.size()*(i+1));
         noStroke();
         beginShape(TRIANGLES);
         vertex(0, -r*2);
@@ -116,48 +114,55 @@ class Boid {
         vertex(r, r*2);
         endShape();
         popMatrix();
-        break;
-        
-        case LETTER : //LETTRES SILOUHETTES
-        pushMatrix();
+      }
+      break;
+      
+      case LETTER : //LETTRES SILOUHETTES
+      for ( int i=0; i< history.size(); i++)
+      {
+        pushMatrix(); 
         translate(history.get(i).x, history.get(i).y);
         rotate(theta);
         textSize = int(map(missionPoint.dist(history.get(i)),1,height,0,60));
         textSize = constrain(textSize,1,60);
-        fill(255,100/trailLength*i);
+        fill(255,100/history.size()*(i+1));
+        noStroke();
         textSize(textSize);
         text(letter,0,0);
         popMatrix();
-        break;
-        
-        case CIRCLE : //FUMEE
+      }
+      break;
+      
+      case CIRCLE : //FUMEE
+      for ( int i=0; i< history.size(); i++)
+      {
         pushMatrix();
         textSize = int(map(missionPoint.dist(history.get(i)),1,height,50,0));
         textSize = constrain(textSize,0,50);
-        fill(255,100/trailLength*i);
+        fill(255,100/history.size()*(i+1));
         noStroke();
         ellipse(history.get(i).x, history.get(i).y,textSize,textSize);
         popMatrix();
-        break;
-        
-        case LINE : 
-        pushMatrix();
-        for (Boid other : boids) {
-          if (other.history.size() >= trailLength)
+      }
+      break;
+      
+      case LINE : 
+      for ( int i=0; i<history.size(); i++){
+        for (Boid other : boids) {    
+          if (other.history.size() >= history.size())
           {
             float d = PVector.dist(history.get(i), other.history.get(i));
             //int count = 0;
             if ((d > 0) && (d < 30)) {
               //count++;            // Keep track of how many
-              stroke(255,100/trailLength*i);
+              stroke(255,100/history.size()*(i+1));
               strokeWeight(1);
               line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
             }
-          }
+          }   
         }
-        popMatrix();
-        break;
       }
+      break;
     }
 
     /*//EFFET BULLES DE SAVON
@@ -173,11 +178,7 @@ class Boid {
     stroke(255-textSize,10);
     strokeWeight(textSize);
     point(0,0);
-    */
-
-    
-    popMatrix();
-    
+    */   
   }
 
  

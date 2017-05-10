@@ -38,8 +38,7 @@ void setup() {
 void draw() {
   background(0);
   drawLayout();
-  flock.run();
-  flock.setSize(N);  
+  flock.run(); 
 }
 
 void mouseDragged()
@@ -114,8 +113,8 @@ public void gui()
   
   controller.addRadioButton("Visual")
             .setPosition(10,10)
-            .setItemWidth(10)
-            .setItemHeight(10)
+            .setItemWidth(20)
+            .setItemHeight(20)
             .addItem("triangle", 0)
             .addItem("letter", 1)
             .addItem("circle", 2) 
@@ -125,6 +124,12 @@ public void gui()
             .moveTo(g3)
             ;
  
+  controller.addSlider("trailLength")
+            .setPosition(10,100)
+            .setRange(1,20)
+            .moveTo(g3)
+            ; 
+            
   //Group 4 : Borders parameters
   Group g4 = controller.addGroup("Borders")
                        .setBackgroundColor(color(0, 64))
@@ -133,8 +138,8 @@ public void gui()
  
   controller.addRadioButton("Borders type")
             .setPosition(10,10)
-            .setItemWidth(10)
-            .setItemHeight(10)
+            .setItemWidth(20)
+            .setItemHeight(20)
             .addItem("walls", 0)
             .addItem("boucles", 1)
             .addItem("no_border", 2)

@@ -6,6 +6,7 @@ class Flock {
   }
 
   void run() {
+    setSize(N);
     for (Boid b : boids) {
       b.run(boids);  // Passing the entire list of boids to each boid individually
     }
