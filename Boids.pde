@@ -20,6 +20,7 @@ float masse = 1;
 
 //Visual parameters
 int trailLength = 10;
+int lineSize = 30;
 enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE;}
 BoidType boidType;
 enum BorderType {WALLS, BOUCLES, NOBORDER;}
@@ -129,6 +130,13 @@ public void gui()
             .setRange(1,20)
             .moveTo(g3)
             ; 
+  
+  controller.addSlider("lineSize")
+            .setPosition(80,72)
+            .setSize(70,20)
+            .setRange(10,100)
+            .moveTo(g3)
+            ;
             
   //Group 4 : Borders parameters
   Group g4 = controller.addGroup("Borders")

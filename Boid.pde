@@ -10,6 +10,7 @@ class Boid {
   int textSize = 12;
   ArrayList<PVector> history;
 
+
   Boid(float x, float y) {
     history = new ArrayList<PVector>();
     acceleration = new PVector(0, 0);  
@@ -147,13 +148,13 @@ class Boid {
       break;
       
       case LINE : 
-      for ( int i=0; i<history.size(); i++){
+      for ( int i=0; i<history.size()-1; i++){
         for (Boid other : boids) {    
           if (other.history.size() >= history.size())
           {
             float d = PVector.dist(history.get(i), other.history.get(i));
             //int count = 0;
-            if ((d > 0) && (d < 30)) {
+            if ((d > 0) && (d < lineSize)) {
               //count++;            // Keep track of how many
               stroke(255,100/history.size()*(i+1));
               strokeWeight(1);
