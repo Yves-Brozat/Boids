@@ -1,3 +1,16 @@
+/*
+YVES BROZAT - BOIDS : MODELE PHYSIQUE DE SYSTEME PARTICULAIRE
+
+IDEES : 
+- Creer des bangs (WALL puis NO_BORDER, MASSE = 0 puis normal, FORCE = 0, SPEED = 0, ...) pour une interaction ponctuelle (type break) ou répétitive (type beat)
+- Creer des autres objets (des brosses ?) type Attractor, Repulsor, Source, Blackhole pour interaction de tracking
+- Creer des decoupes ronde, triangle et carre pour remplacer les borders de la fenetre et contenir les éléments
+- Idem pour repousser les éléments (interaction de tracking)
+- Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
+- Ajouter slider pour régler la taille des zones de forces de groupe
+- Utiliser la donnée du nombre de voisins proches (pour un changement visuel, une fusion ou une fission)
+*/
+
 import controlP5.*;
 
 ControlP5 controller;
