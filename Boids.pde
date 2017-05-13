@@ -9,7 +9,9 @@ IDEES :
 - Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
 - Ajouter slider pour régler la taille des zones de forces de groupe
 - Utiliser la donnée du nombre de voisins proches (pour un changement visuel, une fusion ou une fission)
-*/
+- Création de chemins à suivre (droite, courbe, cercle)
+- Creer un interupteur noir/blanc
+- Réflexion sur la couleur : aléatoire, changement de teinte via 2 sliders sur l'ensemble des couleurs*/
 
 import controlP5.*;
 
@@ -26,13 +28,13 @@ float attraction = 0.01;
 PVector missionPoint; 
 
 //Global physical parameters
-int N = 1; // Number of boid
+int N = 0; // Number of boid
 float maxforce = 0.03;    // Maximum steering force
 float maxspeed = 2;    // Maximum speed
 float masse = 1;
 
 //Visual parameters
-int trailLength = 10;
+int trailLength = 1;
 int lineSize = 30;
 enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE;}
 BoidType boidType;
@@ -41,7 +43,7 @@ BorderType borderType;
 String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
 
 void setup() {
-  fullScreen(P2D, SPAN);
+  size(1366,703,P2D);
   flock = new Flock();
   missionPoint = new PVector(controllerSize/2 + width/2,height/2);
   
@@ -134,7 +136,7 @@ public void gui()
             .addItem("circle", 2) 
             .addItem("line", 3)
             .setColorLabel(color(255))
-            .activate(0)
+            .activate(0) //Triangle par défaut
             .moveTo(g3)
             ;
  
@@ -165,7 +167,7 @@ public void gui()
             .addItem("boucles", 1)
             .addItem("no_border", 2)
             .setColorLabel(color(255))
-            .activate(2)
+            .activate(1) //Boucle par defaut
             .moveTo(g4)
             ;
             
