@@ -25,6 +25,7 @@ float separation = 1.0;
 float alignment = 1.0;
 float cohesion = 1.0;
 float attraction = 0.01;
+float gravity = 9.81;
 PVector missionPoint; 
 
 //Global physical parameters
@@ -119,7 +120,12 @@ public void gui()
             .setPosition(10,40)
             .setRange(0.01,4)
             .moveTo(g2)
-            ;          
+            ;
+  controller.addSlider("gravity")
+            .setPosition(10,50)
+            .setRange(0.01,20)
+            .moveTo(g2)
+            ;
 
   //Group 3 : Visual parameters
   Group g3 = controller.addGroup("Visual parameters")

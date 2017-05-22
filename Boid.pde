@@ -46,6 +46,7 @@ class Boid {
     PVector ali = align(boids);      // Alignment
     PVector coh = cohesion(boids);   // Cohesion
     PVector mis = mission(missionPoint);
+    PVector gra = new PVector(0,masse*gravity);
     // Arbitrarily weight these forces
     sep.mult(separation);
     ali.mult(alignment);
@@ -56,6 +57,7 @@ class Boid {
     applyForce(ali);
     applyForce(coh);
     applyForce(mis);
+    applyForce(gra);
   }
 
   // Method to update position
