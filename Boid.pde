@@ -5,77 +5,96 @@ class Boid {
   PVector position;
   PVector velocity;
   PVector acceleration;
+  float masse;
+  PVector sumForces;
   float r;
-  String letter = alphabet[int(random(0,alphabet.length))];
-  int textSize = 12;
+  String letter;
   ArrayList<PVector> history;
 
 
   Boid(float x, float y) {
-    history = new ArrayList<PVector>();
-    acceleration = new PVector(0, 0);  
-
-    // This is a new PVector method not yet implemented in JS
-    // velocity = PVector.random2D();
-
-    // Leaving the code temporarily this way so that this example runs in JS
-    float angle = random(TWO_PI);
-    velocity = new PVector(cos(angle), sin(angle));
-
     position = new PVector(x, y);
+    velocity = PVector.random2D();    
+    acceleration = new PVector();
+    masse = 1.0;
+    sumForces = new PVector(); 
     r = 2.0;
-
+    letter = alphabet[int(random(0,alphabet.length))];
+    history = new ArrayList<PVector>();   
   }
 
   void run(ArrayList<Boid> boids) {
-    flock(boids);
+    savePosition();
+    applyFlock(boids);
+    applyAttraction(missionPoint);
+    applyGravity();
+    applyFriction();
     update();
     borders();
     render(boids);
   }
 
-  void applyForce(PVector force) {
-    // We could add mass here if we want A = F / M
-    acceleration.add(force);
-    acceleration.div(masse);
+  void applyGravity(){
+    PVector g = new PVector(cos(radians(gravity_Angle+90)),sin(radians(gravity_Angle+90)));
+    g.mult(gravity);
+    g.mult(masse);
+    sumForces.add(g);
   }
-
+  
+  void applyFriction(){
+     PVector friction = new PVector(velocity.x,velocity.y);
+     friction.normalize();
+     float c = -velocity.mag()*r*r;
+     friction.mult(c);
+     friction.mult(FRICTION);
+     sumForces.add(friction);
+     
+  }
+  
+  void applyAttraction(PVector v){
+    PVector mis = mission(v);
+    mis.mult(attraction);
+    sumForces.add(mis);
+  }
   // We accumulate a new acceleration each time based on three rules
-  void flock(ArrayList<Boid> boids) {
+  void applyFlock(ArrayList<Boid> boids) {
     PVector sep = separate(boids);   // Separation
     PVector ali = align(boids);      // Alignment
     PVector coh = cohesion(boids);   // Cohesion
-    PVector mis = mission(missionPoint);
-    PVector gra = new PVector(0,masse*gravity);
+
     // Arbitrarily weight these forces
     sep.mult(separation);
     ali.mult(alignment);
     coh.mult(cohesion);
-    mis.mult(attraction);
     // Add the force vectors to acceleration
-    applyForce(sep);
-    applyForce(ali);
-    applyForce(coh);
-    applyForce(mis);
-    applyForce(gra);
+    sumForces.add(sep);
+    sumForces.add(ali);
+    sumForces.add(coh);
   }
-
-  // Method to update position
-  void update() {
-
-    //Save old position in history
+  
+  // Save old position in history
+  void savePosition(){
     while (history.size() > trailLength) {
       history.remove(0);
     }
     PVector v = new PVector(position.x,position.y);
     history.add(v);
+  }
+  
+  // Method to update position
+  void update() {
+    // Update masse
+    float newMasse = masse * MASSE;  //masse : initial masse of the particular boid. MASSE : coefficient on slider "masse" to change weight of all boids
+    // Newton's 2nd law
+    acceleration = PVector.mult(sumForces,1/newMasse);    
     // Update velocity
     velocity.add(acceleration);
     // Limit speed
     velocity.limit(maxspeed);
+    // Update position
     position.add(velocity);
-    // Reset accelertion to 0 each cycle
-    acceleration.mult(0);
+    // Reset forces to 0 each cycle
+    sumForces.mult(0);
   }
 
   // A method that calculates and applies a steering force towards a target
@@ -104,6 +123,7 @@ class Boid {
     switch(boidType)
     {
       case TRIANGLE : //TRIANGLE EXAMPLE 
+      r = 2.0;
       for ( int i=0; i< history.size(); i++)
       {
         pushMatrix();
@@ -126,11 +146,11 @@ class Boid {
         pushMatrix(); 
         translate(history.get(i).x, history.get(i).y);
         rotate(theta);
-        textSize = int(map(missionPoint.dist(history.get(i)),1,height,0,60));
-        textSize = constrain(textSize,1,60);
+        r = map(missionPoint.dist(history.get(i)),1,height,0,2);
+        r = constrain(r,0,2);
         fill(255,100/history.size()*(i+1));
         noStroke();
-        textSize(textSize);
+        textSize(25*r+1);
         text(letter,0,0);
         popMatrix();
       }
@@ -140,16 +160,17 @@ class Boid {
       for ( int i=0; i< history.size(); i++)
       {
         pushMatrix();
-        textSize = int(map(missionPoint.dist(history.get(i)),1,height,50,0));
-        textSize = constrain(textSize,0,50);
+        r = map(missionPoint.dist(history.get(i)),1,height,2,0);
+        r = constrain(r,0,2);
         fill(255,100/history.size()*(i+1));
         noStroke();
-        ellipse(history.get(i).x, history.get(i).y,textSize,textSize);
+        ellipse(history.get(i).x, history.get(i).y,25*r,25*r);
         popMatrix();
       }
       break;
       
       case LINE : 
+      r = 2.0;
       for ( int i=0; i<history.size()-1; i++){
         for (Boid other : boids) {    
           if (other.history.size() >= history.size())
@@ -169,17 +190,17 @@ class Boid {
     }
 
     /*//EFFET BULLES DE SAVON
-    textSize = int(map(missionPoint.dist(position),1,height/2,255,1));
-    textSize = constrain(textSize,1,255);
-    stroke(255-textSize);
-    strokeWeight(textSize);
+    r = int(map(missionPoint.dist(position),1,height/2,255,1));
+    r = constrain(r,1,255);
+    stroke(255-r);
+    strokeWeight(r);
     point(0,0);
     */
     /*//NUAGEUX, VENT
-    textSize = int(map(missionPoint.dist(position),1,height/2,255,50));
-    textSize = constrain(textSize,50,255);
-    stroke(255-textSize,10);
-    strokeWeight(textSize);
+    r = int(map(missionPoint.dist(position),1,height/2,255,50));
+    r = constrain(r,50,255);
+    stroke(255-r,10);
+    strokeWeight(r);
     point(0,0);
     */   
   }
@@ -245,12 +266,6 @@ class Boid {
         diff.div(d);        // Weight by distance
         steer.add(diff);
         count++;            // Keep track of how many
-        //if (boidType == BoidType.LINE)
-        //{
-        //  stroke(255);
-        //  strokeWeight(1);
-        //  line(position.x,position.y,other.position.x,other.position.y);
-        //}
       }
     }
     // Average -- divide by how many

@@ -25,14 +25,17 @@ float separation = 1.0;
 float alignment = 1.0;
 float cohesion = 1.0;
 float attraction = 0.01;
-float gravity = 9.81;
+float gravity = 1.0;
+int gravity_Angle = 0;
 PVector missionPoint; 
+float FRICTION = 0.001;
 
 //Global physical parameters
 int N = 0; // Number of boid
 float maxforce = 0.03;    // Maximum steering force
-float maxspeed = 2;    // Maximum speed
-float masse = 1;
+float maxspeed = 2.0;    // Maximum speed
+float MASSE = 1.0;
+
 
 //Visual parameters
 int trailLength = 1;
@@ -89,7 +92,7 @@ public void gui()
             .setRange(0.01,10)
             .moveTo(g1)
             ;
-  controller.addSlider("masse")
+  controller.addSlider("MASSE")
             .setPosition(10,40)
             .setRange(0.1,2)
             .moveTo(g1)
@@ -101,29 +104,43 @@ public void gui()
                        .setBackgroundHeight(150)
                        ;                      
                        
-  controller.addSlider("attraction")
+  controller.addSlider("separation")
             .setPosition(10,10)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
-  controller.addSlider("separation")
+  controller.addSlider("alignment")
             .setPosition(10,20)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
-  controller.addSlider("alignment")
+  controller.addSlider("cohesion")
             .setPosition(10,30)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
-  controller.addSlider("cohesion")
-            .setPosition(10,40)
+ controller.addSlider("attraction")
+            .setPosition(10,50)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
   controller.addSlider("gravity")
-            .setPosition(10,50)
-            .setRange(0.01,20)
+            .setPosition(10,70)
+            .setRange(0.01,4)
+            .moveTo(g2)
+            ;
+  controller.addKnob("gravity_Angle")
+            .setPosition(50,90)
+            .setResolution(100)
+            .setRange(0,360)
+            .setAngleRange(2*PI)
+            .setStartAngle(0.5*PI)
+            .setRadius(10)
+            .moveTo(g2)
+            ;
+  controller.addSlider("FRICTION")
+            .setPosition(10,110)
+            .setRange(0.001,0.1)
             .moveTo(g2)
             ;
 
