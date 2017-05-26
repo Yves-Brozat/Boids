@@ -1,12 +1,14 @@
 /*
 YVES BROZAT - BOIDS : MODELE PHYSIQUE DE SYSTEME PARTICULAIRE
 
+EN COURS :
+- Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
+
 IDEES : 
 - Creer des bangs (WALL puis NO_BORDER, MASSE = 0 puis normal, FORCE = 0, SPEED = 0, ...) pour une interaction ponctuelle (type break) ou répétitive (type beat)
 - Creer des autres objets (des brosses ?) type Attractor, Repulsor, Source, Blackhole pour interaction de tracking
 - Creer des decoupes ronde, triangle et carre pour remplacer les borders de la fenetre et contenir les éléments
 - Idem pour repousser les éléments (interaction de tracking)
-- Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
 - Ajouter slider pour régler la taille des zones de forces de groupe
 - Utiliser la donnée du nombre de voisins proches (pour un changement visuel, une fusion ou une fission)
 - Création de chemins à suivre (droite, courbe, cercle)
@@ -40,7 +42,8 @@ float MASSE = 1.0;
 //Visual parameters
 int trailLength = 1;
 int lineSize = 30;
-enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE;}
+int curveSize = 30;
+enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE, CURVE;}
 BoidType boidType;
 enum BorderType {WALLS, BOUCLES, NOBORDER;}
 BorderType borderType;
@@ -158,19 +161,26 @@ public void gui()
             .addItem("letter", 1)
             .addItem("circle", 2) 
             .addItem("line", 3)
+            .addItem("curve", 4)
             .setColorLabel(color(255))
             .activate(0) //Triangle par défaut
             .moveTo(g3)
             ;
  
   controller.addSlider("trailLength")
-            .setPosition(10,100)
+            .setPosition(10,120)
             .setRange(1,20)
             .moveTo(g3)
             ; 
   
   controller.addSlider("lineSize")
             .setPosition(80,72)
+            .setSize(70,20)
+            .setRange(10,100)
+            .moveTo(g3)
+            ;
+  controller.addSlider("curveSize")
+            .setPosition(80,94)
             .setSize(70,20)
             .setRange(10,100)
             .moveTo(g3)
@@ -230,7 +240,8 @@ void controlEvent(ControlEvent theEvent) {
       case(0):boidType = BoidType.TRIANGLE;break;
       case(1):boidType = BoidType.LETTER;break;
       case(2):boidType = BoidType.CIRCLE;break;
-      case(3):boidType = BoidType.LINE;
+      case(3):boidType = BoidType.LINE;break;
+      case(4):boidType = BoidType.CURVE;break;
     }
   }
 }

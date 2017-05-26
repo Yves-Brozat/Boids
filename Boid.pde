@@ -187,6 +187,29 @@ class Boid {
         }
       }
       break;
+      
+      case CURVE : 
+      r = 2.0;
+      for ( int i=0; i<history.size()-1; i++){
+        beginShape();
+        curveVertex(history.get(i).x,history.get(i).y);
+        for (Boid other : boids) {
+        if (other.history.size() >= history.size())
+          {
+            float f = PVector.dist(history.get(i), other.history.get(i));
+            //int count = 0;
+            if ((f > 0) && (f < curveSize)) {
+              //count++;            // Keep track of how many
+              stroke(255,100/history.size()*(i+1));
+              noFill();
+              strokeWeight(1);
+              curveVertex(other.history.get(i).x,other.history.get(i).y);
+              //line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
+            }
+          } 
+        }
+        endShape();
+      }
     }
 
     /*//EFFET BULLES DE SAVON
