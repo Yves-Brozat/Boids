@@ -3,10 +3,10 @@ YVES BROZAT - BOIDS : MODELE PHYSIQUE DE SYSTEME PARTICULAIRE
 
 EN COURS :
 - Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
+- Creer des autres objets (des brosses ?) type Attractor, Repulsor, Source, Blackhole pour interaction de tracking
 
 IDEES : 
 - Creer des bangs (WALL puis NO_BORDER, MASSE = 0 puis normal, FORCE = 0, SPEED = 0, ...) pour une interaction ponctuelle (type break) ou répétitive (type beat)
-- Creer des autres objets (des brosses ?) type Attractor, Repulsor, Source, Blackhole pour interaction de tracking
 - Creer des decoupes ronde, triangle et carre pour remplacer les borders de la fenetre et contenir les éléments
 - Idem pour repousser les éléments (interaction de tracking)
 - Ajouter slider pour régler la taille des zones de forces de groupe
@@ -18,8 +18,12 @@ IDEES :
 import controlP5.*;
 
 ControlP5 controller;
+Slider sliderN;
+CheckBox src;
+CheckBox mag;
 Accordion accordion;
 Flock flock;
+
 int controllerSize = 200;
 
 //Forces parameters
@@ -29,21 +33,20 @@ float cohesion = 1.0;
 float attraction = 0.01;
 float gravity = 1.0;
 int gravity_Angle = 0;
-PVector missionPoint; 
 float FRICTION = 0.001;
 
 //Global physical parameters
-int N = 0; // Number of boid
 float maxforce = 0.03;    // Maximum steering force
 float maxspeed = 2.0;    // Maximum speed
 float MASSE = 1.0;
+int LIFETIME = 1000;
 
 
 //Visual parameters
 int trailLength = 1;
-int lineSize = 30;
-int curveSize = 30;
-enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE, CURVE;}
+float size = 1.0;
+
+enum BoidType {TRIANGLE, LETTER, CIRCLE, BUBBLE, LINE, CURVE;}
 BoidType boidType;
 enum BorderType {WALLS, BOUCLES, NOBORDER;}
 BorderType borderType;
@@ -52,22 +55,31 @@ String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O"
 void setup() {
   size(1366,703,P2D);
   flock = new Flock();
-  missionPoint = new PVector(controllerSize/2 + width/2,height/2);
+  //mag = new Magnet(controllerSize/2 + width/2,height/3, flock);
+
   
+  //src = new Source(controllerSize/2 + width/2,height/2, flock);
   gui();
   
 }
 
 void draw() {
   background(0);
-  drawLayout();
+  drawLayout();  
   flock.run(); 
+
 }
 
-void mouseDragged()
-{
-  if (mouseX>controllerSize)
-    missionPoint.set(mouseX,mouseY);
+void mouseDragged(){
+  flock.mouseDragged();
+}
+
+void mousePressed(){
+  flock.mousePressed();
+}
+
+void mouseReleased(){
+  flock.mouseReleased();
 }
 
 public void gui()
@@ -80,7 +92,7 @@ public void gui()
                        .setBackgroundHeight(150)
                        ;
                        
-  controller.addSlider("N")
+  sliderN = controller.addSlider("N")
             .setPosition(10,10)
             .setRange(0,1000)
             .moveTo(g1)
@@ -100,7 +112,32 @@ public void gui()
             .setRange(0.1,2)
             .moveTo(g1)
             ;
+  controller.addSlider("LIFETIME")
+            .setPosition(10,50)
+            .setRange(1,1000)
+            .moveTo(g1)
+            ;
+  src = controller.addCheckBox("Sources")
+            .setPosition(10,74)
+            .setSize(25,25)
+            .setItemsPerRow(4)
+            .addItem("S1", 0)
+            .addItem("S2", 1)
+            .addItem("S3", 2)
+            .addItem("Source", 3)      
+            .moveTo(g1)
+            ;
   
+  mag = controller.addCheckBox("Magnets")
+            .setPosition(10,100)
+            .setSize(25,25)
+            .setItemsPerRow(4)
+            .addItem("M1", 0)
+            .addItem("M2", 1)
+            .addItem("M3", 2)
+            .addItem("Magnet", 3)      
+            .moveTo(g1)
+            ;
   //Group 2 : Forces
   Group g2 = controller.addGroup("Forces")
                        .setBackgroundColor(color(0, 64))
@@ -142,7 +179,7 @@ public void gui()
             .moveTo(g2)
             ;
   controller.addSlider("FRICTION")
-            .setPosition(10,110)
+            .setPosition(10,130)
             .setRange(0.001,0.1)
             .moveTo(g2)
             ;
@@ -150,7 +187,7 @@ public void gui()
   //Group 3 : Visual parameters
   Group g3 = controller.addGroup("Visual parameters")
                        .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(150)
+                       .setBackgroundHeight(170)
                        ;  
   
   controller.addRadioButton("Visual")
@@ -160,31 +197,25 @@ public void gui()
             .addItem("triangle", 0)
             .addItem("letter", 1)
             .addItem("circle", 2) 
-            .addItem("line", 3)
-            .addItem("curve", 4)
+            .addItem("bubble",3)
+            .addItem("line", 4)
+            .addItem("curve", 5)
             .setColorLabel(color(255))
             .activate(0) //Triangle par défaut
             .moveTo(g3)
             ;
  
   controller.addSlider("trailLength")
-            .setPosition(10,120)
+            .setPosition(10,140)
             .setRange(1,20)
             .moveTo(g3)
             ; 
   
-  controller.addSlider("lineSize")
-            .setPosition(80,72)
-            .setSize(70,20)
-            .setRange(10,100)
+  controller.addSlider("size")
+            .setPosition(10,150)
+            .setRange(0.1,10)
             .moveTo(g3)
-            ;
-  controller.addSlider("curveSize")
-            .setPosition(80,94)
-            .setSize(70,20)
-            .setRange(10,100)
-            .moveTo(g3)
-            ;
+            ;           
             
   //Group 4 : Borders parameters
   Group g4 = controller.addGroup("Borders")
@@ -222,11 +253,11 @@ public void drawLayout() {
   noStroke();
   fill(30,67,100);
   //rect(controllerSize-4,0,4,height);
-  ellipse(missionPoint.x,missionPoint.y,10,10);
+  //ellipse(missionPoint.x,missionPoint.y,10,10);
 }
 
 void controlEvent(ControlEvent theEvent) { 
-  println (theEvent.getName() + " " + theEvent.getValue() + " " );
+  //println (theEvent.getName() + " " + theEvent.getValue() + " " );
   if (theEvent.getName() == "Borders type") {
     switch(int(theEvent.getValue())) {
       case(0):borderType = BorderType.WALLS;break;
@@ -240,8 +271,21 @@ void controlEvent(ControlEvent theEvent) {
       case(0):boidType = BoidType.TRIANGLE;break;
       case(1):boidType = BoidType.LETTER;break;
       case(2):boidType = BoidType.CIRCLE;break;
-      case(3):boidType = BoidType.LINE;break;
-      case(4):boidType = BoidType.CURVE;break;
+      case(3):boidType = BoidType.BUBBLE;break;
+      case(4):boidType = BoidType.LINE;break;
+      case(5):boidType = BoidType.CURVE;break;
+    }
+  } 
+  
+  if (theEvent.isFrom(src)){
+    for (int i = 0; i<src.getArrayValue().length; i++){
+      flock.sources.get(i).isActivated = src.getState(i);
+    }
+  }
+  
+  if (theEvent.isFrom(mag)){
+    for (int i = 0; i<mag.getArrayValue().length; i++){
+      flock.magnets.get(i).isActivated = mag.getState(i);
     }
   }
 }

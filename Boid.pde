@@ -1,15 +1,15 @@
-// The Boid class
-
 class Boid {
 
   PVector position;
   PVector velocity;
   PVector acceleration;
   float masse;
+  color c;
   PVector sumForces;
   float r;
   String letter;
   ArrayList<PVector> history;
+  int lifetime;
 
 
   Boid(float x, float y) {
@@ -17,23 +17,29 @@ class Boid {
     velocity = PVector.random2D();    
     acceleration = new PVector();
     masse = 1.0;
+    c = 255;
     sumForces = new PVector(); 
-    r = 2.0;
+    r = random(0,2.0);
     letter = alphabet[int(random(0,alphabet.length))];
     history = new ArrayList<PVector>();   
+    lifetime = 0;
   }
 
   void run(ArrayList<Boid> boids) {
     savePosition();
     applyFlock(boids);
-    applyAttraction(missionPoint);
     applyGravity();
     applyFriction();
     update();
     borders();
     render(boids);
+    lifetime++;
   }
 
+  boolean isDead(){
+    return (lifetime > LIFETIME) ? true : false;
+  }
+  
   void applyGravity(){
     PVector g = new PVector(cos(radians(gravity_Angle+90)),sin(radians(gravity_Angle+90)));
     g.mult(gravity);
@@ -120,16 +126,18 @@ class Boid {
     float theta = velocity.heading2D() + radians(90);
     // heading2D() above is now heading() but leaving old syntax until Processing.js catches up
     
+    c = color(map(lifetime,0,LIFETIME,255,0));
+    
     switch(boidType)
     {
       case TRIANGLE : //TRIANGLE EXAMPLE 
-      r = 2.0;
+      r = size;
       for ( int i=0; i< history.size(); i++)
       {
         pushMatrix();
         translate(history.get(i).x, history.get(i).y);
         rotate(theta);
-        fill(255,100/history.size()*(i+1));
+        fill(c,100/history.size()*(i+1));
         noStroke();
         beginShape(TRIANGLES);
         vertex(0, -r*2);
@@ -146,11 +154,11 @@ class Boid {
         pushMatrix(); 
         translate(history.get(i).x, history.get(i).y);
         rotate(theta);
-        r = map(missionPoint.dist(history.get(i)),1,height,0,2);
-        r = constrain(r,0,2);
-        fill(255,100/history.size()*(i+1));
+        //r = map(mag.position.dist(history.get(i)),1,height,0,2);
+        //r = constrain(r,0,1);
+        fill(c,100/history.size()*(i+1));
         noStroke();
-        textSize(25*r+1);
+        textSize(10*r*size+1);
         text(letter,0,0);
         popMatrix();
       }
@@ -160,11 +168,23 @@ class Boid {
       for ( int i=0; i< history.size(); i++)
       {
         pushMatrix();
-        r = map(missionPoint.dist(history.get(i)),1,height,2,0);
-        r = constrain(r,0,2);
-        fill(255,100/history.size()*(i+1));
+        //r = map(mag.position.dist(history.get(i)),1,height,2,0);
+        //r = constrain(r,0,1);
+        fill(c,100/history.size()*(i+1));
         noStroke();
-        ellipse(history.get(i).x, history.get(i).y,25*r,25*r);
+        ellipse(history.get(i).x, history.get(i).y,10*r*size,10*r*size);
+        popMatrix();
+      }
+      break;
+      
+      case BUBBLE : 
+      for ( int i=0; i< history.size(); i++)
+      {
+        pushMatrix();
+        r = random(0,1);
+        fill(c,100/history.size()*(i+1));
+        noStroke();
+        ellipse(history.get(i).x, history.get(i).y,25*r*size,25*r*size);
         popMatrix();
       }
       break;
@@ -177,9 +197,9 @@ class Boid {
           {
             float d = PVector.dist(history.get(i), other.history.get(i));
             //int count = 0;
-            if ((d > 0) && (d < lineSize)) {
+            if ((d > 0) && (d < 20*size)) {
               //count++;            // Keep track of how many
-              stroke(255,100/history.size()*(i+1));
+              stroke(c,100/history.size()*(i+1));
               strokeWeight(1);
               line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
             }
@@ -198,9 +218,9 @@ class Boid {
           {
             float f = PVector.dist(history.get(i), other.history.get(i));
             //int count = 0;
-            if ((f > 0) && (f < curveSize)) {
+            if ((f > 0) && (f < 20*size)) {
               //count++;            // Keep track of how many
-              stroke(255,100/history.size()*(i+1));
+              stroke(c,100/history.size()*(i+1));
               noFill();
               strokeWeight(1);
               curveVertex(other.history.get(i).x,other.history.get(i).y);
