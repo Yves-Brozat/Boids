@@ -1,4 +1,4 @@
-class Boid {
+abstract class Boid {
 
   PVector position;
   PVector velocity;
@@ -20,7 +20,7 @@ class Boid {
     c = 255;
     sumForces = new PVector(); 
     r = random(0,2.0);
-    letter = alphabet[int(random(0,alphabet.length))];
+    letter = alphabet.get(int(random(alphabet.size())));
     history = new ArrayList<PVector>();   
     lifetime = 0;
   }
@@ -57,6 +57,10 @@ class Boid {
      
   }
   
+  void applyRepulsion(PVector v){
+    PVector rep = mission(v.rotate(PI));
+    sumForces.add(rep);
+  }
   void applyAttraction(PVector v){
     PVector mis = mission(v);
     mis.mult(attraction);
@@ -121,116 +125,113 @@ class Boid {
     return steer;
   }
 
-  void render(ArrayList<Boid> boids) {
-    // Draw a triangle rotated in the direction of velocity
-    float theta = velocity.heading2D() + radians(90);
-    // heading2D() above is now heading() but leaving old syntax until Processing.js catches up
+  abstract void render(ArrayList<Boid> boids); 
+    //float theta = velocity.heading() + radians(90);
+    //c = color(map(lifetime,0,LIFETIME,255,0));
     
-    c = color(map(lifetime,0,LIFETIME,255,0));
-    
-    switch(boidType)
-    {
-      case TRIANGLE : //TRIANGLE EXAMPLE 
-      r = size;
-      for ( int i=0; i< history.size(); i++)
-      {
-        pushMatrix();
-        translate(history.get(i).x, history.get(i).y);
-        rotate(theta);
-        fill(c,100/history.size()*(i+1));
-        noStroke();
-        beginShape(TRIANGLES);
-        vertex(0, -r*2);
-        vertex(-r, r*2);
-        vertex(r, r*2);
-        endShape();
-        popMatrix();
-      }
-      break;
+    //switch(boidType)
+    //{
+    //  case TRIANGLE : //TRIANGLE EXAMPLE 
+    //  r = size;
+    //  for ( int i=0; i< history.size(); i++)
+    //  {
+    //    pushMatrix();
+    //    translate(history.get(i).x, history.get(i).y);
+    //    rotate(theta);
+    //    fill(c,100/history.size()*(i+1));
+    //    noStroke();
+    //    beginShape(TRIANGLES);
+    //    vertex(0, -r*2);
+    //    vertex(-r, r*2);
+    //    vertex(r, r*2);
+    //    endShape();
+    //    popMatrix();
+    //  }
+    //  break;
       
-      case LETTER : //LETTRES SILOUHETTES
-      for ( int i=0; i< history.size(); i++)
-      {
-        pushMatrix(); 
-        translate(history.get(i).x, history.get(i).y);
-        rotate(theta);
-        //r = map(mag.position.dist(history.get(i)),1,height,0,2);
-        //r = constrain(r,0,1);
-        fill(c,100/history.size()*(i+1));
-        noStroke();
-        textSize(10*r*size+1);
-        text(letter,0,0);
-        popMatrix();
-      }
-      break;
+    //  case LETTER : //LETTRES SILOUHETTES
+    //  for ( int i=0; i< history.size(); i++)
+    //  {
+    //    pushMatrix(); 
+    //    translate(history.get(i).x, history.get(i).y);
+    //    rotate(theta);
+    //    //r = map(mag.position.dist(history.get(i)),1,height,0,2);
+    //    //r = constrain(r,0,1);
+    //    fill(c,100/history.size()*(i+1));
+    //    noStroke();
+    //    textSize(10*r*size+1);
+    //    text(letter,0,0);
+    //    popMatrix();
+    //  }
+    //  break;
       
-      case CIRCLE : //FUMEE
-      for ( int i=0; i< history.size(); i++)
-      {
-        pushMatrix();
-        //r = map(mag.position.dist(history.get(i)),1,height,2,0);
-        //r = constrain(r,0,1);
-        fill(c,100/history.size()*(i+1));
-        noStroke();
-        ellipse(history.get(i).x, history.get(i).y,10*r*size,10*r*size);
-        popMatrix();
-      }
-      break;
+    //  case CIRCLE : //FUMEE
+    //  for ( int i=0; i< history.size(); i++)
+    //  {
+    //    pushMatrix();
+    //    //r = map(mag.position.dist(history.get(i)),1,height,2,0);
+    //    //r = constrain(r,0,1);
+    //    fill(c,100/history.size()*(i+1));
+    //    noStroke();
+    //    ellipse(history.get(i).x, history.get(i).y,10*r*size,10*r*size);
+    //    popMatrix();
+    //  }
+    //  break;
       
-      case BUBBLE : 
-      for ( int i=0; i< history.size(); i++)
-      {
-        pushMatrix();
-        r = random(0,1);
-        fill(c,100/history.size()*(i+1));
-        noStroke();
-        ellipse(history.get(i).x, history.get(i).y,25*r*size,25*r*size);
-        popMatrix();
-      }
-      break;
+    //  case BUBBLE : 
+    //  for ( int i=0; i< history.size(); i++)
+    //  {
+    //    pushMatrix();
+    //    r = random(0,1);
+    //    fill(c,100/history.size()*(i+1));
+    //    noStroke();
+    //    ellipse(history.get(i).x, history.get(i).y,25*r*size,25*r*size);
+    //    popMatrix();
+    //  }
+    //  break;
       
-      case LINE : 
-      r = 2.0;
-      for ( int i=0; i<history.size()-1; i++){
-        for (Boid other : boids) {    
-          if (other.history.size() >= history.size())
-          {
-            float d = PVector.dist(history.get(i), other.history.get(i));
-            //int count = 0;
-            if ((d > 0) && (d < 20*size)) {
-              //count++;            // Keep track of how many
-              stroke(c,100/history.size()*(i+1));
-              strokeWeight(1);
-              line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
-            }
-          }   
-        }
-      }
-      break;
+    //  case LINE : 
+    //  r = 2.0;
+    //  for ( int i=0; i<history.size()-1; i++){
+    //    for (Boid other : boids) {    
+    //      if (other.history.size() >= history.size())
+    //      {
+    //        float d = PVector.dist(history.get(i), other.history.get(i));
+    //        //int count = 0;
+    //        if ((d > 0) && (d < 20*size)) {
+    //          //count++;            // Keep track of how many
+    //          stroke(c,100/history.size()*(i+1));
+    //          strokeWeight(1);
+    //          line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
+    //        }
+    //      }   
+    //    }
+    //  }
+    //  break;
       
-      case CURVE : 
-      r = 2.0;
-      for ( int i=0; i<history.size()-1; i++){
-        beginShape();
-        curveVertex(history.get(i).x,history.get(i).y);
-        for (Boid other : boids) {
-        if (other.history.size() >= history.size())
-          {
-            float f = PVector.dist(history.get(i), other.history.get(i));
-            //int count = 0;
-            if ((f > 0) && (f < 20*size)) {
-              //count++;            // Keep track of how many
-              stroke(c,100/history.size()*(i+1));
-              noFill();
-              strokeWeight(1);
-              curveVertex(other.history.get(i).x,other.history.get(i).y);
-              //line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
-            }
-          } 
-        }
-        endShape();
-      }
-    }
+    //  case CURVE : 
+    //  r = 2.0;
+    //  for ( int i=0; i<history.size()-1; i++){
+    //    beginShape();
+    //    curveVertex(history.get(i).x,history.get(i).y);
+    //    for (Boid other : boids) {
+    //    if (other.history.size() >= history.size())
+    //      {
+    //        float f = PVector.dist(history.get(i), other.history.get(i));
+    //        //int count = 0;
+    //        if ((f > 0) && (f < 20*size)) {
+    //          //count++;            // Keep track of how many
+    //          stroke(c,100/history.size()*(i+1));
+    //          noFill();
+    //          strokeWeight(1);
+    //          curveVertex(other.history.get(i).x,other.history.get(i).y);
+    //          //line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
+    //        }
+    //      } 
+    //    }
+    //    endShape();
+    //  }
+    //}
 
     /*//EFFET BULLES DE SAVON
     r = int(map(missionPoint.dist(position),1,height/2,255,1));
@@ -246,7 +247,6 @@ class Boid {
     strokeWeight(r);
     point(0,0);
     */   
-  }
 
  
   void borders() {
@@ -271,7 +271,7 @@ class Boid {
       }
       break;
     
-      case BOUCLES : 
+      case LOOPS : 
       if (position.x < controllerSize-r) position.x = width+r;
       if (position.y < -r) position.y = height+r;
       if (position.x > width+r) position.x = controllerSize + r;
@@ -386,6 +386,154 @@ class Boid {
   
   PVector mission (PVector attractivePoint) {
     return seek(attractivePoint);
+  }  
+}
+
+class TriangleBoid extends Boid {
+  
+  TriangleBoid(float x, float y){
+    super(x,y);
   }
   
+  void render(ArrayList<Boid> boids){
+    float theta = velocity.heading() + radians(90);
+    c = color(map(lifetime,0,LIFETIME,255,0));
+    r = size;
+    for ( int i=0; i< history.size(); i++)
+    {
+      pushMatrix();
+      translate(history.get(i).x, history.get(i).y);
+      rotate(theta);
+      fill(c,100/history.size()*(i+1));
+      noStroke();
+      beginShape(TRIANGLES);
+      vertex(0, -r*2);
+      vertex(-r, r*2);
+      vertex(r, r*2);
+      endShape();
+      popMatrix();
+    }
+  } 
+}
+
+class LetterBoid extends Boid {
+  
+  LetterBoid(float x, float y){
+    super(x,y);
+  }
+  
+  void render(ArrayList<Boid> boids){
+    float theta = velocity.heading() + radians(90);
+    c = color(map(lifetime,0,LIFETIME,255,0));
+    for ( int i=0; i< history.size(); i++)
+    {
+      pushMatrix(); 
+      translate(history.get(i).x, history.get(i).y);
+      rotate(theta);
+      //r = map(mag.position.dist(history.get(i)),1,height,0,2);
+      //r = constrain(r,0,1);
+      fill(c,100/history.size()*(i+1));
+      noStroke();
+      textSize(10*r*size+1);
+      text(letter,0,0);
+      popMatrix();
+    }
+  } 
+}
+
+class CircleBoid extends Boid {
+  
+  CircleBoid(float x, float y){
+    super(x,y);
+  }
+  
+  void render(ArrayList<Boid> boids){
+    c = color(map(lifetime,0,LIFETIME,255,0));
+    for ( int i=0; i< history.size(); i++)
+    {
+      pushMatrix();
+      //r = map(mag.position.dist(history.get(i)),1,height,2,0);
+      //r = constrain(r,0,1);
+      fill(c,100/history.size()*(i+1));
+      noStroke();
+      ellipse(history.get(i).x, history.get(i).y,10*r*size,10*r*size);
+      popMatrix();
+    }
+  } 
+}
+
+class BubbleBoid extends Boid {
+  
+  BubbleBoid(float x, float y){
+    super(x,y);
+  }
+  
+  void render(ArrayList<Boid> boids){
+    c = color(map(lifetime,0,LIFETIME,255,0));
+    for ( int i=0; i< history.size(); i++)
+    {
+      pushMatrix();
+      r = random(0,1);
+      fill(c,100/history.size()*(i+1));
+      noStroke();
+      ellipse(history.get(i).x, history.get(i).y,25*r*size,25*r*size);
+      popMatrix();
+    }
+  } 
+}
+
+class LineBoid extends Boid {
+  
+  LineBoid(float x, float y){
+    super(x,y);
+  }
+  
+  void render(ArrayList<Boid> boids){
+    c = color(map(lifetime,0,LIFETIME,255,0));
+    for ( int i=0; i<history.size()-1; i++){
+      for (Boid other : boids) {    
+        if (other.history.size() >= history.size()){
+          float d = PVector.dist(history.get(i), other.history.get(i));
+          //int count = 0;
+          if ((d > 0) && (d < 20*size)) {
+            //count++;            // Keep track of how many
+            stroke(c,100/history.size()*(i+1));
+            strokeWeight(1);
+            line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
+          }
+        }   
+      }
+    }
+  } 
+}
+
+class CurveBoid extends Boid {
+  
+  CurveBoid(float x, float y){
+    super(x,y);
+  }
+  
+  void render(ArrayList<Boid> boids){
+    c = color(map(lifetime,0,LIFETIME,255,0));
+    for ( int i=0; i<history.size()-1; i++){
+      beginShape();
+      curveVertex(history.get(i).x,history.get(i).y);
+      for (Boid other : boids) {
+      if (other.history.size() >= history.size())
+        {
+          float f = PVector.dist(history.get(i), other.history.get(i));
+          //int count = 0;
+          if ((f > 0) && (f < 20*size)) {
+            //count++;            // Keep track of how many
+            stroke(c,100/history.size()*(i+1));
+            noFill();
+            strokeWeight(1);
+            curveVertex(other.history.get(i).x,other.history.get(i).y);
+            //line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
+          }
+        } 
+      }
+      endShape();
+    }
+  } 
 }

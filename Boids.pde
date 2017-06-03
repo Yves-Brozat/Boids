@@ -13,7 +13,8 @@ IDEES :
 - Utiliser la donnée du nombre de voisins proches (pour un changement visuel, une fusion ou une fission)
 - Création de chemins à suivre (droite, courbe, cercle)
 - Creer un interupteur noir/blanc
-- Réflexion sur la couleur : aléatoire, changement de teinte via 2 sliders sur l'ensemble des couleurs*/
+- Réflexion sur la couleur : aléatoire, changement de teinte via 2 sliders sur l'ensemble des couleurs
+*/
 
 import controlP5.*;
 
@@ -21,6 +22,7 @@ ControlP5 controller;
 Slider sliderN;
 CheckBox src;
 CheckBox mag;
+CheckBox obs;
 Accordion accordion;
 Flock flock;
 
@@ -48,26 +50,20 @@ float size = 1.0;
 
 enum BoidType {TRIANGLE, LETTER, CIRCLE, BUBBLE, LINE, CURVE;}
 BoidType boidType;
-enum BorderType {WALLS, BOUCLES, NOBORDER;}
+enum BorderType {WALLS, LOOPS, NOBORDER;}
 BorderType borderType;
-String[] alphabet = {"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
+ArrayList<String> alphabet;
 
 void setup() {
   size(1366,703,P2D);
+  setAlphabet();
   flock = new Flock();
-  //mag = new Magnet(controllerSize/2 + width/2,height/3, flock);
-
-  
-  //src = new Source(controllerSize/2 + width/2,height/2, flock);
-  gui();
-  
+  gui();  
 }
 
 void draw() {
   background(0);
-  drawLayout();  
   flock.run(); 
-
 }
 
 void mouseDragged(){
@@ -89,7 +85,7 @@ public void gui()
   //Group 1 : Global parameters
   Group g1 = controller.addGroup("Global physical parameters")
                        .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(150)
+                       .setBackgroundHeight(160)
                        ;
                        
   sliderN = controller.addSlider("N")
@@ -136,6 +132,17 @@ public void gui()
             .addItem("M2", 1)
             .addItem("M3", 2)
             .addItem("Magnet", 3)      
+            .moveTo(g1)
+            ;
+            
+ obs = controller.addCheckBox("Obstacles")
+            .setPosition(10,126)
+            .setSize(25,25)
+            .setItemsPerRow(4)
+            .addItem("O1", 0)
+            .addItem("O2", 1)
+            .addItem("O3", 2)
+            .addItem("Obstacle", 3)      
             .moveTo(g1)
             ;
   //Group 2 : Forces
@@ -228,7 +235,7 @@ public void gui()
             .setItemWidth(20)
             .setItemHeight(20)
             .addItem("walls", 0)
-            .addItem("boucles", 1)
+            .addItem("loops", 1)
             .addItem("no_border", 2)
             .setColorLabel(color(255))
             .activate(1) //Boucle par defaut
@@ -249,24 +256,29 @@ public void gui()
   accordion.setCollapseMode(Accordion.MULTI);
 }
 
-public void drawLayout() {
-  noStroke();
-  fill(30,67,100);
-  //rect(controllerSize-4,0,4,height);
-  //ellipse(missionPoint.x,missionPoint.y,10,10);
-}
-
 void controlEvent(ControlEvent theEvent) { 
   //println (theEvent.getName() + " " + theEvent.getValue() + " " );
   if (theEvent.getName() == "Borders type") {
     switch(int(theEvent.getValue())) {
       case(0):borderType = BorderType.WALLS;break;
-      case(1):borderType = BorderType.BOUCLES;break;
+      case(1):borderType = BorderType.LOOPS;break;
       case(2):borderType = BorderType.NOBORDER;break;
     }
   }
   
+  //if (theEvent.getName() == "Visual") {
+  //  switch(int(theEvent.getValue())) {
+  //    case(0):boidType = BoidType.TRIANGLE;break;
+  //    case(1):boidType = BoidType.LETTER;break;
+  //    case(2):boidType = BoidType.CIRCLE;break;
+  //    case(3):boidType = BoidType.BUBBLE;break;
+  //    case(4):boidType = BoidType.LINE;break;
+  //    case(5):boidType = BoidType.CURVE;break;
+  //  }
+  //}
+  
   if (theEvent.getName() == "Visual") {
+    
     switch(int(theEvent.getValue())) {
       case(0):boidType = BoidType.TRIANGLE;break;
       case(1):boidType = BoidType.LETTER;break;
@@ -275,7 +287,17 @@ void controlEvent(ControlEvent theEvent) {
       case(4):boidType = BoidType.LINE;break;
       case(5):boidType = BoidType.CURVE;break;
     }
-  } 
+    for (int i = flock.boids.size()-1; i>=0; i--){
+      switch(int(theEvent.getValue())) {
+        case(0):  TriangleBoid t = new TriangleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(t); flock.boids.remove(i); break;
+        case(1):  LetterBoid l = new LetterBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(l); flock.boids.remove(i);  break;
+        case(2):  CircleBoid c = new CircleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(c); flock.boids.remove(i);  break;
+        case(3):  BubbleBoid bu = new BubbleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(bu); flock.boids.remove(i);  break;
+        case(4):  LineBoid li = new LineBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(li); flock.boids.remove(i);  break;
+        case(5):  CurveBoid cu = new CurveBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(cu); flock.boids.remove(i);  break;
+      }
+    }
+  }
   
   if (theEvent.isFrom(src)){
     for (int i = 0; i<src.getArrayValue().length; i++){
@@ -288,4 +310,46 @@ void controlEvent(ControlEvent theEvent) {
       flock.magnets.get(i).isActivated = mag.getState(i);
     }
   }
+  
+  if (theEvent.isFrom(obs)){
+    for (int i = 0; i<obs.getArrayValue().length; i++){
+      flock.obstacles.get(i).isActivated = obs.getState(i);
+    }
+  }
+}
+
+void setAlphabet(){
+  alphabet = new ArrayList<String>();
+  alphabet.add("Z");
+  alphabet.add("W");
+  for (int i = 0; i<2; i++){
+    alphabet.add("K");
+    alphabet.add("J");
+    alphabet.add("X");
+  }
+  for (int i = 0; i<3; i++) alphabet.add("Y");
+  for (int i = 0; i<4; i++) alphabet.add("Q");
+  for (int i = 0; i<7; i++){
+    alphabet.add("F");
+    alphabet.add("H");
+    alphabet.add("V");
+    alphabet.add("B");
+  }
+  for (int i = 0; i<8; i++) alphabet.add("G");
+  for (int i = 0; i<16; i++) alphabet.add("P");
+  for (int i = 0; i<17; i++) alphabet.add("M");
+  for (int i = 0; i<18; i++) alphabet.add("C");
+  for (int i = 0; i<24; i++) alphabet.add("D");
+  for (int i = 0; i<30; i++) alphabet.add("U");
+  for (int i = 0; i<33; i++){
+    alphabet.add("L");
+    alphabet.add("O");
+  }
+  for (int i = 0; i<39; i++) alphabet.add("T");
+  for (int i = 0; i<40; i++) alphabet.add("R");
+  for (int i = 0; i<42; i++) alphabet.add("N");
+  for (int i = 0; i<43; i++) alphabet.add("S");
+  for (int i = 0; i<44; i++) alphabet.add("I");
+  for (int i = 0; i<47; i++) alphabet.add("A");
+  for (int i = 0; i<93; i++) alphabet.add("Y");  
 }
