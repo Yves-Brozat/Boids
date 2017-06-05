@@ -1,9 +1,10 @@
-class Flock {
+class Flock implements ControlListener{
   ArrayList<Boid> boids; // An ArrayList for all the boids  
   ArrayList<Brush> brushes;
   ArrayList<Source> sources;
   ArrayList<Magnet> magnets;
   ArrayList<Obstacle> obstacles;
+  BoidType boidType;
 
   Flock() {
     boids = new ArrayList<Boid>(); // Initialize the ArrayList
@@ -19,6 +20,7 @@ class Flock {
     brushes.addAll(sources);
     brushes.addAll(magnets);
     brushes.addAll(obstacles);
+    boidType = BoidType.LINE;
   }
 
   void run() {
@@ -28,7 +30,7 @@ class Flock {
       boids.get(i).run(boids); 
       if (boids.get(i).isDead()) { 
         boids.remove(i);
-        sliderN.setValue(boids.size());
+        controller.getController("N").setValue(boids.size());
       }
     }
     if (!sources.get(0).isActivated || !sources.get(1).isActivated || !sources.get(2).isActivated || !sources.get(3).isActivated)
@@ -37,10 +39,27 @@ class Flock {
 
   void addBoid(Boid b) {
     boids.add(b);
+    initParameters(b);
   }
-
+  
+  void initParameters(Boid b){
+    b.size = controller.getController("size").getValue();
+    b.trailLength = (int)controller.getController("trailLength").getValue();
+    b.separation = controller.getController("separation").getValue();
+    b.alignment = controller.getController("alignment").getValue();
+    b.cohesion = controller.getController("cohesion").getValue();
+    b.attraction = controller.getController("attraction").getValue();
+    b.gravity = controller.getController("gravity").getValue();
+    b.gravity_Angle = (int)controller.getController("gravity_Angle").getValue();
+    b.friction = controller.getController("friction").getValue();
+    b.maxforce = controller.getController("maxforce").getValue();    
+    b.maxspeed = controller.getController("maxspeed").getValue();    
+    b.k_density = controller.getController("k_density").getValue();
+    b.lifespan = (int)controller.getController("lifespan").getValue();
+  }
+  
   void setSize() {
-    if (flock.boids.size() < sliderN.getValue()-1){
+    if (flock.boids.size() < controller.getController("N").getValue()-1){
       switch(boidType){
         case TRIANGLE : flock.addBoid(new TriangleBoid(random(controllerSize,width),random(0,height))); break;
         case LETTER : flock.addBoid(new LetterBoid(random(controllerSize,width),random(0,height))); break;
@@ -50,7 +69,7 @@ class Flock {
         case CURVE : flock.addBoid(new CurveBoid(random(controllerSize,width),random(0,height))); break;
       }
     }
-    else if (flock.boids.size() > sliderN.getValue()+1)
+    else if (flock.boids.size() > controller.getController("N").getValue()+1)
       flock.boids.remove(flock.boids.size()-1);
   }
   
@@ -69,5 +88,26 @@ class Flock {
   void mouseReleased(){
     for (Brush b : brushes)
       b.mouseReleased();
+  }
+  
+  public void controlEvent(ControlEvent theEvent) {
+    println("controlEvent : "+theEvent);
+    for (Boid b : boids){
+      if(theEvent.isFrom("size"))     b.size = theEvent.getController().getValue();     
+      if(theEvent.isFrom("trailLength"))     b.trailLength = (int)theEvent.getController().getValue();
+      if(theEvent.isFrom("separation"))     b.separation = controller.getController("separation").getValue();
+      if(theEvent.isFrom("alignment"))     b.alignment = controller.getController("alignment").getValue();
+      if(theEvent.isFrom("cohesion"))     b.cohesion = controller.getController("cohesion").getValue();
+      if(theEvent.isFrom("attraction"))     b.attraction = controller.getController("attraction").getValue();
+      if(theEvent.isFrom("gravity"))     b.gravity = controller.getController("gravity").getValue();
+      if(theEvent.isFrom("gravity_Angle"))     b.gravity_Angle = (int)controller.getController("gravity_Angle").getValue();
+      if(theEvent.isFrom("friction"))     b.friction = controller.getController("friction").getValue();
+      if(theEvent.isFrom("maxforce"))     b.maxforce = controller.getController("maxforce").getValue();    
+      if(theEvent.isFrom("maxspeed"))     b.maxspeed = controller.getController("maxspeed").getValue();    
+      if(theEvent.isFrom("k_density"))     b.k_density = controller.getController("k_density").getValue();
+      if(theEvent.isFrom("lifespan"))     b.lifespan = (int)controller.getController("lifespan").getValue();
+     }
+    
+    
   }
 }

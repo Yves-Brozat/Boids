@@ -25,11 +25,15 @@ abstract class Brush{
   abstract void render();
   
   void mousePressed(){
-    PVector mouse = new PVector(mouseX,mouseY);
-    isSelected = (mouse.dist(position) <= r) ? true : false;
+    if (isActivated)
+    {
+      PVector mouse = new PVector(mouseX,mouseY);
+      isSelected = (mouse.dist(position) <= r) ? true : false;
+    }
   }
   void mouseReleased(){
-    isSelected = false;
+    if (isActivated)
+      isSelected = false;
   }
   void mouseDragged(){
     if (isSelected) position.set(mouseX,mouseY);
@@ -43,7 +47,7 @@ class Source extends Brush {
   }
   
   void update(){
-    switch(boidType){
+    switch(f.boidType){
       case TRIANGLE : f.addBoid(new TriangleBoid(position.x,position.y)); break;
       case LETTER : f.addBoid(new LetterBoid(position.x,position.y)); break;
       case CIRCLE : f.addBoid(new CircleBoid(position.x,position.y)); break;
@@ -51,7 +55,7 @@ class Source extends Brush {
       case LINE : f.addBoid(new LineBoid(position.x,position.y)); break;
       case CURVE : f.addBoid(new CurveBoid(position.x,position.y)); break;
     }
-    sliderN.setValue(f.boids.size());
+    controller.getController("N").setValue(f.boids.size());
   }
   
   void render(){
@@ -96,8 +100,8 @@ class Obstacle extends Brush {
         float angle = PVector.angleBetween(n,b.velocity);
         b.velocity.rotate(PI);
         b.velocity.rotate(2*angle);
-        PVector v = n.normalize();
-        v.mult(-5*r);
+        PVector v = n.copy();
+        v.setMag(-5*r);
         b.position = PVector.add(position,v);
       }
     }      

@@ -17,9 +17,11 @@ IDEES :
 */
 
 import controlP5.*;
+import netP5.*;
+import oscP5.*;
 
 ControlP5 controller;
-Slider sliderN;
+
 CheckBox src;
 CheckBox mag;
 CheckBox obs;
@@ -27,29 +29,9 @@ Accordion accordion;
 Flock flock;
 
 int controllerSize = 200;
-
-//Forces parameters
-float separation = 1.0;
-float alignment = 1.0;
-float cohesion = 1.0;
-float attraction = 0.01;
-float gravity = 1.0;
-int gravity_Angle = 0;
-float FRICTION = 0.001;
-
-//Global physical parameters
-float maxforce = 0.03;    // Maximum steering force
-float maxspeed = 2.0;    // Maximum speed
-float MASSE = 1.0;
-int LIFETIME = 1000;
-
-
-//Visual parameters
-int trailLength = 1;
-float size = 1.0;
+int backgroundColor;
 
 enum BoidType {TRIANGLE, LETTER, CIRCLE, BUBBLE, LINE, CURVE;}
-BoidType boidType;
 enum BorderType {WALLS, LOOPS, NOBORDER;}
 BorderType borderType;
 ArrayList<String> alphabet;
@@ -62,7 +44,7 @@ void setup() {
 }
 
 void draw() {
-  background(0);
+  background(backgroundColor);
   flock.run(); 
 }
 
@@ -85,36 +67,60 @@ public void gui()
   //Group 1 : Global parameters
   Group g1 = controller.addGroup("Global physical parameters")
                        .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(160)
+                       .setBackgroundHeight(180)
                        ;
                        
-  sliderN = controller.addSlider("N")
+  controller.addSlider("N")
             .setPosition(10,10)
             .setRange(0,1000)
             .moveTo(g1)
             ;
   controller.addSlider("maxforce")
+            .addListener(flock)
             .setPosition(10,20)
             .setRange(0.01,1)
+            .setValue(0.03)
             .moveTo(g1)
             ;           
   controller.addSlider("maxspeed")
+            .addListener(flock)
             .setPosition(10,30)
-            .setRange(0.01,10)
+            .setRange(0.01,20)
+            .setValue(20)
             .moveTo(g1)
             ;
-  controller.addSlider("MASSE")
+  controller.addSlider("k_density")
+            .addListener(flock)
             .setPosition(10,40)
             .setRange(0.1,2)
+            .setValue(1.0)
             .moveTo(g1)
             ;
-  controller.addSlider("LIFETIME")
+  controller.addSlider("lifespan")
+            .addListener(flock)
             .setPosition(10,50)
             .setRange(1,1000)
+            .setValue(100)
             .moveTo(g1)
             ;
+            
+  controller.addSlider("trailLength")
+            .addListener(flock)
+            .setPosition(10,60)
+            .setRange(0,20)
+            .setValue(0)
+            .moveTo(g1)
+            ; 
+  
+  controller.addSlider("size")
+            .addListener(flock)
+            .setPosition(10,70)
+            .setRange(0.1,10)
+            .setValue(1.0)
+            .moveTo(g1)
+            ; 
   src = controller.addCheckBox("Sources")
-            .setPosition(10,74)
+            .setPosition(10,94)
             .setSize(25,25)
             .setItemsPerRow(4)
             .addItem("S1", 0)
@@ -125,7 +131,7 @@ public void gui()
             ;
   
   mag = controller.addCheckBox("Magnets")
-            .setPosition(10,100)
+            .setPosition(10,120)
             .setSize(25,25)
             .setItemsPerRow(4)
             .addItem("M1", 0)
@@ -136,7 +142,7 @@ public void gui()
             ;
             
  obs = controller.addCheckBox("Obstacles")
-            .setPosition(10,126)
+            .setPosition(10,146)
             .setSize(25,25)
             .setItemsPerRow(4)
             .addItem("O1", 0)
@@ -152,31 +158,38 @@ public void gui()
                        ;                      
                        
   controller.addSlider("separation")
+            .addListener(flock)
             .setPosition(10,10)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
   controller.addSlider("alignment")
+            .addListener(flock)
             .setPosition(10,20)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
   controller.addSlider("cohesion")
+            .addListener(flock)
             .setPosition(10,30)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
- controller.addSlider("attraction")
+  controller.addSlider("attraction")
+            .addListener(flock)
             .setPosition(10,50)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
   controller.addSlider("gravity")
+            .addListener(flock)
             .setPosition(10,70)
             .setRange(0.01,4)
+            .setValue(0.01)
             .moveTo(g2)
             ;
   controller.addKnob("gravity_Angle")
+            .addListener(flock)
             .setPosition(50,90)
             .setResolution(100)
             .setRange(0,360)
@@ -185,7 +198,8 @@ public void gui()
             .setRadius(10)
             .moveTo(g2)
             ;
-  controller.addSlider("FRICTION")
+  controller.addSlider("friction")
+            .addListener(flock)
             .setPosition(10,130)
             .setRange(0.001,0.1)
             .moveTo(g2)
@@ -194,10 +208,11 @@ public void gui()
   //Group 3 : Visual parameters
   Group g3 = controller.addGroup("Visual parameters")
                        .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(170)
+                       .setBackgroundHeight(250)
                        ;  
   
   controller.addRadioButton("Visual")
+            .addListener(flock)
             .setPosition(10,10)
             .setItemWidth(20)
             .setItemHeight(20)
@@ -208,22 +223,20 @@ public void gui()
             .addItem("line", 4)
             .addItem("curve", 5)
             .setColorLabel(color(255))
-            .activate(0) //Triangle par défaut
+            .activate(4) //Line par défaut
+            .moveTo(g3)
+            ;          
+  
+  controller.addColorWheel("particleColor",90,10,100)
+            .setRGB(color(255))
             .moveTo(g3)
             ;
- 
-  controller.addSlider("trailLength")
-            .setPosition(10,140)
-            .setRange(1,20)
-            .moveTo(g3)
-            ; 
-  
-  controller.addSlider("size")
-            .setPosition(10,150)
-            .setRange(0.1,10)
-            .moveTo(g3)
-            ;           
             
+  controller.addColorWheel("backgroundColor",90,130,100)
+            .setRGB(color(0))
+            .moveTo(g3)
+            ;
+
   //Group 4 : Borders parameters
   Group g4 = controller.addGroup("Borders")
                        .setBackgroundColor(color(0, 64))
@@ -258,44 +271,31 @@ public void gui()
 
 void controlEvent(ControlEvent theEvent) { 
   //println (theEvent.getName() + " " + theEvent.getValue() + " " );
-  if (theEvent.getName() == "Borders type") {
+  if(theEvent.isFrom("Visual")){
+      switch(int(theEvent.getValue())) {
+        case(0):flock.boidType = BoidType.TRIANGLE;break;
+        case(1):flock.boidType = BoidType.LETTER;break;
+        case(2):flock.boidType = BoidType.CIRCLE;break;
+        case(3):flock.boidType = BoidType.BUBBLE;break;
+        case(4):flock.boidType = BoidType.LINE;break;
+        case(5):flock.boidType = BoidType.CURVE;break;
+      }
+      for (int i = flock.boids.size()-1; i>=0; i--){
+        switch(int(theEvent.getValue())) {
+          case(0):  TriangleBoid t = new TriangleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(t); flock.boids.remove(i); break;
+          case(1):  LetterBoid l = new LetterBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(l); flock.boids.remove(i);  break;
+          case(2):  CircleBoid c = new CircleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(c); flock.boids.remove(i);  break;
+          case(3):  BubbleBoid bu = new BubbleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(bu); flock.boids.remove(i);  break;
+          case(4):  LineBoid li = new LineBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(li); flock.boids.remove(i);  break;
+          case(5):  CurveBoid cu = new CurveBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(cu); flock.boids.remove(i);  break;
+        }
+      }
+    }  
+  if (theEvent.isFrom("Borders type")) {
     switch(int(theEvent.getValue())) {
       case(0):borderType = BorderType.WALLS;break;
       case(1):borderType = BorderType.LOOPS;break;
       case(2):borderType = BorderType.NOBORDER;break;
-    }
-  }
-  
-  //if (theEvent.getName() == "Visual") {
-  //  switch(int(theEvent.getValue())) {
-  //    case(0):boidType = BoidType.TRIANGLE;break;
-  //    case(1):boidType = BoidType.LETTER;break;
-  //    case(2):boidType = BoidType.CIRCLE;break;
-  //    case(3):boidType = BoidType.BUBBLE;break;
-  //    case(4):boidType = BoidType.LINE;break;
-  //    case(5):boidType = BoidType.CURVE;break;
-  //  }
-  //}
-  
-  if (theEvent.getName() == "Visual") {
-    
-    switch(int(theEvent.getValue())) {
-      case(0):boidType = BoidType.TRIANGLE;break;
-      case(1):boidType = BoidType.LETTER;break;
-      case(2):boidType = BoidType.CIRCLE;break;
-      case(3):boidType = BoidType.BUBBLE;break;
-      case(4):boidType = BoidType.LINE;break;
-      case(5):boidType = BoidType.CURVE;break;
-    }
-    for (int i = flock.boids.size()-1; i>=0; i--){
-      switch(int(theEvent.getValue())) {
-        case(0):  TriangleBoid t = new TriangleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(t); flock.boids.remove(i); break;
-        case(1):  LetterBoid l = new LetterBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(l); flock.boids.remove(i);  break;
-        case(2):  CircleBoid c = new CircleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(c); flock.boids.remove(i);  break;
-        case(3):  BubbleBoid bu = new BubbleBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(bu); flock.boids.remove(i);  break;
-        case(4):  LineBoid li = new LineBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(li); flock.boids.remove(i);  break;
-        case(5):  CurveBoid cu = new CurveBoid(flock.boids.get(i).position.x,flock.boids.get(i).position.y);  flock.addBoid(cu); flock.boids.remove(i);  break;
-      }
     }
   }
   
@@ -316,6 +316,12 @@ void controlEvent(ControlEvent theEvent) {
       flock.obstacles.get(i).isActivated = obs.getState(i);
     }
   }
+  
+  //if(theEvent.isFrom("color")){
+  //  println(controller.get(ColorWheel.class, "color").getRGB());
+  //  for (Boid b : flock.boids)
+  //    b.c = controller.get(ColorWheel.class, "color").getRGB();
+  //}
 }
 
 void setAlphabet(){
@@ -351,5 +357,5 @@ void setAlphabet(){
   for (int i = 0; i<43; i++) alphabet.add("S");
   for (int i = 0; i<44; i++) alphabet.add("I");
   for (int i = 0; i<47; i++) alphabet.add("A");
-  for (int i = 0; i<93; i++) alphabet.add("Y");  
+  for (int i = 0; i<93; i++) alphabet.add("E");  
 }
