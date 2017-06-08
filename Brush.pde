@@ -1,5 +1,6 @@
 abstract class Brush{
   PVector position;
+  PVector velocity;
   boolean isActivated;
   boolean isSelected;
   Flock f;
@@ -8,6 +9,7 @@ abstract class Brush{
   Brush(float x, float y, Flock flock){
     f = flock;
     position = new PVector(x,y);
+    velocity = new PVector();
     isActivated = false;
     isSelected = false;
     r=20;
@@ -28,15 +30,21 @@ abstract class Brush{
     if (isActivated)
     {
       PVector mouse = new PVector(mouseX,mouseY);
-      isSelected = (mouse.dist(position) <= r) ? true : false;
+      isSelected = (mouse.dist(position) <= r) ? true : false;      
     }
   }
   void mouseReleased(){
-    if (isActivated)
+    if (isActivated){
       isSelected = false;
+      velocity.set(0,0);
+    }
   }
   void mouseDragged(){
-    if (isSelected) position.set(mouseX,mouseY);
+    if (isSelected) {
+      PVector oldPosition = position.copy();
+      position.set(mouseX,mouseY);
+      velocity = PVector.sub(position,oldPosition);
+    }
   }
 }
 
@@ -97,12 +105,12 @@ class Obstacle extends Brush {
     for (Boid b: f.boids){
       if (b.position.dist(position) < 5*r){
         PVector n = PVector.sub(position,b.position);
-        float angle = PVector.angleBetween(n,b.velocity);
-        b.velocity.rotate(PI);
-        b.velocity.rotate(2*angle);
+        float angle = b.velocity.heading() - n.heading();
+        b.velocity.rotate(PI-2*angle);
         PVector v = n.copy();
         v.setMag(-5*r);
         b.position = PVector.add(position,v);
+        b.sumForces.add(velocity.mult(2));
       }
     }      
   }
@@ -111,5 +119,35 @@ class Obstacle extends Brush {
     noStroke();
     fill(100,20);
     ellipse(position.x,position.y,10*r,10*r);
+  }
+}
+
+class BowlObstacle extends Brush {
+
+  float e = 5.0;
+  float angle = 0;
+
+  BowlObstacle(float x, float y, Flock flock){
+    super(x,y,flock);
+  }
+  
+  void update(){     
+    for (Boid b: f.boids){
+      if (b.position.dist(position) > 5*r-e && b.position.dist(position) < 5*r+e && b.position.y >= position.y){
+        PVector n = PVector.sub(position,b.position);
+        float angle = b.velocity.heading() - n.heading();
+        b.velocity.rotate(PI-2*angle);
+        PVector v = n.copy();
+        v.setMag(-5*r+e);
+        b.position = PVector.add(position,v);
+      }
+    }      
+  }
+  
+  void render(){
+    noFill();
+    stroke(100,20);
+    strokeWeight(e);
+    arc(position.x, position.y, 10*r, 10*r, angle, angle + PI);
   }
 }

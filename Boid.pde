@@ -13,6 +13,7 @@ abstract class Boid {
   int trailLength;
   
   //Forces parameters
+  boolean[] forcesToggle;
   float separation;
   float alignment;
   float cohesion;
@@ -29,7 +30,7 @@ abstract class Boid {
 
   Boid(float x, float y) {
     position = new PVector(x, y);
-    velocity = PVector.random2D();    
+    velocity = new PVector();    
     acceleration = new PVector();
     sumForces = new PVector(); 
     r = random(0,2.0);
@@ -37,6 +38,8 @@ abstract class Boid {
     c = controller.get(ColorWheel.class,"particleColor").getRGB();
     lifetime = 0;
     density = 1.0;
+    forcesToggle = new boolean[6];
+    for (int i = 0; i <6; i++) forcesToggle[i] = false;
   }
 
   void run(ArrayList<Boid> boids) {
@@ -59,7 +62,7 @@ abstract class Boid {
     PVector g = new PVector(cos(radians(gravity_Angle+90)),sin(radians(gravity_Angle+90)));
     g.mult(gravity);
     g.mult(density*r*r);
-    sumForces.add(g);
+    if(forcesToggle[5]) sumForces.add(g);
   }
   
   void applyFriction(){
@@ -68,14 +71,14 @@ abstract class Boid {
      float f = -velocity.mag()*r*r;
      fri.mult(f);
      fri.mult(friction);
-     sumForces.add(fri);
+     if(forcesToggle[4])  sumForces.add(fri);
      
   }
   
   void applyAttraction(PVector v){
     PVector mis = seek(v);
     mis.mult(attraction);
-    sumForces.add(mis);
+    if(forcesToggle[3])  sumForces.add(mis);
   }
   // We accumulate a new acceleration each time based on three rules
   void applyFlock(ArrayList<Boid> boids) {
@@ -88,9 +91,9 @@ abstract class Boid {
     ali.mult(alignment);
     coh.mult(cohesion);
     // Add the force vectors to acceleration
-    sumForces.add(sep);
-    sumForces.add(ali);
-    sumForces.add(coh);
+    if(forcesToggle[0])  sumForces.add(sep);
+    if(forcesToggle[1])  sumForces.add(ali);
+    if(forcesToggle[2])  sumForces.add(coh);
   }
   
   // Save old position in history

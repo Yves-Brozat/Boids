@@ -4,6 +4,7 @@ YVES BROZAT - BOIDS : MODELE PHYSIQUE DE SYSTEME PARTICULAIRE
 EN COURS :
 - Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
 - Creer des autres objets (des brosses ?) type Attractor, Repulsor, Source, Blackhole pour interaction de tracking
+- Réflexion sur la couleur : aléatoire, changement de teinte via 2 sliders sur l'ensemble des couleurs
 
 IDEES : 
 - Creer des bangs (WALL puis NO_BORDER, MASSE = 0 puis normal, FORCE = 0, SPEED = 0, ...) pour une interaction ponctuelle (type break) ou répétitive (type beat)
@@ -13,7 +14,6 @@ IDEES :
 - Utiliser la donnée du nombre de voisins proches (pour un changement visuel, une fusion ou une fission)
 - Création de chemins à suivre (droite, courbe, cercle)
 - Creer un interupteur noir/blanc
-- Réflexion sur la couleur : aléatoire, changement de teinte via 2 sliders sur l'ensemble des couleurs
 */
 
 import controlP5.*;
@@ -25,6 +25,8 @@ ControlP5 controller;
 CheckBox src;
 CheckBox mag;
 CheckBox obs;
+CheckBox bowl;
+CheckBox forces;
 Accordion accordion;
 Flock flock;
 
@@ -67,7 +69,7 @@ public void gui()
   //Group 1 : Global parameters
   Group g1 = controller.addGroup("Global physical parameters")
                        .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(180)
+                       .setBackgroundHeight(220)
                        ;
                        
   controller.addSlider("N")
@@ -79,7 +81,7 @@ public void gui()
             .addListener(flock)
             .setPosition(10,20)
             .setRange(0.01,1)
-            .setValue(0.03)
+            .setValue(1)
             .moveTo(g1)
             ;           
   controller.addSlider("maxspeed")
@@ -100,7 +102,7 @@ public void gui()
             .addListener(flock)
             .setPosition(10,50)
             .setRange(1,1000)
-            .setValue(100)
+            .setValue(300)
             .moveTo(g1)
             ;
             
@@ -151,46 +153,71 @@ public void gui()
             .addItem("Obstacle", 3)      
             .moveTo(g1)
             ;
+            
+ bowl = controller.addCheckBox("Bowls")
+            .setPosition(10,172)
+            .setSize(25,25)
+            .setItemsPerRow(4)
+            .addItem("B1", 0)
+            .addItem("B2", 1)
+            .addItem("B3", 2)
+            .addItem("Bowl", 3)      
+            .moveTo(g1)
+            ;
   //Group 2 : Forces
   Group g2 = controller.addGroup("Forces")
                        .setBackgroundColor(color(0, 64))
                        .setBackgroundHeight(150)
                        ;                      
+  
+  forces = controller.addCheckBox("forceToggle")
+            .setPosition(10,10)
+            .setSize(9,9)
+            .setItemsPerRow(1)
+            .addItem("s",0).addItem("a",1).addItem("c",2).addItem("A",3).addItem("f",4).addItem("g",5)
+            .moveTo(g2)
+            ;
                        
   controller.addSlider("separation")
             .addListener(flock)
-            .setPosition(10,10)
+            .setPosition(30,10)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
   controller.addSlider("alignment")
             .addListener(flock)
-            .setPosition(10,20)
+            .setPosition(30,20)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
   controller.addSlider("cohesion")
             .addListener(flock)
-            .setPosition(10,30)
+            .setPosition(30,30)
             .setRange(0.01,4)
             .moveTo(g2)
             ;
   controller.addSlider("attraction")
             .addListener(flock)
-            .setPosition(10,50)
+            .setPosition(30,40)
             .setRange(0.01,4)
+            .moveTo(g2)
+            ;
+  controller.addSlider("friction")
+            .addListener(flock)
+            .setPosition(30,50)
+            .setRange(0.001,0.1)
             .moveTo(g2)
             ;
   controller.addSlider("gravity")
             .addListener(flock)
-            .setPosition(10,70)
+            .setPosition(30,60)
             .setRange(0.01,4)
             .setValue(0.01)
             .moveTo(g2)
             ;
   controller.addKnob("gravity_Angle")
             .addListener(flock)
-            .setPosition(50,90)
+            .setPosition(50,75)
             .setResolution(100)
             .setRange(0,360)
             .setAngleRange(2*PI)
@@ -198,12 +225,7 @@ public void gui()
             .setRadius(10)
             .moveTo(g2)
             ;
-  controller.addSlider("friction")
-            .addListener(flock)
-            .setPosition(10,130)
-            .setRange(0.001,0.1)
-            .moveTo(g2)
-            ;
+
 
   //Group 3 : Visual parameters
   Group g3 = controller.addGroup("Visual parameters")
@@ -270,7 +292,6 @@ public void gui()
 }
 
 void controlEvent(ControlEvent theEvent) { 
-  //println (theEvent.getName() + " " + theEvent.getValue() + " " );
   if(theEvent.isFrom("Visual")){
       switch(int(theEvent.getValue())) {
         case(0):flock.boidType = BoidType.TRIANGLE;break;
@@ -317,11 +338,19 @@ void controlEvent(ControlEvent theEvent) {
     }
   }
   
-  //if(theEvent.isFrom("color")){
-  //  println(controller.get(ColorWheel.class, "color").getRGB());
-  //  for (Boid b : flock.boids)
-  //    b.c = controller.get(ColorWheel.class, "color").getRGB();
-  //}
+  if (theEvent.isFrom(bowl)){
+    for (int i = 0; i<bowl.getArrayValue().length; i++){
+      flock.bowlObstacles.get(i).isActivated = bowl.getState(i);
+    }
+  }
+  
+  if (theEvent.isFrom(forces)){
+    for (int i = 0; i<forces.getArrayValue().length; i++){
+      for (Boid b : flock.boids){
+        b.forcesToggle[i] = forces.getState(i);
+      }
+    }
+  }
 }
 
 void setAlphabet(){

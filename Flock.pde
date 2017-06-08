@@ -4,6 +4,8 @@ class Flock implements ControlListener{
   ArrayList<Source> sources;
   ArrayList<Magnet> magnets;
   ArrayList<Obstacle> obstacles;
+  ArrayList<BowlObstacle> bowlObstacles;
+  
   BoidType boidType;
 
   Flock() {
@@ -12,14 +14,18 @@ class Flock implements ControlListener{
     magnets = new ArrayList<Magnet>(4);
     sources = new ArrayList<Source>(4);
     obstacles = new ArrayList<Obstacle>(4);
+    bowlObstacles = new ArrayList<BowlObstacle>(4);
+    
     for (int i = 0; i< 4; i ++){
-      sources.add(new Source((i+1)*0.2*width,i*0.2*height+50, this));
-      magnets.add(new Magnet(width-((i+1)*0.2*width),i*0.2*height+50, this));
-      obstacles.add(new Obstacle((i+1)*0.2*width,i*0.2*height+50, this));      
+      sources.add(new Source(i*0.25*(width-controllerSize)+controllerSize+120,0.2*height, this));
+      magnets.add(new Magnet(i*0.25*(width-controllerSize)+controllerSize+120,0.8*height, this));
+      obstacles.add(new Obstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.5*height, this));
+      bowlObstacles.add(new BowlObstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.5*height, this));
     }
     brushes.addAll(sources);
     brushes.addAll(magnets);
     brushes.addAll(obstacles);
+    brushes.addAll(bowlObstacles);
     boidType = BoidType.LINE;
   }
 
