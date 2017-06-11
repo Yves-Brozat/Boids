@@ -20,11 +20,20 @@ abstract class Brush{
     {
       render();
       update();
+      apply();
     }
   }
   
-  abstract void update();
+  void update(){
+    if (isSelected && mousePressed){
+      PVector oldPosition = position.copy();
+      position.set(mouseX,mouseY);
+      velocity = PVector.sub(position,oldPosition);
+    }
+  }
+  
   abstract void render();
+  abstract void apply();
   
   void mousePressed(){
     if (isActivated)
@@ -41,9 +50,7 @@ abstract class Brush{
   }
   void mouseDragged(){
     if (isSelected) {
-      PVector oldPosition = position.copy();
-      position.set(mouseX,mouseY);
-      velocity = PVector.sub(position,oldPosition);
+
     }
   }
 }
@@ -54,7 +61,7 @@ class Source extends Brush {
     super(x,y,flock);
   }
   
-  void update(){
+  void apply(){
     switch(f.boidType){
       case TRIANGLE : f.addBoid(new TriangleBoid(position.x,position.y)); break;
       case LETTER : f.addBoid(new LetterBoid(position.x,position.y)); break;
@@ -80,7 +87,7 @@ class Magnet extends Brush {
     super(x,y,flock);
   }
   
-  void update(){
+  void apply(){
     for (Boid b : f.boids) 
       b.applyAttraction(position);
   }
@@ -101,7 +108,7 @@ class Obstacle extends Brush {
     super(x,y,flock);
   }
   
-  void update(){     
+  void apply(){     
     for (Boid b: f.boids){
       if (b.position.dist(position) < 5*r){
         PVector n = PVector.sub(position,b.position);
@@ -110,7 +117,7 @@ class Obstacle extends Brush {
         PVector v = n.copy();
         v.setMag(-5*r);
         b.position = PVector.add(position,v);
-        b.sumForces.add(velocity.mult(2));
+        b.sumForces.add(velocity.mult(1.0));
       }
     }      
   }
@@ -122,16 +129,16 @@ class Obstacle extends Brush {
   }
 }
 
-class BowlObstacle extends Brush {
+class WallObstacle extends Brush {
 
   float e = 5.0;
   float angle = 0;
 
-  BowlObstacle(float x, float y, Flock flock){
+  WallObstacle(float x, float y, Flock flock){
     super(x,y,flock);
   }
   
-  void update(){     
+  void apply(){     
     for (Boid b: f.boids){
       if (b.position.dist(position) > 5*r-e && b.position.dist(position) < 5*r+e && b.position.y >= position.y){
         PVector n = PVector.sub(position,b.position);
@@ -143,11 +150,61 @@ class BowlObstacle extends Brush {
       }
     }      
   }
-  
+ 
   void render(){
     noFill();
     stroke(100,20);
     strokeWeight(e);
     arc(position.x, position.y, 10*r, 10*r, angle, angle + PI);
+  }
+}
+
+class BowlObstacle extends Brush {
+
+  float e = 20.0;
+  float angle = PI/3;
+
+  BowlObstacle(float x, float y, Flock flock){
+    super(x,y,flock);
+    r = 100;
+  }
+  
+  void apply(){  
+    for (Boid b: f.boids){
+      if ((b.position.x - position.x)*sin(angle) < (b.position.y - position.y)*cos(angle) + e 
+       && (b.position.x - position.x)*sin(angle) > (b.position.y - position.y)*cos(angle) - e
+       && (b.position.x - position.x)*cos(angle) < -(b.position.y - position.y)*sin(angle) + 5*r
+       && (b.position.x - position.x)*cos(angle) > -(b.position.y - position.y)*sin(angle) - 5*r )
+      {
+        PVector n = new PVector(sin(angle),-cos(angle));
+        float a = b.velocity.heading() - n.heading();
+        b.velocity.rotate(PI-2*a);
+        b.sumForces.add(velocity);        
+        if ((b.position.x - position.x)*sin(angle) > (b.position.y - position.y)*cos(angle))
+          b.position.add(e*sin(angle),-e*cos(angle));
+        else
+          b.position.add(-e*sin(angle),e*cos(angle));
+      }
+    }    
+  }
+  
+  void render(){
+    noStroke();
+    fill(100,20);
+    rectMode(CENTER);
+    pushMatrix();
+    translate(position.x,position.y);
+    rotate(angle);
+    rect(0,0, 10*r, 2*e);
+    noFill();
+    stroke(255,20);
+    strokeWeight(1);
+    rect(0,0,10,10);
+    popMatrix();
+  }
+  
+  void update(){
+    super.update();
+    //angle+=0.05;
   }
 }

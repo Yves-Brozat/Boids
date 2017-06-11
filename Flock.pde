@@ -45,23 +45,6 @@ class Flock implements ControlListener{
 
   void addBoid(Boid b) {
     boids.add(b);
-    initParameters(b);
-  }
-  
-  void initParameters(Boid b){
-    b.size = controller.getController("size").getValue();
-    b.trailLength = (int)controller.getController("trailLength").getValue();
-    b.separation = controller.getController("separation").getValue();
-    b.alignment = controller.getController("alignment").getValue();
-    b.cohesion = controller.getController("cohesion").getValue();
-    b.attraction = controller.getController("attraction").getValue();
-    b.gravity = controller.getController("gravity").getValue();
-    b.gravity_Angle = (int)controller.getController("gravity_Angle").getValue();
-    b.friction = controller.getController("friction").getValue();
-    b.maxforce = controller.getController("maxforce").getValue();    
-    b.maxspeed = controller.getController("maxspeed").getValue();    
-    b.k_density = controller.getController("k_density").getValue();
-    b.lifespan = (int)controller.getController("lifespan").getValue();
   }
   
   void setSize() {
@@ -97,8 +80,7 @@ class Flock implements ControlListener{
   }
   
   public void controlEvent(ControlEvent theEvent) {
-    println("controlEvent : "+theEvent);
-    for (Boid b : boids){
+     for (Boid b : boids){
       if(theEvent.isFrom("size"))     b.size = theEvent.getController().getValue();     
       if(theEvent.isFrom("trailLength"))     b.trailLength = (int)theEvent.getController().getValue();
       if(theEvent.isFrom("separation"))     b.separation = controller.getController("separation").getValue();

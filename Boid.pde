@@ -14,6 +14,7 @@ abstract class Boid {
   
   //Forces parameters
   boolean[] forcesToggle;
+  boolean[] paramToggle;
   float separation;
   float alignment;
   float cohesion;
@@ -35,34 +36,50 @@ abstract class Boid {
     sumForces = new PVector(); 
     r = random(0,2.0);
     history = new ArrayList<PVector>();  
-    c = controller.get(ColorWheel.class,"particleColor").getRGB();
     lifetime = 0;
     density = 1.0;
+    c = controller.get(ColorWheel.class,"particleColor").getRGB();
+    size = controller.getController("size").getValue();
+    trailLength = (int)controller.getController("trailLength").getValue();
+    separation = controller.getController("separation").getValue();
+    alignment = controller.getController("alignment").getValue();
+    cohesion = controller.getController("cohesion").getValue();
+    attraction = controller.getController("attraction").getValue();
+    gravity = controller.getController("gravity").getValue();
+    gravity_Angle = (int)controller.getController("gravity_Angle").getValue();
+    friction = controller.getController("friction").getValue();
+    maxforce = controller.getController("maxforce").getValue();    
+    maxspeed = controller.getController("maxspeed").getValue();    
+    k_density = controller.getController("k_density").getValue();
+    lifespan = (int)controller.getController("lifespan").getValue();
     forcesToggle = new boolean[6];
-    for (int i = 0; i <6; i++) forcesToggle[i] = false;
+    for (int i = 0; i < forcesToggle.length; i++) forcesToggle[i] = forces.getState(i);
+    paramToggle = new boolean[3];
+    for (int i = 0; i < paramToggle.length; i++) paramToggle[i] = param.getState(i);
   }
 
   void run(ArrayList<Boid> boids) {
     savePosition();
     applyFlock(boids);
-    applyGravity();
-    applyFriction();
+    if(forcesToggle[4]) applyFriction();
+    if(forcesToggle[5]) applyGravity();
     update();
     borders();
     if(position.x > controllerSize)
       render(boids);
-    lifetime++;
+    if(paramToggle[2]) lifetime++;
   }
 
   boolean isDead(){
-    return (lifetime > lifespan) ? true : false;
+    if (paramToggle[2]) return (lifetime > lifespan) ? true : false;
+    else return false;
   }
   
   void applyGravity(){
     PVector g = new PVector(cos(radians(gravity_Angle+90)),sin(radians(gravity_Angle+90)));
     g.mult(gravity);
     g.mult(density*r*r);
-    if(forcesToggle[5]) sumForces.add(g);
+    sumForces.add(g);
   }
   
   void applyFriction(){
@@ -71,7 +88,7 @@ abstract class Boid {
      float f = -velocity.mag()*r*r;
      fri.mult(f);
      fri.mult(friction);
-     if(forcesToggle[4])  sumForces.add(fri);
+     sumForces.add(fri);
      
   }
   
@@ -114,7 +131,7 @@ abstract class Boid {
     // Update velocity
     velocity.add(acceleration);
     // Limit speed
-    velocity.limit(maxspeed);
+    if (paramToggle[1]) velocity.limit(maxspeed);
     // Update position
     position.add(velocity);
     // Reset forces to 0 each cycle
@@ -127,15 +144,17 @@ abstract class Boid {
     PVector desired = PVector.sub(target, position);  // A vector pointing from the position to the target
     desired.setMag(maxspeed); // Scale to maximum speed
     PVector steer = PVector.sub(desired, velocity); // Steering = Desired minus Velocity
-    steer.limit(maxforce);  // Limit to maximum steering force
+    if (paramToggle[0]) steer.limit(maxforce);  // Limit to maximum steering force
     return steer;
   }
 
   void render(ArrayList<Boid> boids){
+    int alpha = 100;
+    if (paramToggle[2]) alpha = (int)map(lifetime,0,lifespan,100,1);
     c = color(controller.get(ColorWheel.class,"particleColor").r(),
               controller.get(ColorWheel.class,"particleColor").g(),
               controller.get(ColorWheel.class,"particleColor").b(),
-              (int)map(lifetime,0,lifespan,100,0));
+              alpha);
   }
   
   void borders() {
@@ -180,7 +199,7 @@ abstract class Boid {
     int count = 0;
     for (Boid other : boids) {
       float d = PVector.dist(position, other.position);
-      if ((d > 0) && (d < desiredseparation)) {
+      if ((d > 0) && (d < 10*r*size)) {
         PVector diff = PVector.sub(position, other.position); // Calculate vector pointing away from neighbor
         diff.normalize();
         diff.div(d);        // Weight by distance
@@ -197,7 +216,7 @@ abstract class Boid {
     if (steer.mag() > 0) {
       steer.setMag(maxspeed);
       steer.sub(velocity);   // Implement Reynolds: Steering = Desired - Velocity
-      steer.limit(maxforce);
+      if (paramToggle[0]) steer.limit(maxforce);
     }
     return steer;
   }
@@ -219,7 +238,7 @@ abstract class Boid {
       sum.div((float)count);
       sum.setMag(maxspeed);
       PVector steer = PVector.sub(sum, velocity);      // Implement Reynolds: Steering = Desired - Velocity
-      steer.limit(maxforce);
+      if (paramToggle[0]) steer.limit(maxforce);
       return steer;
     } 
     else {

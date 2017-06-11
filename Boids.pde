@@ -27,6 +27,7 @@ CheckBox mag;
 CheckBox obs;
 CheckBox bowl;
 CheckBox forces;
+CheckBox param;
 Accordion accordion;
 Flock flock;
 
@@ -71,44 +72,50 @@ public void gui()
                        .setBackgroundColor(color(0, 64))
                        .setBackgroundHeight(220)
                        ;
-                       
-  controller.addSlider("N")
+
+  param = controller.addCheckBox("parametersToggle")
             .setPosition(10,10)
-            .setRange(0,1000)
+            .setSize(9,9)
+            .setItemsPerRow(1)
+            .addItem("F",0).addItem("S",1).addItem("L",2)
             .moveTo(g1)
-            ;
+            ;                       
   controller.addSlider("maxforce")
             .addListener(flock)
-            .setPosition(10,20)
+            .setPosition(30,10)
             .setRange(0.01,1)
             .setValue(1)
             .moveTo(g1)
-            ;           
+            ;
   controller.addSlider("maxspeed")
             .addListener(flock)
-            .setPosition(10,30)
+            .setPosition(30,20)
             .setRange(0.01,20)
             .setValue(20)
             .moveTo(g1)
             ;
-  controller.addSlider("k_density")
-            .addListener(flock)
-            .setPosition(10,40)
-            .setRange(0.1,2)
-            .setValue(1.0)
-            .moveTo(g1)
-            ;
   controller.addSlider("lifespan")
             .addListener(flock)
-            .setPosition(10,50)
+            .setPosition(30,30)
             .setRange(1,1000)
             .setValue(300)
             .moveTo(g1)
             ;
-            
+  controller.addSlider("N")
+            .setPosition(30,40)
+            .setRange(0,1000)
+            .moveTo(g1)
+            ;
+  controller.addSlider("k_density")
+            .addListener(flock)
+            .setPosition(30,50)
+            .setRange(0.1,2)
+            .setValue(1.0)
+            .moveTo(g1)
+            ;          
   controller.addSlider("trailLength")
             .addListener(flock)
-            .setPosition(10,60)
+            .setPosition(30,60)
             .setRange(0,20)
             .setValue(0)
             .moveTo(g1)
@@ -116,7 +123,7 @@ public void gui()
   
   controller.addSlider("size")
             .addListener(flock)
-            .setPosition(10,70)
+            .setPosition(30,70)
             .setRange(0.1,10)
             .setValue(1.0)
             .moveTo(g1)
@@ -348,6 +355,14 @@ void controlEvent(ControlEvent theEvent) {
     for (int i = 0; i<forces.getArrayValue().length; i++){
       for (Boid b : flock.boids){
         b.forcesToggle[i] = forces.getState(i);
+      }
+    }
+  }
+  
+  if (theEvent.isFrom(param)){
+    for (int i = 0; i<param.getArrayValue().length; i++){
+      for (Boid b : flock.boids){
+        b.paramToggle[i] = param.getState(i);
       }
     }
   }
