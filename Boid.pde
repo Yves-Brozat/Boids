@@ -53,9 +53,9 @@ abstract class Boid {
     k_density = controller.getController("k_density").getValue();
     lifespan = (int)controller.getController("lifespan").getValue();
     forcesToggle = new boolean[6];
-    for (int i = 0; i < forcesToggle.length; i++) forcesToggle[i] = forces.getState(i);
+    for (int i = 0; i < forcesToggle.length; i++) forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
     paramToggle = new boolean[3];
-    for (int i = 0; i < paramToggle.length; i++) paramToggle[i] = param.getState(i);
+    for (int i = 0; i < paramToggle.length; i++) paramToggle[i] = controller.get(CheckBox.class,"parametersToggle").getState(i);
   }
 
   void run(ArrayList<Boid> boids) {
@@ -149,8 +149,8 @@ abstract class Boid {
   }
 
   void render(ArrayList<Boid> boids){
-    int alpha = 100;
-    if (paramToggle[2]) alpha = (int)map(lifetime,0,lifespan,100,1);
+    int alpha = 255;
+    if (paramToggle[2]) alpha = (int)map(lifetime,0,lifespan,255,1);
     c = color(controller.get(ColorWheel.class,"particleColor").r(),
               controller.get(ColorWheel.class,"particleColor").g(),
               controller.get(ColorWheel.class,"particleColor").b(),
@@ -199,7 +199,7 @@ abstract class Boid {
     int count = 0;
     for (Boid other : boids) {
       float d = PVector.dist(position, other.position);
-      if ((d > 0) && (d < 10*r*size)) {
+      if ((d > 0) && (d < desiredseparation)) {
         PVector diff = PVector.sub(position, other.position); // Calculate vector pointing away from neighbor
         diff.normalize();
         diff.div(d);        // Weight by distance
@@ -288,7 +288,7 @@ class TriangleBoid extends Boid {
       pushMatrix();
       translate(history.get(i).x, history.get(i).y);
       rotate(theta);
-      fill(c,100/history.size()*(i+1));
+      fill(c,255/history.size()*(i+1));
       noStroke();
       beginShape(TRIANGLES);
       vertex(0, -r*2);
@@ -319,7 +319,7 @@ class LetterBoid extends Boid {
       rotate(theta);
       //r = map(mag.position.dist(history.get(i)),1,height,0,2);
       //r = constrain(r,0,1);
-      fill(c,100/history.size()*(i+1));
+      fill(c,255/history.size()*(i+1));
       noStroke();
       textSize(10*r*size+1);
       text(letter,0,0);
@@ -341,7 +341,7 @@ class CircleBoid extends Boid {
       pushMatrix();
       //r = map(mag.position.dist(history.get(i)),1,height,2,0);
       //r = constrain(r,0,1);
-      fill(c,100/history.size()*(i+1));
+      fill(c,255/history.size()*(i+1));
       noStroke();
       ellipse(history.get(i).x, history.get(i).y,10*r*size,10*r*size);
       popMatrix();
@@ -361,7 +361,7 @@ class BubbleBoid extends Boid {
     {
       pushMatrix();
       r = random(0,1);
-      fill(c,100/history.size()*(i+1));
+      fill(c,255/history.size()*(i+1));
       noStroke();
       ellipse(history.get(i).x, history.get(i).y,25*r*size,25*r*size);
       popMatrix();
@@ -384,7 +384,7 @@ class LineBoid extends Boid {
           //int count = 0;
           if ((d > 0) && (d < 20*size)) {
             //count++;            // Keep track of how many
-            stroke(c,100/history.size()*(i+1));
+            stroke(c,255/history.size()*(i+1));
             strokeWeight(1);
             line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
           }
@@ -412,7 +412,7 @@ class CurveBoid extends Boid {
           //int count = 0;
           if ((f > 0) && (f < 20*size)) {
             //count++;            // Keep track of how many
-            stroke(c,100/history.size()*(i+1));
+            stroke(c,255/history.size()*(i+1));
             noFill();
             strokeWeight(1);
             curveVertex(other.history.get(i).x,other.history.get(i).y);

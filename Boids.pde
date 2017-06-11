@@ -5,15 +5,17 @@ EN COURS :
 - Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
 - Creer des autres objets (des brosses ?) type Attractor, Repulsor, Source, Blackhole pour interaction de tracking
 - Réflexion sur la couleur : aléatoire, changement de teinte via 2 sliders sur l'ensemble des couleurs
+- Idem pour repousser les éléments (interaction de tracking)
+- Creer un interupteur noir/blanc
 
 IDEES : 
 - Creer des bangs (WALL puis NO_BORDER, MASSE = 0 puis normal, FORCE = 0, SPEED = 0, ...) pour une interaction ponctuelle (type break) ou répétitive (type beat)
 - Creer des decoupes ronde, triangle et carre pour remplacer les borders de la fenetre et contenir les éléments
-- Idem pour repousser les éléments (interaction de tracking)
 - Ajouter slider pour régler la taille des zones de forces de groupe
 - Utiliser la donnée du nombre de voisins proches (pour un changement visuel, une fusion ou une fission)
 - Création de chemins à suivre (droite, courbe, cercle)
-- Creer un interupteur noir/blanc
+- Ressorts entre particules pour creer des tissus
+- Garder en mémoire la position d'origine pour pouvoir y retourner
 */
 
 import controlP5.*;
@@ -21,18 +23,10 @@ import netP5.*;
 import oscP5.*;
 
 ControlP5 controller;
-
-CheckBox src;
-CheckBox mag;
-CheckBox obs;
-CheckBox bowl;
-CheckBox forces;
-CheckBox param;
-Accordion accordion;
 Flock flock;
 
 int controllerSize = 200;
-int backgroundColor;
+
 
 enum BoidType {TRIANGLE, LETTER, CIRCLE, BUBBLE, LINE, CURVE;}
 enum BorderType {WALLS, LOOPS, NOBORDER;}
@@ -47,7 +41,7 @@ void setup() {
 }
 
 void draw() {
-  background(backgroundColor);
+  background(controller.get(ColorWheel.class,"backgroundColor").getRGB());
   flock.run(); 
 }
 
@@ -73,7 +67,7 @@ public void gui()
                        .setBackgroundHeight(220)
                        ;
 
-  param = controller.addCheckBox("parametersToggle")
+  controller.addCheckBox("parametersToggle")
             .setPosition(10,10)
             .setSize(9,9)
             .setItemsPerRow(1)
@@ -128,56 +122,44 @@ public void gui()
             .setValue(1.0)
             .moveTo(g1)
             ; 
-  src = controller.addCheckBox("Sources")
+  controller.addCheckBox("Sources")
             .setPosition(10,94)
             .setSize(25,25)
             .setItemsPerRow(4)
-            .addItem("S1", 0)
-            .addItem("S2", 1)
-            .addItem("S3", 2)
-            .addItem("Source", 3)      
+            .addItem("S1", 0).addItem("S2", 1).addItem("S3", 2).addItem("Source", 3)      
             .moveTo(g1)
             ;
   
-  mag = controller.addCheckBox("Magnets")
+  controller.addCheckBox("Magnets")
             .setPosition(10,120)
             .setSize(25,25)
             .setItemsPerRow(4)
-            .addItem("M1", 0)
-            .addItem("M2", 1)
-            .addItem("M3", 2)
-            .addItem("Magnet", 3)      
+            .addItem("M1", 0).addItem("M2", 1).addItem("M3", 2).addItem("Magnet", 3)      
             .moveTo(g1)
             ;
             
- obs = controller.addCheckBox("Obstacles")
+  controller.addCheckBox("Obstacles")
             .setPosition(10,146)
             .setSize(25,25)
             .setItemsPerRow(4)
-            .addItem("O1", 0)
-            .addItem("O2", 1)
-            .addItem("O3", 2)
-            .addItem("Obstacle", 3)      
+            .addItem("O1", 0).addItem("O2", 1).addItem("O3", 2).addItem("Obstacle", 3)      
             .moveTo(g1)
             ;
             
- bowl = controller.addCheckBox("Bowls")
+  controller.addCheckBox("Bowls")
             .setPosition(10,172)
             .setSize(25,25)
             .setItemsPerRow(4)
-            .addItem("B1", 0)
-            .addItem("B2", 1)
-            .addItem("B3", 2)
-            .addItem("Bowl", 3)      
+            .addItem("B1", 0).addItem("B2", 1).addItem("B3", 2).addItem("Bowl", 3)      
             .moveTo(g1)
             ;
   //Group 2 : Forces
   Group g2 = controller.addGroup("Forces")
                        .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(150)
+                       .setBackgroundHeight(120)
                        ;                      
   
-  forces = controller.addCheckBox("forceToggle")
+  controller.addCheckBox("forceToggle")
             .setPosition(10,10)
             .setSize(9,9)
             .setItemsPerRow(1)
@@ -243,29 +225,21 @@ public void gui()
   controller.addRadioButton("Visual")
             .addListener(flock)
             .setPosition(10,10)
-            .setItemWidth(20)
-            .setItemHeight(20)
-            .addItem("triangle", 0)
-            .addItem("letter", 1)
-            .addItem("circle", 2) 
-            .addItem("bubble",3)
-            .addItem("line", 4)
-            .addItem("curve", 5)
-            .setColorLabel(color(255))
+            .setSize(20,20)
+            .addItem("triangle", 0).addItem("letter", 1).addItem("circle", 2) .addItem("bubble",3).addItem("line", 4).addItem("curve", 5)
             .activate(4) //Line par défaut
             .moveTo(g3)
             ;          
-  
   controller.addColorWheel("particleColor",90,10,100)
             .setRGB(color(255))
             .moveTo(g3)
-            ;
-            
+            ;           
   controller.addColorWheel("backgroundColor",90,130,100)
             .setRGB(color(0))
             .moveTo(g3)
             ;
-
+  controller.addBang("Black&White").setPosition(10,150).setSize(40,40).moveTo(g3);
+  
   //Group 4 : Borders parameters
   Group g4 = controller.addGroup("Borders")
                        .setBackgroundColor(color(0, 64))
@@ -274,28 +248,19 @@ public void gui()
  
   controller.addRadioButton("Borders type")
             .setPosition(10,10)
-            .setItemWidth(20)
-            .setItemHeight(20)
-            .addItem("walls", 0)
-            .addItem("loops", 1)
-            .addItem("no_border", 2)
-            .setColorLabel(color(255))
+            .setSize(20,20)
+            .addItem("walls", 0).addItem("loops", 1).addItem("no_border", 2)
             .activate(1) //Boucle par defaut
             .moveTo(g4)
             ;
             
             
-  accordion = controller.addAccordion("acc")
-                        .setPosition(0,0)
-                        .setWidth(controllerSize)
-                        .addItem(g1)
-                        .addItem(g2)
-                        .addItem(g3)
-                        .addItem(g4)
-                        ;
-                        
-  accordion.open(0,1,2,3);
-  accordion.setCollapseMode(Accordion.MULTI);
+  controller.addAccordion("acc")
+            .setPosition(0,0)
+            .setWidth(controllerSize)
+            .addItem(g1).addItem(g2).addItem(g3).addItem(g4)
+            .open(0,1,2,3)
+            .setCollapseMode(Accordion.MULTI);
 }
 
 void controlEvent(ControlEvent theEvent) { 
@@ -327,43 +292,54 @@ void controlEvent(ControlEvent theEvent) {
     }
   }
   
-  if (theEvent.isFrom(src)){
-    for (int i = 0; i<src.getArrayValue().length; i++){
-      flock.sources.get(i).isActivated = src.getState(i);
+  if (theEvent.isFrom(controller.get(CheckBox.class,"Sources"))){
+    for (int i = 0; i<controller.get(CheckBox.class,"Sources").getArrayValue().length; i++){
+      flock.sources.get(i).isActivated = controller.get(CheckBox.class,"Sources").getState(i);
     }
   }
   
-  if (theEvent.isFrom(mag)){
-    for (int i = 0; i<mag.getArrayValue().length; i++){
-      flock.magnets.get(i).isActivated = mag.getState(i);
+  if (theEvent.isFrom(controller.get(CheckBox.class,"Magnets"))){
+    for (int i = 0; i<controller.get(CheckBox.class,"Magnets").getArrayValue().length; i++){
+      flock.magnets.get(i).isActivated = controller.get(CheckBox.class,"Magnets").getState(i);
     }
   }
   
-  if (theEvent.isFrom(obs)){
-    for (int i = 0; i<obs.getArrayValue().length; i++){
-      flock.obstacles.get(i).isActivated = obs.getState(i);
+  if (theEvent.isFrom(controller.get(CheckBox.class,"Obstacles"))){
+    for (int i = 0; i<controller.get(CheckBox.class,"Obstacles").getArrayValue().length; i++){
+      flock.obstacles.get(i).isActivated = controller.get(CheckBox.class,"Obstacles").getState(i);
     }
   }
   
-  if (theEvent.isFrom(bowl)){
-    for (int i = 0; i<bowl.getArrayValue().length; i++){
-      flock.bowlObstacles.get(i).isActivated = bowl.getState(i);
+  if (theEvent.isFrom(controller.get(CheckBox.class,"Bowls"))){
+    for (int i = 0; i<controller.get(CheckBox.class,"Bowls").getArrayValue().length; i++){
+      flock.bowlObstacles.get(i).isActivated = controller.get(CheckBox.class,"Bowls").getState(i);
     }
   }
   
-  if (theEvent.isFrom(forces)){
-    for (int i = 0; i<forces.getArrayValue().length; i++){
+  if (theEvent.isFrom(controller.get(CheckBox.class,"forceToggle"))){
+    for (int i = 0; i<controller.get(CheckBox.class,"forceToggle").getArrayValue().length; i++){
       for (Boid b : flock.boids){
-        b.forcesToggle[i] = forces.getState(i);
+        b.forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
       }
     }
   }
   
-  if (theEvent.isFrom(param)){
-    for (int i = 0; i<param.getArrayValue().length; i++){
+  if (theEvent.isFrom(controller.get(CheckBox.class,"parametersToggle"))){
+    for (int i = 0; i<controller.get(CheckBox.class,"parametersToggle").getArrayValue().length; i++){
       for (Boid b : flock.boids){
-        b.paramToggle[i] = param.getState(i);
+        b.paramToggle[i] = controller.get(CheckBox.class,"parametersToggle").getState(i);
       }
+    }
+  }
+  
+  if(theEvent.isFrom("Black&White")){
+    if(controller.get(ColorWheel.class,"particleColor").getRGB() != -1 || controller.get(ColorWheel.class,"backgroundColor").getRGB() != -16777216){
+      controller.get(ColorWheel.class,"particleColor").setRGB(color(255));
+      controller.get(ColorWheel.class,"backgroundColor").setRGB(color(0));
+    }
+    else{
+      controller.get(ColorWheel.class,"particleColor").setRGB(color(0));
+      controller.get(ColorWheel.class,"backgroundColor").setRGB(color(255));
     }
   }
 }

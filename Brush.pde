@@ -124,8 +124,11 @@ class Obstacle extends Brush {
   
   void render(){
     noStroke();
-    fill(100,20);
+    fill(controller.get(ColorWheel.class,"backgroundColor").getRGB());
     ellipse(position.x,position.y,10*r,10*r);
+    noFill();
+    stroke(controller.get(ColorWheel.class,"particleColor").getRGB(),40);
+    ellipse(position.x,position.y,r,r);
   }
 }
 
@@ -166,7 +169,6 @@ class BowlObstacle extends Brush {
 
   BowlObstacle(float x, float y, Flock flock){
     super(x,y,flock);
-    r = 100;
   }
   
   void apply(){  
@@ -190,14 +192,14 @@ class BowlObstacle extends Brush {
   
   void render(){
     noStroke();
-    fill(100,20);
+    fill(controller.get(ColorWheel.class,"backgroundColor").getRGB());
     rectMode(CENTER);
     pushMatrix();
     translate(position.x,position.y);
     rotate(angle);
     rect(0,0, 10*r, 2*e);
     noFill();
-    stroke(255,20);
+    stroke(controller.get(ColorWheel.class,"particleColor").getRGB(),40);
     strokeWeight(1);
     rect(0,0,10,10);
     popMatrix();
