@@ -21,8 +21,10 @@ IDEES :
 import controlP5.*;
 import netP5.*;
 import oscP5.*;
+import java.util.Collections.*;
 
 ControlP5 controller;
+OscP5 osc;
 Flock flock;
 
 int controllerSize = 200;
@@ -35,6 +37,7 @@ ArrayList<String> alphabet;
 
 void setup() {
   size(1366,703,P2D);
+  osc = new OscP5(this,12000);
   setAlphabet();
   flock = new Flock();
   gui();  
@@ -62,207 +65,90 @@ public void gui()
   controller = new ControlP5(this);
   
   //Group 1 : Global parameters
-  Group g1 = controller.addGroup("Global physical parameters")
-                       .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(220)
-                       ;
-
-  controller.addCheckBox("parametersToggle")
-            .setPosition(10,10)
-            .setSize(9,9)
-            .setItemsPerRow(1)
-            .addItem("F",0).addItem("S",1).addItem("L",2)
-            .moveTo(g1)
-            ;                       
-  controller.addSlider("maxforce")
-            .addListener(flock)
-            .setPosition(30,10)
-            .setRange(0.01,1)
-            .setValue(1)
-            .moveTo(g1)
-            ;
-  controller.addSlider("maxspeed")
-            .addListener(flock)
-            .setPosition(30,20)
-            .setRange(0.01,20)
-            .setValue(20)
-            .moveTo(g1)
-            ;
-  controller.addSlider("lifespan")
-            .addListener(flock)
-            .setPosition(30,30)
-            .setRange(1,1000)
-            .setValue(300)
-            .moveTo(g1)
-            ;
-  controller.addSlider("N")
-            .setPosition(30,40)
-            .setRange(0,1000)
-            .moveTo(g1)
-            ;
-  controller.addSlider("k_density")
-            .addListener(flock)
-            .setPosition(30,50)
-            .setRange(0.1,2)
-            .setValue(1.0)
-            .moveTo(g1)
-            ;          
-  controller.addSlider("trailLength")
-            .addListener(flock)
-            .setPosition(30,60)
-            .setRange(0,20)
-            .setValue(0)
-            .moveTo(g1)
-            ; 
-  
-  controller.addSlider("size")
-            .addListener(flock)
-            .setPosition(30,70)
-            .setRange(0.1,10)
-            .setValue(1.0)
-            .moveTo(g1)
-            ; 
-  controller.addCheckBox("Sources")
-            .setPosition(10,94)
-            .setSize(25,25)
-            .setItemsPerRow(4)
+  Group g1 = controller.addGroup("Global physical parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(250);
+  controller.addCheckBox("parametersToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).addItem("F",0).addItem("S",1).addItem("L",2).moveTo(g1);                       
+  controller.addSlider("maxforce").addListener(flock).setPosition(30,10).setRange(0.01,1).setValue(1).moveTo(g1);
+  controller.addSlider("maxspeed").addListener(flock).setPosition(30,20).setRange(0.01,20).setValue(20).moveTo(g1);
+  controller.addSlider("lifespan").addListener(flock).setPosition(30,30).setRange(1,1000).setValue(300).moveTo(g1);
+  controller.addSlider("N").setPosition(30,40).setRange(0,1000).moveTo(g1);
+  controller.addSlider("k_density").addListener(flock).setPosition(30,50).setRange(0.1,2).setValue(1.0).moveTo(g1);          
+  controller.addSlider("trailLength").addListener(flock).setPosition(30,60).setRange(0,20).setValue(0).moveTo(g1); 
+  controller.addSlider("size").addListener(flock).setPosition(30,70).setRange(0.1,10).setValue(1.0).moveTo(g1); 
+  controller.addBang("grid").setPosition(10,85).setSize(20,20).moveTo(g1);
+  controller.addCheckBox("Brushes").setPosition(10,124).setSize(15,15).setItemsPerRow(4).moveTo(g1)
             .addItem("S1", 0).addItem("S2", 1).addItem("S3", 2).addItem("Source", 3)      
-            .moveTo(g1)
-            ;
-  
-  controller.addCheckBox("Magnets")
-            .setPosition(10,120)
-            .setSize(25,25)
-            .setItemsPerRow(4)
             .addItem("M1", 0).addItem("M2", 1).addItem("M3", 2).addItem("Magnet", 3)      
-            .moveTo(g1)
-            ;
-            
-  controller.addCheckBox("Obstacles")
-            .setPosition(10,146)
-            .setSize(25,25)
-            .setItemsPerRow(4)
-            .addItem("O1", 0).addItem("O2", 1).addItem("O3", 2).addItem("Obstacle", 3)      
-            .moveTo(g1)
-            ;
-            
-  controller.addCheckBox("Bowls")
-            .setPosition(10,172)
-            .setSize(25,25)
-            .setItemsPerRow(4)
-            .addItem("B1", 0).addItem("B2", 1).addItem("B3", 2).addItem("Bowl", 3)      
-            .moveTo(g1)
-            ;
-  //Group 2 : Forces
-  Group g2 = controller.addGroup("Forces")
-                       .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(120)
-                       ;                      
-  
-  controller.addCheckBox("forceToggle")
-            .setPosition(10,10)
-            .setSize(9,9)
-            .setItemsPerRow(1)
-            .addItem("s",0).addItem("a",1).addItem("c",2).addItem("A",3).addItem("f",4).addItem("g",5)
-            .moveTo(g2)
-            ;
-                       
-  controller.addSlider("separation")
-            .addListener(flock)
-            .setPosition(30,10)
-            .setRange(0.01,4)
-            .moveTo(g2)
-            ;
-  controller.addSlider("alignment")
-            .addListener(flock)
-            .setPosition(30,20)
-            .setRange(0.01,4)
-            .moveTo(g2)
-            ;
-  controller.addSlider("cohesion")
-            .addListener(flock)
-            .setPosition(30,30)
-            .setRange(0.01,4)
-            .moveTo(g2)
-            ;
-  controller.addSlider("attraction")
-            .addListener(flock)
-            .setPosition(30,40)
-            .setRange(0.01,4)
-            .moveTo(g2)
-            ;
-  controller.addSlider("friction")
-            .addListener(flock)
-            .setPosition(30,50)
-            .setRange(0.001,0.1)
-            .moveTo(g2)
-            ;
-  controller.addSlider("gravity")
-            .addListener(flock)
-            .setPosition(30,60)
-            .setRange(0.01,4)
-            .setValue(0.01)
-            .moveTo(g2)
-            ;
-  controller.addKnob("gravity_Angle")
-            .addListener(flock)
-            .setPosition(50,75)
-            .setResolution(100)
-            .setRange(0,360)
-            .setAngleRange(2*PI)
-            .setStartAngle(0.5*PI)
-            .setRadius(10)
-            .moveTo(g2)
-            ;
+            .addItem("R1", 0).addItem("R2", 1).addItem("R3", 2).addItem("Repulsor", 3)      
+            .addItem("O1", 0).addItem("O2", 1).addItem("O3", 2).addItem("O", 3)      
+            .addItem("/1", 0).addItem("/2", 1).addItem("/3", 2).addItem("/", 3)      
+            .addItem("U1", 0).addItem("U2", 1).addItem("U3", 2).addItem("U", 3);
 
+  //Group 2 : Forces
+  Group g2 = controller.addGroup("Forces").setBackgroundColor(color(0, 64)).setBackgroundHeight(130);                       
+  controller.addCheckBox("forceToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).moveTo(g2)
+            .addItem("s",0).addItem("a",1).addItem("c",2).addItem("A",3).addItem("r",4).addItem("f",5).addItem("g",6).addItem("n",7);
+  controller.addSlider("separation").addListener(flock).setPosition(30,10).setRange(0.01,4).setValue(1.5).moveTo(g2);
+  controller.addSlider("alignment").addListener(flock).setPosition(30,20).setRange(0.01,4).setValue(1.0).moveTo(g2);
+  controller.addSlider("cohesion").addListener(flock).setPosition(30,30).setRange(0.01,4).setValue(1.0).moveTo(g2);
+  controller.addSlider("attraction").addListener(flock).setPosition(30,40).setRange(0.01,4).moveTo(g2);
+  controller.addSlider("repulsion").addListener(flock).setPosition(30,50).setRange(0.01,4).moveTo(g2);          
+  controller.addSlider("friction").addListener(flock).setPosition(30,60).setRange(0.01,4).moveTo(g2);
+  controller.addSlider("gravity").addListener(flock).setPosition(30,70).setRange(0.01,4).setValue(1.0).moveTo(g2);  
+  controller.addSlider("noise").addListener(flock).setPosition(30,80).setRange(0.01,4).setValue(1.0).moveTo(g2);
+  controller.addKnob("gravity_Angle").addListener(flock).setPosition(50,95).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(10).moveTo(g2);
 
   //Group 3 : Visual parameters
-  Group g3 = controller.addGroup("Visual parameters")
-                       .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(250)
-                       ;  
+  Group g3 = controller.addGroup("Visual parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(110);  
+  controller.addRadioButton("Visual").addListener(flock).setPosition(10,10).setSize(15,15).moveTo(g3)
+            .addItem("triangle", 0).addItem("letter", 1).addItem("circle", 2) .addItem("bubble",3).addItem("line", 4).addItem("curve", 5).activate(4);
+  controller.addSlider("N_connections").addListener(flock).setPosition(80,10).setSize(50,10).setRange(1,30).setValue(3).moveTo(g3);
   
-  controller.addRadioButton("Visual")
-            .addListener(flock)
-            .setPosition(10,10)
-            .setSize(20,20)
-            .addItem("triangle", 0).addItem("letter", 1).addItem("circle", 2) .addItem("bubble",3).addItem("line", 4).addItem("curve", 5)
-            .activate(4) //Line par défaut
-            .moveTo(g3)
-            ;          
-  controller.addColorWheel("particleColor",90,10,100)
-            .setRGB(color(255))
-            .moveTo(g3)
-            ;           
-  controller.addColorWheel("backgroundColor",90,130,100)
-            .setRGB(color(0))
-            .moveTo(g3)
-            ;
-  controller.addBang("Black&White").setPosition(10,150).setSize(40,40).moveTo(g3);
+  //Group 4 : Colors
+  Group g4 = controller.addGroup("Colors").setBackgroundColor(color(0, 64)).setBackgroundHeight(200);  
+  controller.addColorWheel("particleColor",5,10,90).setRGB(color(255)).moveTo(g4);           
+  controller.addColorWheel("backgroundColor",105,10,90).setRGB(color(0)).moveTo(g4);
+  controller.addBang("Black&White").setPosition(10,120).setSize(10,10).moveTo(g4);
+  controller.addSlider("contrast").addListener(flock).setPosition(10,150).setRange(0,200).setValue(50).moveTo(g4);
+  controller.addSlider("red").addListener(flock).setPosition(10,160).setRange(0,200).setValue(0).moveTo(g4);
+  controller.addSlider("green").addListener(flock).setPosition(10,170).setRange(0,200).setValue(0).moveTo(g4);
+  controller.addSlider("blue").addListener(flock).setPosition(10,180).setRange(0,200).setValue(0).moveTo(g4);
   
-  //Group 4 : Borders parameters
-  Group g4 = controller.addGroup("Borders")
-                       .setBackgroundColor(color(0, 64))
-                       .setBackgroundHeight(150)
-                       ;  
- 
-  controller.addRadioButton("Borders type")
-            .setPosition(10,10)
-            .setSize(20,20)
-            .addItem("walls", 0).addItem("loops", 1).addItem("no_border", 2)
-            .activate(1) //Boucle par defaut
-            .moveTo(g4)
-            ;
-            
-            
-  controller.addAccordion("acc")
-            .setPosition(0,0)
-            .setWidth(controllerSize)
-            .addItem(g1).addItem(g2).addItem(g3).addItem(g4)
-            .open(0,1,2,3)
-            .setCollapseMode(Accordion.MULTI);
+  //Group 5 : Borders parameters
+  Group g5 = controller.addGroup("Borders").setBackgroundColor(color(0, 64)).setBackgroundHeight(150);  
+  controller.addRadioButton("Borders type").setPosition(10,10).setSize(20,20).moveTo(g5)
+            .addItem("walls", 0).addItem("loops", 1).addItem("no_border", 2).activate(1);
+  
+  //Accordion
+  controller.addAccordion("acc").setPosition(0,0).setWidth(controllerSize).setCollapseMode(Accordion.MULTI)
+            .addItem(g1).addItem(g2).addItem(g3).addItem(g4).addItem(g5).open(0,1,2,3,4);
 }
 
+
+//OSC
+void oscEvent(OscMessage theOscMessage) {
+  if(theOscMessage.checkAddrPattern("/accelerometer")==true) {
+    if(theOscMessage.checkTypetag("fff")) {
+      float x = theOscMessage.get(0).floatValue();
+      float y = theOscMessage.get(1).floatValue();
+      float z = theOscMessage.get(2).floatValue();
+      println(x + " " + y + " " + z);
+      
+      float value = map(y,0,125,-1,1);
+      value = constrain(value,-1,1);
+      float theta;
+      if( z > 62.5)
+        theta = 0.5*PI + asin(value);
+      else 
+        theta = 1.5*PI - asin(value);
+        
+      controller.getController("gravity_Angle").setValue(degrees(theta));
+      flock.brushes.get(0).position.set(0.5*(width+controllerSize)-200*sin(theta),0.5*height+200*cos(theta));
+    }
+  }
+}
+
+
+//ControlP5
 void controlEvent(ControlEvent theEvent) { 
   if(theEvent.isFrom("Visual")){
       switch(int(theEvent.getValue())) {
@@ -292,44 +178,27 @@ void controlEvent(ControlEvent theEvent) {
     }
   }
   
-  if (theEvent.isFrom(controller.get(CheckBox.class,"Sources"))){
-    for (int i = 0; i<controller.get(CheckBox.class,"Sources").getArrayValue().length; i++){
-      flock.sources.get(i).isActivated = controller.get(CheckBox.class,"Sources").getState(i);
-    }
+  if (theEvent.isFrom(controller.get(CheckBox.class,"Brushes"))){
+    for (int i = 0; i<controller.get(CheckBox.class,"Brushes").getArrayValue().length; i++)
+      flock.brushes.get(i).isActivated = controller.get(CheckBox.class,"Brushes").getState(i);
   }
-  
-  if (theEvent.isFrom(controller.get(CheckBox.class,"Magnets"))){
-    for (int i = 0; i<controller.get(CheckBox.class,"Magnets").getArrayValue().length; i++){
-      flock.magnets.get(i).isActivated = controller.get(CheckBox.class,"Magnets").getState(i);
-    }
-  }
-  
-  if (theEvent.isFrom(controller.get(CheckBox.class,"Obstacles"))){
-    for (int i = 0; i<controller.get(CheckBox.class,"Obstacles").getArrayValue().length; i++){
-      flock.obstacles.get(i).isActivated = controller.get(CheckBox.class,"Obstacles").getState(i);
-    }
-  }
-  
-  if (theEvent.isFrom(controller.get(CheckBox.class,"Bowls"))){
-    for (int i = 0; i<controller.get(CheckBox.class,"Bowls").getArrayValue().length; i++){
-      flock.bowlObstacles.get(i).isActivated = controller.get(CheckBox.class,"Bowls").getState(i);
-    }
-  }
+
   
   if (theEvent.isFrom(controller.get(CheckBox.class,"forceToggle"))){
     for (int i = 0; i<controller.get(CheckBox.class,"forceToggle").getArrayValue().length; i++){
-      for (Boid b : flock.boids){
+      for (Boid b : flock.boids)
         b.forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
-      }
     }
   }
   
   if (theEvent.isFrom(controller.get(CheckBox.class,"parametersToggle"))){
     for (int i = 0; i<controller.get(CheckBox.class,"parametersToggle").getArrayValue().length; i++){
-      for (Boid b : flock.boids){
+      for (Boid b : flock.boids)
         b.paramToggle[i] = controller.get(CheckBox.class,"parametersToggle").getState(i);
-      }
     }
+  }
+  if(theEvent.isFrom("grid")){
+    flock.createGrid();
   }
   
   if(theEvent.isFrom("Black&White")){

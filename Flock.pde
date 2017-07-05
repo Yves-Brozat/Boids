@@ -1,31 +1,24 @@
 class Flock implements ControlListener{
   ArrayList<Boid> boids; // An ArrayList for all the boids  
-  ArrayList<Brush> brushes;
-  ArrayList<Source> sources;
-  ArrayList<Magnet> magnets;
-  ArrayList<Obstacle> obstacles;
-  ArrayList<BowlObstacle> bowlObstacles;
-  
+  ArrayList<Brush> brushes;  
   BoidType boidType;
 
   Flock() {
     boids = new ArrayList<Boid>(); // Initialize the ArrayList
     brushes = new ArrayList<Brush>();
-    magnets = new ArrayList<Magnet>(4);
-    sources = new ArrayList<Source>(4);
-    obstacles = new ArrayList<Obstacle>(4);
-    bowlObstacles = new ArrayList<BowlObstacle>(4);
     
-    for (int i = 0; i< 4; i ++){
-      sources.add(new Source(i*0.25*(width-controllerSize)+controllerSize+120,0.2*height, this));
-      magnets.add(new Magnet(i*0.25*(width-controllerSize)+controllerSize+120,0.8*height, this));
-      obstacles.add(new Obstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.5*height, this));
-      bowlObstacles.add(new BowlObstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.5*height, this));
-    }
-    brushes.addAll(sources);
-    brushes.addAll(magnets);
-    brushes.addAll(obstacles);
-    brushes.addAll(bowlObstacles);
+    for (int i = 0; i< 4; i ++)
+      brushes.add(new Source(i*0.25*(width-controllerSize)+controllerSize+120,0.2*height, this));
+    for (int i = 0; i< 4; i ++)
+      brushes.add(new Magnet(i*0.25*(width-controllerSize)+controllerSize+120,0.3*height, this));
+    for (int i = 0; i< 4; i ++)
+      brushes.add(new Repulsor(i*0.25*(width-controllerSize)+controllerSize+120,0.4*height, this));
+    for (int i = 0; i< 4; i ++)
+      brushes.add(new Obstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.5*height, this));
+    for (int i = 0; i< 4; i ++)
+      brushes.add(new WallObstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.6*height, this));
+    for (int i = 0; i< 4; i ++)
+      brushes.add(new BowlObstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.7*height, this));
     boidType = BoidType.LINE;
   }
 
@@ -39,7 +32,8 @@ class Flock implements ControlListener{
         controller.getController("N").setValue(boids.size());
       }
     }
-    if (!sources.get(0).isActivated || !sources.get(1).isActivated || !sources.get(2).isActivated || !sources.get(3).isActivated)
+    
+    if (!brushes.get(0).isActivated || !brushes.get(1).isActivated || !brushes.get(2).isActivated || !brushes.get(3).isActivated)
       setSize();
   }
 
@@ -47,15 +41,34 @@ class Flock implements ControlListener{
     boids.add(b);
   }
   
+  void createGrid(){
+    for(int i = 0; i<29; i++){
+      for(int j = 0; j<19; j++){
+        switch(boidType){
+          case TRIANGLE : addBoid(new TriangleBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height))); break;
+          case LETTER : addBoid(new LetterBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height))); break;
+          case CIRCLE : addBoid(new CircleBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height))); break;
+          case BUBBLE : addBoid(new BubbleBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height))); break;
+          case LINE : addBoid(new LineBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height))); break;
+          case CURVE : addBoid(new CurveBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height))); break;
+        }
+        boids.get(boids.size()-1).xoff = 0.01*i+0.1*j;
+        boids.get(boids.size()-1).yoff = 0.1*i+0.01*j;
+        
+        controller.getController("N").setValue(boids.size());
+      }
+    }   
+  }
+  
   void setSize() {
     if (flock.boids.size() < controller.getController("N").getValue()-1){
       switch(boidType){
-        case TRIANGLE : flock.addBoid(new TriangleBoid(random(controllerSize,width),random(0,height))); break;
-        case LETTER : flock.addBoid(new LetterBoid(random(controllerSize,width),random(0,height))); break;
-        case CIRCLE : flock.addBoid(new CircleBoid(random(controllerSize,width),random(0,height))); break;
-        case BUBBLE : flock.addBoid(new BubbleBoid(random(controllerSize,width),random(0,height))); break;
-        case LINE : flock.addBoid(new LineBoid(random(controllerSize,width),random(0,height))); break;
-        case CURVE : flock.addBoid(new CurveBoid(random(controllerSize,width),random(0,height))); break;
+        case TRIANGLE : addBoid(new TriangleBoid(random(controllerSize,width),random(0,height))); break;
+        case LETTER : addBoid(new LetterBoid(random(controllerSize,width),random(0,height))); break;
+        case CIRCLE : addBoid(new CircleBoid(random(controllerSize,width),random(0,height))); break;
+        case BUBBLE : addBoid(new BubbleBoid(random(controllerSize,width),random(0,height))); break;
+        case LINE : addBoid(new LineBoid(random(controllerSize,width),random(0,height))); break;
+        case CURVE : addBoid(new CurveBoid(random(controllerSize,width),random(0,height))); break;
       }
     }
     else if (flock.boids.size() > controller.getController("N").getValue()+1)
@@ -94,6 +107,11 @@ class Flock implements ControlListener{
       if(theEvent.isFrom("maxspeed"))     b.maxspeed = controller.getController("maxspeed").getValue();    
       if(theEvent.isFrom("k_density"))     b.k_density = controller.getController("k_density").getValue();
       if(theEvent.isFrom("lifespan"))     b.lifespan = (int)controller.getController("lifespan").getValue();
+      if(theEvent.isFrom("contrast"))     b.randomBrightness = random(-controller.getController("contrast").getValue(),controller.getController("contrast").getValue());
+      if(theEvent.isFrom("red"))     b.randomRed = random(0,controller.getController("red").getValue());
+      if(theEvent.isFrom("green"))     b.randomGreen = random(0,controller.getController("green").getValue());
+      if(theEvent.isFrom("blue"))     b.randomBlue = random(0,controller.getController("blue").getValue());
+      if(theEvent.isFrom("N_connections")) b.maxConnections = (int)controller.getController("N_connections").getValue();
      }
     
     

@@ -1,68 +1,95 @@
 abstract class Boid {
 
+  //Dynamic parameters
   PVector position;
   PVector velocity;
   PVector acceleration;
-  float density;
-  color c;
   PVector sumForces;
-  float r;
-  ArrayList<PVector> history;
-  int lifetime;
+  
+  //Visual parameters
+  color c;
+  float randomBrightness;
+  float randomRed, randomGreen, randomBlue;
   float size;
+  float r;
+  ArrayList<PVector> history;  
   int trailLength;
+  int maxConnections;
   
   //Forces parameters
   boolean[] forcesToggle;
-  boolean[] paramToggle;
   float separation;
   float alignment;
   float cohesion;
   float attraction;
+  float repulsion;
+  float friction;
   float gravity;
   int gravity_Angle;
-  float friction;
   
   //Global physical parameters
+  boolean[] paramToggle;
   float maxforce;    // Maximum steering force
   float maxspeed;    // Maximum speed
-  float k_density;
+  float density;  // Personal density of the particle
+  float k_density;  // Global coefficient to increase/decrease density of all particles
+  int lifetime;
   int lifespan;
-
+  
+  float xoff, yoff;
+  float xnoiseScale, ynoiseScale;
+  
   Boid(float x, float y) {
     position = new PVector(x, y);
     velocity = new PVector();    
     acceleration = new PVector();
     sumForces = new PVector(); 
-    r = random(0,2.0);
-    history = new ArrayList<PVector>();  
-    lifetime = 0;
-    density = 1.0;
+    
     c = controller.get(ColorWheel.class,"particleColor").getRGB();
+    randomBrightness = random(-controller.getController("contrast").getValue(),controller.getController("contrast").getValue());
+    randomRed = random(0,controller.getController("red").getValue());
+    randomGreen = random(0,controller.getController("green").getValue());
+    randomBlue = random(0,controller.getController("blue").getValue());
     size = controller.getController("size").getValue();
-    trailLength = (int)controller.getController("trailLength").getValue();
+    r = 1;
+    history = new ArrayList<PVector>();  
+    trailLength = (int)controller.getController("trailLength").getValue();    
+    maxConnections = (int)controller.getController("N_connections").getValue();
+    
+    forcesToggle = new boolean[8];
+    for (int i = 0; i < forcesToggle.length; i++) 
+      forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
     separation = controller.getController("separation").getValue();
     alignment = controller.getController("alignment").getValue();
     cohesion = controller.getController("cohesion").getValue();
     attraction = controller.getController("attraction").getValue();
+    repulsion = controller.getController("repulsion").getValue();
+    friction = controller.getController("friction").getValue();
     gravity = controller.getController("gravity").getValue();
     gravity_Angle = (int)controller.getController("gravity_Angle").getValue();
-    friction = controller.getController("friction").getValue();
+       
+    paramToggle = new boolean[3];
+    for (int i = 0; i < paramToggle.length; i++) 
+      paramToggle[i] = controller.get(CheckBox.class,"parametersToggle").getState(i);
     maxforce = controller.getController("maxforce").getValue();    
     maxspeed = controller.getController("maxspeed").getValue();    
+    density = 1.0;
     k_density = controller.getController("k_density").getValue();
+    lifetime = 0;
     lifespan = (int)controller.getController("lifespan").getValue();
-    forcesToggle = new boolean[6];
-    for (int i = 0; i < forcesToggle.length; i++) forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
-    paramToggle = new boolean[3];
-    for (int i = 0; i < paramToggle.length; i++) paramToggle[i] = controller.get(CheckBox.class,"parametersToggle").getState(i);
+    
+    xoff = int(random(0,10));
+    yoff = (random(0,10));
+    xnoiseScale = controller.getController("noise").getValue()*0.01;
+    ynoiseScale = 2*xnoiseScale;
   }
 
   void run(ArrayList<Boid> boids) {
     savePosition();
     applyFlock(boids);
-    if(forcesToggle[4]) applyFriction();
-    if(forcesToggle[5]) applyGravity();
+    if(forcesToggle[5]) applyFriction();
+    if(forcesToggle[6]) applyGravity();
+    if(forcesToggle[7]) applyNoise();
     update();
     borders();
     if(position.x > controllerSize)
@@ -75,29 +102,47 @@ abstract class Boid {
     else return false;
   }
   
+  
+  void applyNoise(){
+    xoff += xnoiseScale;
+    yoff += ynoiseScale;
+    float x = map(noise(xoff),0,1,-1,1);
+    float y = map(noise(yoff),0,1,-1,1);
+    position.add(x,y); 
+  }
+  
   void applyGravity(){
     PVector g = new PVector(cos(radians(gravity_Angle+90)),sin(radians(gravity_Angle+90)));
     g.mult(gravity);
-    g.mult(density*r*r);
+    g.mult(0.1*density*r*r);
     sumForces.add(g);
   }
   
   void applyFriction(){
      PVector fri = new PVector(velocity.x,velocity.y);
      fri.normalize();
-     float f = -velocity.mag()*r*r;
+     float f = -0.1*velocity.mag()*r*r;
      fri.mult(f);
      fri.mult(friction);
-     sumForces.add(fri);
-     
+     sumForces.add(fri);   
+  }
+  
+  void applyRepulsion(PVector v){
+    PVector rep = PVector.sub(position,v);
+    float d = rep.magSq();
+    rep.setMag(20000*density*r*r/d);
+    rep.mult(repulsion);
+    if(forcesToggle[4]) sumForces.add(rep);
   }
   
   void applyAttraction(PVector v){
-    PVector mis = seek(v);
+    PVector mis = PVector.sub(v,position);
+    float d = mis.mag();
+    mis.setMag(100*density*r*r/d);
     mis.mult(attraction);
     if(forcesToggle[3])  sumForces.add(mis);
   }
-  // We accumulate a new acceleration each time based on three rules
+  
   void applyFlock(ArrayList<Boid> boids) {
     PVector sep = separate(boids);   // Separation
     PVector ali = align(boids);      // Alignment
@@ -115,27 +160,22 @@ abstract class Boid {
   
   // Save old position in history
   void savePosition(){
+    
     while (history.size() > trailLength) {
       history.remove(0);
     }
-    PVector v = new PVector(position.x,position.y);
-    history.add(v);
+    history.add(new PVector(position.x,position.y));
+    
   }
   
   // Method to update position
   void update() {
-    // Update masse
     float masse = density * r * r * k_density;  //density : initial density of the particular boid. k_density : coefficient on slider "density" to change weight of all boids
-    // Newton's 2nd law
-    acceleration = PVector.mult(sumForces,1/masse);    
-    // Update velocity
+    acceleration = PVector.mult(sumForces,1/masse);  // Newton's 2nd law  
     velocity.add(acceleration);
-    // Limit speed
-    if (paramToggle[1]) velocity.limit(maxspeed);
-    // Update position
-    position.add(velocity);
-    // Reset forces to 0 each cycle
-    sumForces.mult(0);
+    if (paramToggle[1]) velocity.limit(maxspeed);  // Limit speed
+    position.add(velocity); 
+    sumForces.mult(0);  // Reset forces to 0 each cycle
   }
 
   // A method that calculates and applies a steering force towards a target
@@ -149,11 +189,39 @@ abstract class Boid {
   }
 
   void render(ArrayList<Boid> boids){
+    if(keyPressed){
+      switch(key){
+        case 'é'  : reflect(2,boids);  break;
+        case '"'  : reflect(3,boids);  break;
+        case '\'' : reflect(4,boids);  break;
+        case '('  : reflect(5,boids);  break;
+        case '-'  : reflect(6,boids);  break;
+        case 'è'  : reflect(7,boids);  break;
+        case '_'  : reflect(8,boids);  break;
+        case 'ç'  : reflect(9,boids);  break;
+      }
+    }
+    draw(boids);
+  }
+  
+  void reflect(int n, ArrayList<Boid> boids){
+    Boid b = this;
+    for (int i=0;i<n-1;i++){ 
+      pushMatrix();
+      translate(0.5*(controllerSize+width),0.5*height);     
+      rotate(2*PI*(i+1)/n);
+      translate(-0.5*(controllerSize+width),-0.5*height);
+      b.draw(boids);
+      popMatrix();
+    }
+  }
+
+  void draw(ArrayList<Boid> boids){
     int alpha = 255;
     if (paramToggle[2]) alpha = (int)map(lifetime,0,lifespan,255,1);
-    c = color(controller.get(ColorWheel.class,"particleColor").r(),
-              controller.get(ColorWheel.class,"particleColor").g(),
-              controller.get(ColorWheel.class,"particleColor").b(),
+    c = color(controller.get(ColorWheel.class,"particleColor").r() + randomBrightness + randomRed - randomGreen - randomBlue,
+              controller.get(ColorWheel.class,"particleColor").g() + randomBrightness - randomRed + randomGreen - randomBlue,
+              controller.get(ColorWheel.class,"particleColor").b() + randomBrightness - randomRed - randomGreen + randomBlue,
               alpha);
   }
   
@@ -194,7 +262,7 @@ abstract class Boid {
   // Separation
   // Method checks for nearby boids and steers away
   PVector separate (ArrayList<Boid> boids) {
-    float desiredseparation = 100;
+    float desiredseparation = 25;
     PVector steer = new PVector(0, 0, 0);
     int count = 0;
     for (Boid other : boids) {
@@ -266,161 +334,204 @@ abstract class Boid {
     else {
       return new PVector(0, 0);
     }
-  }  
+  }
+  
+  void sortNeighboors(ArrayList<Boid> boids){
+    
+    java.util.Collections.sort(boids,  new java.util.Comparator<Boid>() {
+        public int compare(Boid b1, Boid b2)
+        {
+          Float f1 = new Float(PVector.dist(b1.position,position));
+          Float f2 = new Float(PVector.dist(b2.position,position));
+          
+          return f1.compareTo(f2);
+         
+        }
+    });
+  }
 }
 
 //============================================================================
 //---SUB-CLASSES--------------------------------------------------------------
 //============================================================================
 
-class TriangleBoid extends Boid {
+abstract class Particle extends Boid {
+  
+  Particle(float x, float y){
+    super(x,y);
+  }
+  
+  abstract void draw(float x, float y, float r, float theta, float alpha);
+  
+  void draw(ArrayList<Boid> boids){
+    super.draw(boids);
+    
+    ArrayList<Boid> neighboors = new ArrayList<Boid>();
+    for(int i = 0; i<boids.size(); i++)
+      neighboors.add(boids.get(i));
+    sortNeighboors(neighboors);
+    neighboors.remove(0); //Remove itself
+    float isolation = 0;
+    for(int i = 0; i< neighboors.size(); i++){
+      if(i<10) isolation += 0.1*PVector.dist(position,neighboors.get(i).position);
+    }
+    draw(position.x, position.y, size*max(map(isolation,0,100,10,0),0), velocity.heading() + radians(90), 100);
+   
+    if(history.size() > 0){
+      for ( int i=0; i< history.size(); i++)
+        draw(history.get(i).x, history.get(i).y, size, velocity.heading() + radians(90), map(i,0,history.size(),0,255));
+    }
+  }
+}
+
+class TriangleBoid extends Particle {
   
   TriangleBoid(float x, float y){
     super(x,y);
   }
   
-  void render(ArrayList<Boid> boids){
-    super.render(boids);
-    float theta = velocity.heading() + radians(90);
-    r = size;
-    for ( int i=0; i< history.size(); i++)
-    {
-      pushMatrix();
-      translate(history.get(i).x, history.get(i).y);
-      rotate(theta);
-      fill(c,255/history.size()*(i+1));
-      noStroke();
-      beginShape(TRIANGLES);
-      vertex(0, -r*2);
-      vertex(-r, r*2);
-      vertex(r, r*2);
-      endShape();
-      popMatrix();
-    }
-  } 
+  void draw(float x, float y, float r, float theta, float alpha){
+    pushMatrix();
+    translate(x, y);
+    rotate(theta);
+    fill(c,alpha);
+    noStroke();
+    beginShape(TRIANGLES);
+    vertex(0, -r*2);
+    vertex(-r, r*2);
+    vertex(r, r*2);
+    endShape();
+    popMatrix();
+  }
 }
 
-class LetterBoid extends Boid {
+class LetterBoid extends Particle {
   
   String letter;    
   
   LetterBoid(float x, float y){
     super(x,y);
     letter = alphabet.get(int(random(alphabet.size()-1)));
+    r = random(0,2);
   }
   
-  void render(ArrayList<Boid> boids){
-    super.render(boids);
-    float theta = velocity.heading() + radians(90);
-    for ( int i=0; i< history.size(); i++)
-    {
-      pushMatrix(); 
-      translate(history.get(i).x, history.get(i).y);
-      rotate(theta);
-      //r = map(mag.position.dist(history.get(i)),1,height,0,2);
-      //r = constrain(r,0,1);
-      fill(c,255/history.size()*(i+1));
-      noStroke();
-      textSize(10*r*size+1);
-      text(letter,0,0);
-      popMatrix();
-    }
-  } 
+  void draw(float x, float y, float r, float theta, float alpha){
+    pushMatrix(); 
+    translate(x, y);
+    rotate(theta);
+    fill(c,alpha);
+    noStroke();
+    textSize(10*this.r*r+1);
+    text(letter,0,0);
+    popMatrix();
+  }
 }
 
-class CircleBoid extends Boid {
+class CircleBoid extends Particle {
   
   CircleBoid(float x, float y){
     super(x,y);
+    //r = random(0,2);
   }
   
-  void render(ArrayList<Boid> boids){
-    super.render(boids);
-    for ( int i=0; i< history.size(); i++)
-    {
-      pushMatrix();
-      //r = map(mag.position.dist(history.get(i)),1,height,2,0);
-      //r = constrain(r,0,1);
-      fill(c,255/history.size()*(i+1));
-      noStroke();
-      ellipse(history.get(i).x, history.get(i).y,10*r*size,10*r*size);
-      popMatrix();
-    }
+  void draw(float x, float y, float r, float theta, float alpha){
+    pushMatrix();
+    fill(c,alpha);
+    noStroke();
+    ellipse(x, y,10*this.r*r,10*this.r*r);
+    popMatrix();
   } 
 }
 
-class BubbleBoid extends Boid {
+class BubbleBoid extends Particle {
   
   BubbleBoid(float x, float y){
     super(x,y);
   }
   
-  void render(ArrayList<Boid> boids){
-    super.render(boids);
-    for ( int i=0; i< history.size(); i++)
-    {
-      pushMatrix();
-      r = random(0,1);
-      fill(c,255/history.size()*(i+1));
-      noStroke();
-      ellipse(history.get(i).x, history.get(i).y,25*r*size,25*r*size);
-      popMatrix();
-    }
-  } 
+  void draw(float x, float y, float r, float theta, float alpha){
+    pushMatrix();
+    this.r = random(0,1);
+    fill(c,alpha);
+    noStroke();
+    ellipse(x, y,25*this.r*r,25*this.r*r);
+    popMatrix();
+  }
 }
 
-class LineBoid extends Boid {
+abstract class Connection extends Boid{
+   
+  Connection(float x, float y){
+    super(x,y);
+  }
+  
+  abstract void draw(PVector origin, PVector neighboor, float alpha);
+  
+  //Draw connexions between 3 closest particles
+  void draw(ArrayList<Boid> boids){
+    super.draw(boids);
+    ArrayList<Boid> neighboors = new ArrayList<Boid>();
+    for(int i = 0; i<boids.size(); i++)
+      neighboors.add(boids.get(i));
+    sortNeighboors(neighboors);
+    neighboors.remove(0); //Remove itself
+    if(neighboors.size()>maxConnections){
+      for (int i = 0; i<maxConnections; i++){
+        if ((PVector.dist(position,neighboors.get(i).position) > 0) && (PVector.dist(position,neighboors.get(i).position) < 20*size)){
+          draw(position,neighboors.get(i).position,255);
+        //if (other.history.size() >= history.size()){
+        //  for ( int i=0; i<history.size(); i++)  
+        //    draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),255/history.size()*(i+1));
+        //}
+        }
+      }
+    }
+  }
+}
+
+class LineBoid extends Connection {
   
   LineBoid(float x, float y){
     super(x,y);
   }
   
-  void render(ArrayList<Boid> boids){
-    super.render(boids);
-    for ( int i=0; i<history.size(); i++){
-      for (Boid other : boids) {    
-        if (other.history.size() >= history.size()){
-          float d = PVector.dist(history.get(i), other.history.get(i));
-          //int count = 0;
-          if ((d > 0) && (d < 20*size)) {
-            //count++;            // Keep track of how many
-            stroke(c,255/history.size()*(i+1));
-            strokeWeight(1);
-            line(history.get(i).x,history.get(i).y,other.history.get(i).x,other.history.get(i).y);
-          }
-        }   
-      }
-    }
-  } 
+  void draw(PVector origin, PVector neighboor, float alpha){
+      stroke(c,alpha);
+      strokeWeight(1);
+      line(origin.x, origin.y, neighboor.x, neighboor.y);
+  }
 }
 
-class CurveBoid extends Boid {
+class CurveBoid extends Connection {
   
   CurveBoid(float x, float y){
     super(x,y);
   }
   
-  void render(ArrayList<Boid> boids){
-    super.render(boids);
+  void draw(ArrayList<Boid> boids){
+    super.draw(boids);
     for ( int i=0; i<history.size(); i++){
       beginShape();
       curveVertex(history.get(i).x,history.get(i).y);
-      for (Boid other : boids) {
-      if (other.history.size() >= history.size())
-        {
-          float f = PVector.dist(history.get(i), other.history.get(i));
-          //int count = 0;
-          if ((f > 0) && (f < 20*size)) {
+      for (Boid other : boids){
+        if (other.history.size() >= history.size()){    
+          //draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),255/history.size()*(i+1));
+          float scope = PVector.dist(history.get(i), other.history.get(i)); 
+          if ((scope > 0) && (scope < 20*size)) {
             //count++;            // Keep track of how many
-            stroke(c,255/history.size()*(i+1));
+            float alpha = 255/history.size()*(i+1);
+            stroke(c,alpha);
             noFill();
             strokeWeight(1);
             curveVertex(other.history.get(i).x,other.history.get(i).y);
-          }
-        } 
+          }  
+        }
       }
       endShape();
     }
+  }
+    
+  void draw(PVector origin, PVector neighboor, float alpha){ 
   } 
 }
 

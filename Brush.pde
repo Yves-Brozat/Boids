@@ -62,13 +62,14 @@ class Source extends Brush {
   }
   
   void apply(){
+    PVector pos = new PVector(position.x + random(-r,r),position.y + random(-r,r));
     switch(f.boidType){
-      case TRIANGLE : f.addBoid(new TriangleBoid(position.x,position.y)); break;
-      case LETTER : f.addBoid(new LetterBoid(position.x,position.y)); break;
-      case CIRCLE : f.addBoid(new CircleBoid(position.x,position.y)); break;
-      case BUBBLE : f.addBoid(new BubbleBoid(position.x,position.y)); break;
-      case LINE : f.addBoid(new LineBoid(position.x,position.y)); break;
-      case CURVE : f.addBoid(new CurveBoid(position.x,position.y)); break;
+      case TRIANGLE : f.addBoid(new TriangleBoid(pos.x,pos.y)); break;
+      case LETTER : f.addBoid(new LetterBoid(pos.x,pos.y)); break;
+      case CIRCLE : f.addBoid(new CircleBoid(pos.x,pos.y)); break;
+      case BUBBLE : f.addBoid(new BubbleBoid(pos.x,pos.y)); break;
+      case LINE : f.addBoid(new LineBoid(pos.x,pos.y)); break;
+      case CURVE : f.addBoid(new CurveBoid(pos.x,pos.y)); break;
     }
     controller.getController("N").setValue(f.boids.size());
   }
@@ -77,7 +78,7 @@ class Source extends Brush {
     noFill();
     stroke(100);
     strokeWeight(1);
-    ellipse(position.x,position.y,r,r);
+    ellipse(position.x,position.y,2*r,2*r);
   }
 }
 
@@ -101,6 +102,25 @@ class Magnet extends Brush {
   }
 }
 
+class Repulsor extends Brush {
+
+  Repulsor(float x, float y, Flock flock){
+    super(x,y,flock);
+  }
+  
+  void apply(){
+    for (Boid b : f.boids) 
+      b.applyRepulsion(position);
+  }
+  
+  void render(){
+    noFill();
+    stroke(100);
+    strokeWeight(1);
+    rectMode(CENTER);
+    rect(position.x,position.y,r,r);
+  }
+}
 class Obstacle extends Brush {
 
 
@@ -132,12 +152,12 @@ class Obstacle extends Brush {
   }
 }
 
-class WallObstacle extends Brush {
+class BowlObstacle extends Brush {
 
   float e = 5.0;
   float angle = 0;
 
-  WallObstacle(float x, float y, Flock flock){
+  BowlObstacle(float x, float y, Flock flock){
     super(x,y,flock);
   }
   
@@ -162,12 +182,12 @@ class WallObstacle extends Brush {
   }
 }
 
-class BowlObstacle extends Brush {
+class WallObstacle extends Brush {
 
   float e = 20.0;
   float angle = PI/3;
 
-  BowlObstacle(float x, float y, Flock flock){
+  WallObstacle(float x, float y, Flock flock){
     super(x,y,flock);
   }
   
