@@ -3,6 +3,7 @@ abstract class Brush{
   PVector velocity;
   boolean isActivated;
   boolean isSelected;
+  boolean isVisible;
   Flock f;
   float r;
   
@@ -12,13 +13,14 @@ abstract class Brush{
     velocity = new PVector();
     isActivated = false;
     isSelected = false;
+    isVisible = true;
     r=20;
   }
   
   void run(){
     if (isActivated)
     {
-      render();
+      if (isVisible) render();
       update();
       apply();
     }
@@ -57,21 +59,37 @@ abstract class Brush{
 
 class Source extends Brush {
   
+  int outflow;
+  PVector vel;
+  
   Source(float x, float y, Flock flock){
     super(x,y,flock);
+    //outflow = (int)controller.getController("src"+i+"_outflow").getValue();
+    //vel = vel(i);
+    outflow = 1;
+    vel = new PVector(0,0);
   }
   
   void apply(){
-    PVector pos = new PVector(position.x + random(-r,r),position.y + random(-r,r));
-    switch(f.boidType){
-      case TRIANGLE : f.addBoid(new TriangleBoid(pos.x,pos.y)); break;
-      case LETTER : f.addBoid(new LetterBoid(pos.x,pos.y)); break;
-      case CIRCLE : f.addBoid(new CircleBoid(pos.x,pos.y)); break;
-      case BUBBLE : f.addBoid(new BubbleBoid(pos.x,pos.y)); break;
-      case LINE : f.addBoid(new LineBoid(pos.x,pos.y)); break;
-      case CURVE : f.addBoid(new CurveBoid(pos.x,pos.y)); break;
+    for(int i = 0; i<outflow; i++){
+      PVector pos = new PVector(position.x + random(-r,r),position.y + random(-r,r));
+      switch(f.boidType){
+        case TRIANGLE : f.addBoid(new TriangleBoid(pos.x,pos.y,vel.x,vel.y)); break;
+        case LETTER : f.addBoid(new LetterBoid(pos.x,pos.y,vel.x,vel.y)); break;
+        case CIRCLE : f.addBoid(new CircleBoid(pos.x,pos.y,vel.x,vel.y)); break;
+        case BUBBLE : f.addBoid(new BubbleBoid(pos.x,pos.y,vel.x,vel.y)); break;
+        case LINE : f.addBoid(new LineBoid(pos.x,pos.y,vel.x,vel.y)); break;
+        case CURVE : f.addBoid(new CurveBoid(pos.x,pos.y,vel.x,vel.y)); break;
+      }
     }
     controller.getController("N").setValue(f.boids.size());
+  }
+  
+  PVector vel(int i){
+    float angle = radians(controller.getController("src"+i+"_angle").getValue()+90);
+    float r = controller.getController("src"+i+"_strength").getValue();
+    PVector velocity = new PVector(r*cos(angle),r*sin(angle));
+    return velocity;
   }
   
   void render(){
