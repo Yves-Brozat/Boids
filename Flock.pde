@@ -42,8 +42,15 @@ class Flock implements ControlListener{
     }
   }
 
-  void addBoid(Boid b) {
-    boids.add(b);
+  void addBoid(float x, float y, float vx, float vy) {
+    switch(boidType){
+      case TRIANGLE : boids.add(new TriangleBoid(x, y, vx, vy)); break;
+      case LETTER : boids.add(new LetterBoid(x, y, vx, vy)); break;
+      case CIRCLE : boids.add(new CircleBoid(x, y, vx, vy)); break;
+      case BUBBLE : boids.add(new BubbleBoid(x, y, vx, vy)); break;
+      case LINE : boids.add(new LineBoid(x, y, vx, vy)); break;
+      case CURVE : boids.add(new CurveBoid(x, y, vx, vy)); break;
+    }
   }
   
   void addSource(){
@@ -61,33 +68,17 @@ class Flock implements ControlListener{
   void createGrid(){
     for(int i = 0; i<29; i++){
       for(int j = 0; j<19; j++){
-        switch(boidType){
-          case TRIANGLE : addBoid(new TriangleBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height),0,0)); break;
-          case LETTER : addBoid(new LetterBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height),0,0)); break;
-          case CIRCLE : addBoid(new CircleBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height),0,0)); break;
-          case BUBBLE : addBoid(new BubbleBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height),0,0)); break;
-          case LINE : addBoid(new LineBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height),0,0)); break;
-          case CURVE : addBoid(new CurveBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height),0,0)); break;
-        }
+        addBoid(map(i,0,29,controllerSize,width),map(j,0,19,0,height),0,0);
         boids.get(boids.size()-1).xoff = 0.01*i+0.1*j;
-        boids.get(boids.size()-1).yoff = 0.1*i+0.01*j;
-        
+        boids.get(boids.size()-1).yoff = 0.1*i+0.01*j;        
         controller.getController("N").setValue(boids.size());
       }
     }   
   }
   
   void setSize() {
-    if (flock.boids.size() < controller.getController("N").getValue()-1){
-      switch(boidType){
-        case TRIANGLE : addBoid(new TriangleBoid(random(controllerSize,width),random(0,height),random(0,10),random(0,10))); break;
-        case LETTER : addBoid(new LetterBoid(random(controllerSize,width),random(0,height),random(0,10),random(0,10))); break;
-        case CIRCLE : addBoid(new CircleBoid(random(controllerSize,width),random(0,height),random(0,10),random(0,10))); break;
-        case BUBBLE : addBoid(new BubbleBoid(random(controllerSize,width),random(0,height),random(0,10),random(0,10))); break;
-        case LINE : addBoid(new LineBoid(random(controllerSize,width),random(0,height),random(0,10),random(0,10))); break;
-        case CURVE : addBoid(new CurveBoid(random(controllerSize,width),random(0,height),random(0,10),random(0,10))); break;
-      }
-    }
+    if (flock.boids.size() < controller.getController("N").getValue()-1)
+      addBoid(random(controllerSize,width),random(0,height),random(0,10),random(0,10));
     else if (flock.boids.size() > controller.getController("N").getValue()+1)
       flock.boids.remove(flock.boids.size()-1);
   }
@@ -131,7 +122,7 @@ class Flock implements ControlListener{
       if(theEvent.isFrom("blue"))     b.randomBlue = random(0,controller.getController("blue").getValue());
       if(theEvent.isFrom("N_connections")) b.maxConnections = (int)controller.getController("N_connections").getValue();      
       if(theEvent.isFrom("symmetry")) b.symmetry = (int)controller.getController("symmetry").getValue();
-     }
+    }
      
      //SOURCES
      if(theEvent.isFrom("add")) this.addSource();
@@ -142,13 +133,16 @@ class Flock implements ControlListener{
      for (int i = 0; i<sources.size(); i++){
        if(theEvent.isFrom("src"+i+"_size")) sources.get(i).r = controller.getController("src"+i+"_size").getValue();
        if(theEvent.isFrom("src"+i+"_outflow")) sources.get(i).outflow = (int)controller.getController("src"+i+"_outflow").getValue();
-       if(theEvent.isFrom("src"+i+"_strength") || theEvent.isFrom("src"+i+"_angle")) sources.get(i).vel = sources.get(i).vel(i);
+       if(theEvent.isFrom("src"+i+"_strength")) sources.get(i).vel = sources.get(i).vel(i);
+       if(theEvent.isFrom("src"+i+"_angle")){
+         sources.get(i).angle = radians(controller.getController("src"+i+"_angle").getValue());
+         sources.get(i).vel = sources.get(i).vel(i);
+       }
      }
      
      //BRUSHES
      for (Brush b : brushes){
-       if(theEvent.isFrom("brushes")) b.isVisible = !b.isVisible;
-       
+       if(theEvent.isFrom("brushes")) b.isVisible = !b.isVisible;       
      }    
   }
 }

@@ -38,6 +38,8 @@ boolean isRecording = false;
 
 enum BoidType {TRIANGLE, LETTER, CIRCLE, BUBBLE, LINE, CURVE;}
 enum BorderType {WALLS, LOOPS, NOBORDER;}
+enum SourceType {O,I;}
+
 BorderType borderType;
 ArrayList<String> alphabet;
 
@@ -109,7 +111,7 @@ public void gui()
   controller.addAccordion("acc_sources").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(55).setCollapseMode(Accordion.SINGLE).moveTo(g2);
   for(int i = 0; i<8; i++){
     Group s1 = controller.addGroup("Source "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(55).hide();
-    controller.addRadioButton("src"+i+"_type").addListener(flock).setPosition(0,5).setSize(10,10).setItemsPerRow(2).setSpacingColumn(25).addItem("0 ("+i+")", 0).addItem("| ("+i+")", 1).activate(1).moveTo(s1);
+    controller.addRadioButton("src"+i+"_type").addListener(flock).setPosition(0,5).setSize(10,10).setItemsPerRow(2).setSpacingColumn(25).addItem("0 ("+i+")", 0).addItem("| ("+i+")", 1).activate(0).moveTo(s1);
     controller.addSlider("src"+i+"_size").addListener(flock).setPosition(0,21).setSize(50,10).setRange(10,100).setValue(20).moveTo(s1);  
     controller.addSlider("src"+i+"_outflow").addListener(flock).setPosition(0,32).setSize(50,10).setRange(1,30).setValue(1).moveTo(s1);
     controller.addSlider("src"+i+"_strength").addListener(flock).setPosition(0,43).setSize(50,10).setRange(0,10).setValue(1).moveTo(s1);
@@ -199,26 +201,20 @@ void oscEvent(OscMessage theOscMessage) {
 //ControlP5
 void controlEvent(ControlEvent theEvent) { 
   if(theEvent.isFrom("Visual")){
-      switch(int(theEvent.getValue())) {
-        case(0):flock.boidType = BoidType.TRIANGLE;break;
-        case(1):flock.boidType = BoidType.LETTER;break;
-        case(2):flock.boidType = BoidType.CIRCLE;break;
-        case(3):flock.boidType = BoidType.BUBBLE;break;
-        case(4):flock.boidType = BoidType.LINE;break;
-        case(5):flock.boidType = BoidType.CURVE;break;
-      }
-      for (int i = flock.boids.size()-1; i>=0; i--){
-        Boid b = flock.boids.get(i);
-        switch(int(theEvent.getValue())) {
-          case(0):  TriangleBoid t = new TriangleBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);  flock.addBoid(t); flock.boids.remove(i); break;
-          case(1):  LetterBoid l = new LetterBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);  flock.addBoid(l); flock.boids.remove(i);  break;
-          case(2):  CircleBoid c = new CircleBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);  flock.addBoid(c); flock.boids.remove(i);  break;
-          case(3):  BubbleBoid bu = new BubbleBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);  flock.addBoid(bu); flock.boids.remove(i);  break;
-          case(4):  LineBoid li = new LineBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);  flock.addBoid(li); flock.boids.remove(i);  break;
-          case(5):  CurveBoid cu = new CurveBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);  flock.addBoid(cu); flock.boids.remove(i);  break;
-        }
-      }
-    }  
+    switch(int(theEvent.getValue())) {
+      case(0):flock.boidType = BoidType.TRIANGLE;break;
+      case(1):flock.boidType = BoidType.LETTER;break;
+      case(2):flock.boidType = BoidType.CIRCLE;break;
+      case(3):flock.boidType = BoidType.BUBBLE;break;
+      case(4):flock.boidType = BoidType.LINE;break;
+      case(5):flock.boidType = BoidType.CURVE;break;
+    }
+    for (int i = flock.boids.size()-1; i>=0; i--){
+      Boid b = flock.boids.get(i);
+      flock.addBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);
+      flock.boids.remove(i);
+    }
+  }  
   if (theEvent.isFrom("Borders type")) {
     switch(int(theEvent.getValue())) {
       case(0):borderType = BorderType.WALLS;break;
@@ -226,7 +222,14 @@ void controlEvent(ControlEvent theEvent) {
       case(2):borderType = BorderType.NOBORDER;break;
     }
   }
-  
+  for (int i = 0; i<flock.sources.size(); i++){
+    if(theEvent.isFrom("src"+i+"_type")){
+      switch(int(theEvent.getValue())){
+        case (0) : flock.sources.get(i).type = SourceType.O; break;
+        case (1) : flock.sources.get(i).type = SourceType.I; break;
+      }
+    }
+  }
   //if (theEvent.isFrom(controller.get(CheckBox.class,"Brushes"))){
   //  for (int i = 0; i<controller.get(CheckBox.class,"Brushes").getArrayValue().length; i++)
   //    flock.brushes.get(i).isActivated = controller.get(CheckBox.class,"Brushes").getState(i);

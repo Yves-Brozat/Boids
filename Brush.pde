@@ -60,35 +60,34 @@ abstract class Brush{
 class Source extends Brush {
   
   int outflow;
+  float angle;
   PVector vel;
+  SourceType type;
   
   Source(float x, float y, Flock flock){
     super(x,y,flock);
-    //outflow = (int)controller.getController("src"+i+"_outflow").getValue();
-    //vel = vel(i);
     outflow = 1;
     vel = new PVector(0,0);
+    angle = 0;
+    type = SourceType.O;
   }
   
   void apply(){
-    for(int i = 0; i<outflow; i++){
-      PVector pos = new PVector(position.x + random(-r,r),position.y + random(-r,r));
-      switch(f.boidType){
-        case TRIANGLE : f.addBoid(new TriangleBoid(pos.x,pos.y,vel.x,vel.y)); break;
-        case LETTER : f.addBoid(new LetterBoid(pos.x,pos.y,vel.x,vel.y)); break;
-        case CIRCLE : f.addBoid(new CircleBoid(pos.x,pos.y,vel.x,vel.y)); break;
-        case BUBBLE : f.addBoid(new BubbleBoid(pos.x,pos.y,vel.x,vel.y)); break;
-        case LINE : f.addBoid(new LineBoid(pos.x,pos.y,vel.x,vel.y)); break;
-        case CURVE : f.addBoid(new CurveBoid(pos.x,pos.y,vel.x,vel.y)); break;
-      }
+    PVector pos = new PVector();
+    switch(type){
+      case O : pos.set(position.x + random(-r,r),position.y + random(-r,r));  break;
+      case I : 
+      float z = random(-10*r,10*r);
+      pos.set(position.x + z*cos(angle),position.y + z*sin(angle));  break;
     }
+    for(int i = 0; i<outflow; i++)  
+      f.addBoid(pos.x,pos.y,vel.x,vel.y);
     controller.getController("N").setValue(f.boids.size());
   }
   
   PVector vel(int i){
-    float angle = radians(controller.getController("src"+i+"_angle").getValue()+90);
     float r = controller.getController("src"+i+"_strength").getValue();
-    PVector velocity = new PVector(r*cos(angle),r*sin(angle));
+    PVector velocity = new PVector(r*cos(angle+0.5*PI),r*sin(angle+0.5*PI));
     return velocity;
   }
   
@@ -96,7 +95,18 @@ class Source extends Brush {
     noFill();
     stroke(100);
     strokeWeight(1);
-    ellipse(position.x,position.y,2*r,2*r);
+    switch(type){
+      case O : ellipse(position.x,position.y,2*r,2*r);  break;
+      case I : 
+      float d = min(20*r,width);
+      rectMode(CENTER);
+      pushMatrix();
+      translate(position.x,position.y);
+      rotate(angle);
+      rect(0,0, d, 0.01*d);
+      popMatrix();
+      break;     
+    }
   }
 }
 
