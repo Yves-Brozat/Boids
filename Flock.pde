@@ -3,24 +3,16 @@ class Flock implements ControlListener{
   ArrayList<Brush> brushes;  
   BoidType boidType;
   ArrayList<Source> sources;
+  ArrayList<Magnet> magnets;
+  ArrayList<Obstacle> obstacles;
 
   Flock() {
     boids = new ArrayList<Boid>(); // Initialize the ArrayList
     brushes = new ArrayList<Brush>();
     sources = new ArrayList<Source>();
+    magnets = new ArrayList<Magnet>();
+    obstacles = new ArrayList<Obstacle>();
     
-    for (int i = 0; i< 4; i ++)
-      brushes.add(new Source(i*0.25*(width-controllerSize)+controllerSize+120,0.2*height, this));
-    for (int i = 0; i< 4; i ++)
-      brushes.add(new Magnet(i*0.25*(width-controllerSize)+controllerSize+120,0.3*height, this));
-    for (int i = 0; i< 4; i ++)
-      brushes.add(new Repulsor(i*0.25*(width-controllerSize)+controllerSize+120,0.4*height, this));
-    for (int i = 0; i< 4; i ++)
-      brushes.add(new Obstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.5*height, this));
-    for (int i = 0; i< 4; i ++)
-      brushes.add(new WallObstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.6*height, this));
-    for (int i = 0; i< 4; i ++)
-      brushes.add(new BowlObstacle(i*0.25*(width-controllerSize)+controllerSize+120,0.7*height, this));
     boidType = BoidType.LINE;
   }
 
@@ -62,6 +54,30 @@ class Flock implements ControlListener{
       controller.getGroup("Source "+i).show();
       controller.get(CheckBox.class,"src_activation").addItem("S"+i,i).activate(i);
       s.isActivated = true;
+    }
+ }
+ 
+ void addMagnet(){
+    if(magnets.size()<8){
+      Magnet m = new Magnet(0.5*(width+controllerSize),0.5*height,this);
+      magnets.add(m);
+      brushes.add(m);
+      int i = magnets.size()-1;  
+      controller.getGroup("Magnet "+i).show();
+      controller.get(CheckBox.class,"mag_activation").addItem("M"+i,i).activate(i);
+      m.isActivated = true;
+    }
+ }
+    
+  void addObstacle(){
+    if(obstacles.size()<8){
+      Obstacle m = new Obstacle(0.5*(width+controllerSize),0.5*height,this);
+      obstacles.add(m);
+      brushes.add(m);
+      int i = obstacles.size()-1;  
+      controller.getGroup("Obstacle "+i).show();
+      controller.get(CheckBox.class,"obs_activation").addItem("O"+i,i).activate(i);
+      m.isActivated = true;
     }
  }
   
@@ -109,7 +125,6 @@ class Flock implements ControlListener{
       if(theEvent.isFrom("separation"))     b.separation = controller.getController("separation").getValue();
       if(theEvent.isFrom("alignment"))     b.alignment = controller.getController("alignment").getValue();
       if(theEvent.isFrom("cohesion"))     b.cohesion = controller.getController("cohesion").getValue();
-      if(theEvent.isFrom("attraction"))     b.attraction = controller.getController("attraction").getValue();
       if(theEvent.isFrom("gravity") || theEvent.isFrom("gravity_Angle"))     b.g = b.g();
       if(theEvent.isFrom("friction"))     b.friction = controller.getController("friction").getValue();
       if(theEvent.isFrom("maxforce"))     b.maxforce = controller.getController("maxforce").getValue();    
@@ -125,11 +140,7 @@ class Flock implements ControlListener{
     }
      
      //SOURCES
-     if(theEvent.isFrom("add")) this.addSource();
-     if (theEvent.isFrom(controller.get(CheckBox.class,"src_activation"))){
-        for (int i = 0; i<controller.get(CheckBox.class,"src_activation").getArrayValue().length; i++)
-          sources.get(i).isActivated = controller.get(CheckBox.class,"src_activation").getState(i);
-     }
+     if(theEvent.isFrom("add src")) this.addSource();    
      for (int i = 0; i<sources.size(); i++){
        if(theEvent.isFrom("src"+i+"_size")) sources.get(i).r = controller.getController("src"+i+"_size").getValue();
        if(theEvent.isFrom("src"+i+"_outflow")) sources.get(i).outflow = (int)controller.getController("src"+i+"_outflow").getValue();
@@ -138,6 +149,19 @@ class Flock implements ControlListener{
          sources.get(i).angle = radians(controller.getController("src"+i+"_angle").getValue());
          sources.get(i).vel = sources.get(i).vel(i);
        }
+     }
+     
+     //MAGNETS
+     if(theEvent.isFrom("add mag")) this.addMagnet();    
+     for (int i = 0; i<magnets.size(); i++){
+       if(theEvent.isFrom("mag"+i+"_strength")) magnets.get(i).strength = controller.getController("mag"+i+"_strength").getValue();
+     }
+     
+     //Obstacles
+     if(theEvent.isFrom("add obs")) this.addObstacle();
+     for (int i = 0; i<obstacles.size(); i++){
+       if(theEvent.isFrom("obs"+i+"_size")) obstacles.get(i).r = controller.getController("obs"+i+"_size").getValue();
+       if(theEvent.isFrom("obs"+i+"_angle")) obstacles.get(i).angle = radians(controller.getController("obs"+i+"_angle").getValue());
      }
      
      //BRUSHES

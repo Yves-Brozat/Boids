@@ -22,8 +22,6 @@ abstract class Boid {
   float separation;
   float alignment;
   float cohesion;
-  float attraction;
-  float repulsion;
   float friction;
   PVector g;
   
@@ -57,14 +55,12 @@ abstract class Boid {
     maxConnections = (int)controller.getController("N_connections").getValue();
     symmetry = (int)controller.getController("symmetry").getValue();
     
-    forcesToggle = new boolean[8];
+    forcesToggle = new boolean[6];
     for (int i = 0; i < forcesToggle.length; i++) 
       forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
     separation = controller.getController("separation").getValue();
     alignment = controller.getController("alignment").getValue();
     cohesion = controller.getController("cohesion").getValue();
-    attraction = controller.getController("attraction").getValue();
-    repulsion = controller.getController("repulsion").getValue();
     friction = controller.getController("friction").getValue();
     g = g();
        
@@ -87,9 +83,9 @@ abstract class Boid {
   void run(ArrayList<Boid> boids) {
     savePosition();
     applyFlock(boids);
-    if(forcesToggle[5]) applyFriction();
-    if(forcesToggle[6]) applyGravity();
-    if(forcesToggle[7]) applyNoise();
+    if(forcesToggle[3]) applyFriction();
+    if(forcesToggle[4]) applyGravity();
+    if(forcesToggle[5]) applyNoise();
     update();
     borders();
     if(position.x > controllerSize)
@@ -132,20 +128,20 @@ abstract class Boid {
      sumForces.add(fri);   
   }
   
-  void applyRepulsion(PVector v){
+  void applyRepulsion(PVector v, float k){
     PVector rep = PVector.sub(position,v);
     float d = rep.magSq();
-    rep.setMag(20000*density*r*r/d);
-    rep.mult(repulsion);
-    if(forcesToggle[4]) sumForces.add(rep);
+    rep.setMag(100*density*r*r/d);
+    rep.mult(k);
+    sumForces.add(rep);
   }
   
-  void applyAttraction(PVector v){
+  void applyAttraction(PVector v, float k){
     PVector mis = PVector.sub(v,position);
     float d = mis.mag();
     mis.setMag(100*density*r*r/d);
-    mis.mult(attraction);
-    if(forcesToggle[3])  sumForces.add(mis);
+    mis.mult(k);
+    sumForces.add(mis);
   }
   
   void applyFlock(ArrayList<Boid> boids) {
