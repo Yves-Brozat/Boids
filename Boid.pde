@@ -5,6 +5,7 @@ abstract class Boid {
   PVector velocity;
   PVector acceleration;
   PVector sumForces;
+  boolean mortal;
   
   //Visual parameters
   color c;
@@ -42,6 +43,7 @@ abstract class Boid {
     velocity = new PVector(vx,vy);    
     acceleration = new PVector();
     sumForces = new PVector(); 
+    mortal = true;
     
     c = controller.get(ColorWheel.class,"particleColor").getRGB();
     randomBrightness = random(-controller.getController("contrast").getValue(),controller.getController("contrast").getValue());
@@ -64,7 +66,7 @@ abstract class Boid {
     friction = controller.getController("friction").getValue();
     g = g();
        
-    paramToggle = new boolean[3];
+    paramToggle = new boolean[2];
     for (int i = 0; i < paramToggle.length; i++) 
       paramToggle[i] = controller.get(CheckBox.class,"parametersToggle").getState(i);
     maxforce = controller.getController("maxforce").getValue();    
@@ -72,7 +74,7 @@ abstract class Boid {
     density = 1.0;
     k_density = controller.getController("k_density").getValue();
     lifetime = 0;
-    lifespan = (int)controller.getController("lifespan").getValue();
+    lifespan = 300;
     
     xoff = int(random(0,10));
     yoff = (random(0,10));
@@ -90,11 +92,11 @@ abstract class Boid {
     borders();
     if(position.x > controllerSize)
       render(boids);
-    if(paramToggle[2]) lifetime++;
+    if(mortal) lifetime++;
   }
 
   boolean isDead(){
-    if (paramToggle[2]) return (lifetime > lifespan) ? true : false;
+    if (mortal) return (lifetime > lifespan) ? true : false;
     else return false;
   }
   
@@ -224,7 +226,7 @@ abstract class Boid {
 
   void draw(ArrayList<Boid> boids){
     int alpha = 255;
-    if (paramToggle[2]) alpha = (int)map(lifetime,0,lifespan,255,1);
+    if (mortal) alpha = (int)map(lifetime,0,lifespan,255,1);
     c = color(controller.get(ColorWheel.class,"particleColor").r() + randomBrightness + randomRed - randomGreen - randomBlue,
               controller.get(ColorWheel.class,"particleColor").g() + randomBrightness - randomRed + randomGreen - randomBlue,
               controller.get(ColorWheel.class,"particleColor").b() + randomBrightness - randomRed - randomGreen + randomBlue,

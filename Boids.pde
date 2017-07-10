@@ -11,6 +11,7 @@ IDEES :
 - Garder en mémoire la position d'origine pour pouvoir y retourner
 - Ajout slider visuel particule : influence de la proximité sur la taille des particules
 - Améliorer lettres de grande taille (avec scale() p.e au lieu de textSize())
+- Creer des constantes pour les valeurs initiales (toutes celles dans les sliders)
 
 EN COURS :
 - Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
@@ -23,6 +24,7 @@ FAIT :
 - Idem pour repousser les éléments (interaction de tracking)
 - Creer un interupteur noir/blanc
 - Ajout slider source : taille, orientation (velocity.heading() initiale), force (vitesse initiale), débit (nombre de particule créée par cycle)
+- Chaque source produit des particules qui ont une esperance de vie propre a la source
 
 */
 
@@ -91,22 +93,15 @@ public void gui()
   
   //Group 1 : Global parameters
   Group g1 = controller.addGroup("Global physical parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(250);
-  controller.addCheckBox("parametersToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).addItem("F",0).addItem("S",1).addItem("L",2).moveTo(g1);                       
+  controller.addCheckBox("parametersToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).addItem("F",0).addItem("S",1).moveTo(g1);                       
   controller.addSlider("maxforce").addListener(flock).setPosition(30,10).setRange(0.01,1).setValue(1).moveTo(g1);
   controller.addSlider("maxspeed").addListener(flock).setPosition(30,20).setRange(0.01,20).setValue(20).moveTo(g1);
-  controller.addSlider("lifespan").addListener(flock).setPosition(30,30).setRange(1,1000).setValue(300).moveTo(g1);
-  controller.addSlider("N").setPosition(30,40).setRange(0,1000).moveTo(g1);
+  controller.addSlider("N").addListener(flock).setPosition(30,40).setRange(0,1000).moveTo(g1);
   controller.addSlider("k_density").addListener(flock).setPosition(30,50).setRange(0.1,2).setValue(1.0).moveTo(g1);          
   controller.addSlider("trailLength").addListener(flock).setPosition(30,60).setRange(0,20).setValue(0).moveTo(g1); 
   controller.addSlider("size").addListener(flock).setPosition(30,70).setRange(0.1,10).setValue(1.0).moveTo(g1); 
   controller.addBang("grid").addListener(flock).setPosition(10,85).setSize(20,20).moveTo(g1);
-  controller.addCheckBox("Brushes").setPosition(10,124).setSize(15,15).setItemsPerRow(4).moveTo(g1)
-            .addItem("S 1", 0).addItem("S 2", 1).addItem("S 3", 2).addItem("Source", 3)      
-            .addItem("M1", 0).addItem("M2", 1).addItem("M3", 2).addItem("Magnet", 3)      
-            .addItem("R1", 0).addItem("R2", 1).addItem("R3", 2).addItem("Repulsor", 3)      
-            .addItem("O1", 0).addItem("O2", 1).addItem("O3", 2).addItem("O", 3)      
-            .addItem("/1", 0).addItem("/2", 1).addItem("/3", 2).addItem("/", 3)      
-            .addItem("U1", 0).addItem("U2", 1).addItem("U3", 2).addItem("U", 3);
+  controller.addBang("kill").addListener(flock).setPosition(35,85).setSize(20,20).moveTo(g1);
   
   //Group 2 : Sources  
   Group g2 = controller.addGroup("Sources").setBackgroundColor(color(0, 64)).setBackgroundHeight(200);  
@@ -114,11 +109,12 @@ public void gui()
   controller.addCheckBox("src_activation").addListener(flock).setPosition(40,12).setSize(15,15).setItemsPerRow(4).setSpacingColumn(20).moveTo(g2);
   controller.addAccordion("acc_sources").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(55).setCollapseMode(Accordion.SINGLE).moveTo(g2);
   for(int i = 0; i<8; i++){
-    Group s1 = controller.addGroup("Source "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(55).hide();
+    Group s1 = controller.addGroup("Source "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(65).hide();
     controller.addRadioButton("src"+i+"_type").addListener(flock).setPosition(0,5).setSize(10,10).setItemsPerRow(2).setSpacingColumn(25).addItem("0 ("+i+")", 0).addItem("| ("+i+")", 1).activate(0).moveTo(s1);
     controller.addSlider("src"+i+"_size").addListener(flock).setPosition(0,21).setSize(50,10).setRange(10,100).setValue(20).moveTo(s1);  
     controller.addSlider("src"+i+"_outflow").addListener(flock).setPosition(0,32).setSize(50,10).setRange(1,30).setValue(1).moveTo(s1);
-    controller.addSlider("src"+i+"_strength").addListener(flock).setPosition(0,43).setSize(50,10).setRange(0,10).setValue(1).moveTo(s1);
+    controller.addSlider("src"+i+"_strength").addListener(flock).setPosition(0,43).setSize(50,10).setRange(0,10).setValue(1).moveTo(s1); 
+    controller.addSlider("lifespan " + i).addListener(flock).setPosition(0,54).setSize(50,10).setRange(1,1000).setValue(300).moveTo(s1);
     controller.addKnob("src"+i+"_angle").addListener(flock).setPosition(145,21).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(9).moveTo(s1);
     controller.get(Accordion.class,"acc_sources").addItem(s1);
   }
@@ -239,6 +235,8 @@ void controlEvent(ControlEvent theEvent) {
     for (int i = flock.boids.size()-1; i>=0; i--){
       Boid b = flock.boids.get(i);
       flock.addBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);
+      flock.boids.get(flock.boids.size()-1).lifespan = b.lifespan;
+      flock.boids.get(flock.boids.size()-1).lifetime = b.lifetime;
       flock.boids.remove(i);
     }
   }  

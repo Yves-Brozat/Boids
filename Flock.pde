@@ -26,12 +26,6 @@ class Flock implements ControlListener{
         controller.getController("N").setValue(boids.size());
       }
     }
-    for(Source s : sources){
-      if(!s.isActivated){
-        setSize();
-        break;
-      }
-    }
   }
 
   void addBoid(float x, float y, float vx, float vy) {
@@ -45,6 +39,12 @@ class Flock implements ControlListener{
     }
   }
   
+  void killAll(){
+    for (Boid b : boids){
+      b.mortal = true;
+      b.lifetime = b.lifespan;
+    }
+  }
   void addSource(){
     if(sources.size()<8){
       Source s = new Source(0.5*(width+controllerSize),0.5*height,this);
@@ -89,14 +89,17 @@ class Flock implements ControlListener{
         boids.get(boids.size()-1).yoff = 0.1*i+0.01*j;        
         controller.getController("N").setValue(boids.size());
       }
-    }   
+    }
+    for (Boid b : boids) b.mortal = false;
   }
   
   void setSize() {
-    if (flock.boids.size() < controller.getController("N").getValue()-1)
-      addBoid(random(controllerSize,width),random(0,height),random(0,10),random(0,10));
-    else if (flock.boids.size() > controller.getController("N").getValue()+1)
-      flock.boids.remove(flock.boids.size()-1);
+    while (boids.size() < controller.getController("N").getValue()-1){
+      addBoid(random(controllerSize,width),random(0,height),random(-10,10),random(-10,10));
+      boids.get(boids.size()-1).mortal = false;
+    }
+    while (boids.size() > controller.getController("N").getValue()+1)
+      boids.remove(boids.size()-1);
   }
   
   void mouseDragged(){
@@ -118,6 +121,8 @@ class Flock implements ControlListener{
   
   public void controlEvent(ControlEvent theEvent) {
      if(theEvent.isFrom("grid")) this.createGrid();
+     if(theEvent.isFrom("kill")) this.killAll();
+     if(theEvent.isFrom("N")) this.setSize();
      
      for (Boid b : boids){
       if(theEvent.isFrom("size"))     b.size = theEvent.getController().getValue();     
@@ -130,7 +135,6 @@ class Flock implements ControlListener{
       if(theEvent.isFrom("maxforce"))     b.maxforce = controller.getController("maxforce").getValue();    
       if(theEvent.isFrom("maxspeed"))     b.maxspeed = controller.getController("maxspeed").getValue();    
       if(theEvent.isFrom("k_density"))     b.k_density = controller.getController("k_density").getValue();
-      if(theEvent.isFrom("lifespan"))     b.lifespan = (int)controller.getController("lifespan").getValue();
       if(theEvent.isFrom("contrast"))     b.randomBrightness = random(-controller.getController("contrast").getValue(),controller.getController("contrast").getValue());
       if(theEvent.isFrom("red"))     b.randomRed = random(0,controller.getController("red").getValue());
       if(theEvent.isFrom("green"))     b.randomGreen = random(0,controller.getController("green").getValue());
@@ -145,6 +149,9 @@ class Flock implements ControlListener{
        if(theEvent.isFrom("src"+i+"_size")) sources.get(i).r = controller.getController("src"+i+"_size").getValue();
        if(theEvent.isFrom("src"+i+"_outflow")) sources.get(i).outflow = (int)controller.getController("src"+i+"_outflow").getValue();
        if(theEvent.isFrom("src"+i+"_strength")) sources.get(i).vel = sources.get(i).vel(i);
+       if(theEvent.isFrom("lifespan "+ i)){
+         sources.get(i).lifespan = (int)controller.getController("lifespan "+ i).getValue();
+       }
        if(theEvent.isFrom("src"+i+"_angle")){
          sources.get(i).angle = radians(controller.getController("src"+i+"_angle").getValue());
          sources.get(i).vel = sources.get(i).vel(i);
