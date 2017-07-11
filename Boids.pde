@@ -40,7 +40,7 @@ Flock flock;
 int controllerSize = 200;
 boolean isRecording = false;
 
-enum BoidType {TRIANGLE, LETTER, CIRCLE, BUBBLE, LINE, CURVE;}
+enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE, CURVE;}
 enum BorderType {WALLS, LOOPS, NOBORDER;}
 enum SourceType {O,I;}
 enum MagnetType {PLUS,MINUS;}
@@ -92,24 +92,26 @@ public void gui()
   controller = new ControlP5(this);
   
   //Group 1 : Global parameters
-  Group g1 = controller.addGroup("Global physical parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(250);
+  Group g1 = controller.addGroup("Global physical parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(160);
   controller.addCheckBox("parametersToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).addItem("F",0).addItem("S",1).moveTo(g1);                       
   controller.addSlider("maxforce").addListener(flock).setPosition(30,10).setRange(0.01,1).setValue(1).moveTo(g1);
   controller.addSlider("maxspeed").addListener(flock).setPosition(30,20).setRange(0.01,20).setValue(20).moveTo(g1);
   controller.addSlider("N").addListener(flock).setPosition(30,40).setRange(0,1000).moveTo(g1);
-  controller.addSlider("k_density").addListener(flock).setPosition(30,50).setRange(0.1,2).setValue(1.0).moveTo(g1);          
-  controller.addSlider("trailLength").addListener(flock).setPosition(30,60).setRange(0,20).setValue(0).moveTo(g1); 
-  controller.addSlider("size").addListener(flock).setPosition(30,70).setRange(0.1,10).setValue(1.0).moveTo(g1); 
-  controller.addBang("grid").addListener(flock).setPosition(10,85).setSize(20,20).moveTo(g1);
-  controller.addBang("kill").addListener(flock).setPosition(35,85).setSize(20,20).moveTo(g1);
+  controller.addSlider("k_density").addListener(flock).setPosition(30,60).setRange(0.1,2).setValue(1.0).moveTo(g1);          
+  controller.addBang("grid").addListener(flock).setPosition(115,85).setSize(20,20).moveTo(g1);
+  controller.addBang("kill").addListener(flock).setPosition(140,85).setSize(20,20).moveTo(g1);
+  controller.addBang("brushes").addListener(flock).setPosition(115,120).setSize(20,20).moveTo(g1);
+  Group borders = controller.addGroup("Borders").setPosition(10,95).setBackgroundColor(color(0, 64)).setBackgroundHeight(60).moveTo(g1);  
+  controller.addRadioButton("Borders type").setPosition(10,10).setSize(15,15).moveTo(borders)
+            .addItem("walls", 0).addItem("loops", 1).addItem("no_border", 2).activate(2);
   
   //Group 2 : Sources  
-  Group g2 = controller.addGroup("Sources").setBackgroundColor(color(0, 64)).setBackgroundHeight(200);  
+  Group g2 = controller.addGroup("Sources").setBackgroundColor(color(0, 64)).setBackgroundHeight(210);  
   controller.addBang("add src").addListener(flock).setPosition(10,10).setSize(20,20).moveTo(g2);
   controller.addCheckBox("src_activation").addListener(flock).setPosition(40,12).setSize(15,15).setItemsPerRow(4).setSpacingColumn(20).moveTo(g2);
-  controller.addAccordion("acc_sources").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(55).setCollapseMode(Accordion.SINGLE).moveTo(g2);
+  controller.addAccordion("acc_sources").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(67).setCollapseMode(Accordion.SINGLE).moveTo(g2);
   for(int i = 0; i<8; i++){
-    Group s1 = controller.addGroup("Source "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(65).hide();
+    Group s1 = controller.addGroup("Source "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(67).hide();
     controller.addRadioButton("src"+i+"_type").addListener(flock).setPosition(0,5).setSize(10,10).setItemsPerRow(2).setSpacingColumn(25).addItem("0 ("+i+")", 0).addItem("| ("+i+")", 1).activate(0).moveTo(s1);
     controller.addSlider("src"+i+"_size").addListener(flock).setPosition(0,21).setSize(50,10).setRange(10,100).setValue(20).moveTo(s1);  
     controller.addSlider("src"+i+"_outflow").addListener(flock).setPosition(0,32).setSize(50,10).setRange(1,30).setValue(1).moveTo(s1);
@@ -120,49 +122,56 @@ public void gui()
   }
   
   //Group 3 : Magnets  
-  Group g3 = controller.addGroup("Magnets").setBackgroundColor(color(0, 64)).setBackgroundHeight(200);  
+  Group g3 = controller.addGroup("Magnets").setBackgroundColor(color(0, 64)).setBackgroundHeight(180);  
   controller.addBang("add mag").addListener(flock).setPosition(10,10).setSize(20,20).moveTo(g3);
   controller.addCheckBox("mag_activation").addListener(flock).setPosition(40,12).setSize(15,15).setItemsPerRow(4).setSpacingColumn(20).moveTo(g3);
-  controller.addAccordion("acc_magnets").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(55).setCollapseMode(Accordion.SINGLE).moveTo(g3);
+  controller.addAccordion("acc_magnets").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(33).setCollapseMode(Accordion.SINGLE).moveTo(g3);
   for(int i = 0; i<8; i++){
-    Group s1 = controller.addGroup("Magnet "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(55).hide();
+    Group s1 = controller.addGroup("Magnet "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).hide();
     controller.addRadioButton("mag"+i+"_type").addListener(flock).setPosition(0,5).setSize(10,10).setItemsPerRow(2).setSpacingColumn(25).addItem("+ ("+i+")", 0).addItem("- ("+i+")", 1).activate(0).moveTo(s1);
-    controller.addSlider("mag"+i+"_strength").addListener(flock).setPosition(0,43).setSize(50,10).setRange(0,10).setValue(1).moveTo(s1);
+    controller.addSlider("mag"+i+"_strength").addListener(flock).setPosition(0,21).setSize(50,10).setRange(0,10).setValue(1).moveTo(s1);
     controller.get(Accordion.class,"acc_magnets").addItem(s1);
   }
   
   //Group 4 : Obstacles  
-  Group g4 = controller.addGroup("Obstacles").setBackgroundColor(color(0, 64)).setBackgroundHeight(200);  
+  Group g4 = controller.addGroup("Obstacles").setBackgroundColor(color(0, 64)).setBackgroundHeight(180);  
   controller.addBang("add obs").addListener(flock).setPosition(10,10).setSize(20,20).moveTo(g4);
   controller.addCheckBox("obs_activation").addListener(flock).setPosition(40,12).setSize(15,15).setItemsPerRow(4).setSpacingColumn(20).moveTo(g4);
-  controller.addAccordion("acc_obstacles").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(55).setCollapseMode(Accordion.SINGLE).moveTo(g4);
+  controller.addAccordion("acc_obstacles").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(33).setCollapseMode(Accordion.SINGLE).moveTo(g4);
   for(int i = 0; i<8; i++){
-    Group s1 = controller.addGroup("Obstacle "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(55).hide();
-    controller.addRadioButton("obs"+i+"_type").addListener(flock).setPosition(0,5).setSize(10,10).setItemsPerRow(2).setSpacingColumn(25).addItem("O ("+i+")", 0).addItem("/ ("+i+")", 1).addItem("U ("+i+")", 2).activate(0).moveTo(s1);
-    controller.addSlider("obs"+i+"_size").addListener(flock).setPosition(0,43).setSize(50,10).setRange(5,75).setValue(1).moveTo(s1);
-    controller.addKnob("obs"+i+"_angle").addListener(flock).setPosition(145,21).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(9).moveTo(s1);
+    Group s1 = controller.addGroup("Obstacle "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).hide();
+    controller.addRadioButton("obs"+i+"_type").addListener(flock).setPosition(0,5).setSize(10,10).setItemsPerRow(3).setSpacingColumn(25).addItem("O ("+i+")", 0).addItem("/ ("+i+")", 1).addItem("U ("+i+")", 2).activate(0).moveTo(s1);
+    controller.addSlider("obs"+i+"_size").addListener(flock).setPosition(0,21).setSize(50,10).setRange(5,75).setValue(1).moveTo(s1);
+    controller.addKnob("obs"+i+"_angle").addListener(flock).setPosition(145,0).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(9).moveTo(s1);
     controller.get(Accordion.class,"acc_obstacles").addItem(s1);
   }
   
   //Group 5 : Forces
-  Group g5 = controller.addGroup("Forces").setBackgroundColor(color(0, 64)).setBackgroundHeight(130);                       
+  Group g5 = controller.addGroup("Forces").setBackgroundColor(color(0, 64)).setBackgroundHeight(125);                       
   controller.addCheckBox("forceToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).moveTo(g5)
-            .addItem("s",0).addItem("a",1).addItem("c",2).addItem("f",3).addItem("g",4).addItem("n",5);
+            .addItem("s",0).addItem("a",1).addItem("c",2).addItem("f",3).addItem("g",4).addItem("n",5).addItem("o",6);
   controller.addSlider("separation").addListener(flock).setPosition(30,10).setRange(0.01,4).setValue(1.5).moveTo(g5);
   controller.addSlider("alignment").addListener(flock).setPosition(30,20).setRange(0.01,4).setValue(1.0).moveTo(g5);
   controller.addSlider("cohesion").addListener(flock).setPosition(30,30).setRange(0.01,4).setValue(1.0).moveTo(g5);
   controller.addSlider("friction").addListener(flock).setPosition(30,40).setRange(0.01,4).moveTo(g5);
   controller.addSlider("gravity").addListener(flock).setPosition(30,50).setRange(0.01,4).setValue(1.0).moveTo(g5);  
   controller.addSlider("noise").addListener(flock).setPosition(30,60).setRange(0.01,4).setValue(1.0).moveTo(g5);
-  controller.addKnob("gravity_Angle").addListener(flock).setPosition(50,95).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(10).moveTo(g5);
+  controller.addSlider("origin").addListener(flock).setPosition(30,70).setRange(0.01,4).setValue(1.0).moveTo(g5);
+  controller.addKnob("gravity_Angle").addListener(flock).setPosition(50,90).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(10).moveTo(g5);
 
   //Group 6 : Visual parameters
-  Group g6 = controller.addGroup("Visual parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(110);  
-  controller.addRadioButton("Visual").addListener(flock).setPosition(10,10).setSize(15,15).moveTo(g6)
-            .addItem("triangle", 0).addItem("letter", 1).addItem("circle", 2) .addItem("bubble",3).addItem("line", 4).addItem("curve", 5).activate(4);
-  controller.addSlider("N_connections").addListener(flock).setPosition(80,10).setSize(50,10).setRange(1,30).setValue(3).moveTo(g6);
-  controller.addSlider("symmetry").addListener(flock).setPosition(80,25).setSize(50,10).setRange(1,12).setValue(1).moveTo(g6);
-  controller.addBang("brushes").addListener(flock).setPosition(80,70).setSize(20,20).moveTo(g6);
+  Group g6 = controller.addGroup("Visual parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(140);  
+  controller.addSlider("symmetry").addListener(flock).setPosition(10,10).setRange(1,12).setValue(1).moveTo(g6);
+  controller.addSlider("trailLength").addListener(flock).setPosition(10,22).setRange(0,20).setValue(0).moveTo(g6); 
+  controller.addRadioButton("Visual").addListener(flock).setPosition(10,40).setSize(15,15).setItemsPerRow(2).setSpacingColumn(85).moveTo(g6)
+            .addItem("triangle", 0).addItem("line", 1).addItem("circle", 2).addItem("curve", 3).addItem("letter", 4).activate(2);
+  Group part = controller.addGroup("Particules").setPosition(10,105).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
+  controller.addSlider("size").addListener(flock).setPosition(0,5).setSize(50,10).setRange(0.1,100).setValue(2.0).moveTo(part); 
+          
+  Group connex = controller.addGroup("Connections").setPosition(110,105).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
+  controller.addSlider("N_links").addListener(flock).setPosition(0,5).setSize(50,10).setRange(1,30).setValue(3).moveTo(connex);
+  controller.addSlider("d_max").addListener(flock).setPosition(0,16).setSize(50,10).setRange(0.1,10).setValue(1.0).moveTo(connex); 
+
   
   //Group 7 : Colors
   Group g7 = controller.addGroup("Colors").setBackgroundColor(color(0, 64)).setBackgroundHeight(200);  
@@ -174,14 +183,9 @@ public void gui()
   controller.addSlider("green").addListener(flock).setPosition(10,170).setRange(0,200).setValue(0).moveTo(g7);
   controller.addSlider("blue").addListener(flock).setPosition(10,180).setRange(0,200).setValue(0).moveTo(g7);
   
-  //Group 8 : Borders parameters
-  Group g8 = controller.addGroup("Borders").setBackgroundColor(color(0, 64)).setBackgroundHeight(150);  
-  controller.addRadioButton("Borders type").setPosition(10,10).setSize(20,20).moveTo(g8)
-            .addItem("walls", 0).addItem("loops", 1).addItem("no_border", 2).activate(1);
-  
   //Accordion
   controller.addAccordion("acc").setPosition(0,0).setWidth(controllerSize).setCollapseMode(Accordion.MULTI)
-            .addItem(g1).addItem(g2).addItem(g3).addItem(g4).addItem(g5).addItem(g6).addItem(g7).addItem(g8).open(0,4,5,6);
+            .addItem(g1).addItem(g2).addItem(g3).addItem(g4).addItem(g5).addItem(g6).addItem(g7).open(0,4,5,6);
 }
 
 
@@ -226,17 +230,17 @@ void controlEvent(ControlEvent theEvent) {
   if(theEvent.isFrom("Visual")){
     switch(int(theEvent.getValue())) {
       case(0):flock.boidType = BoidType.TRIANGLE;break;
-      case(1):flock.boidType = BoidType.LETTER;break;
+      case(1):flock.boidType = BoidType.LINE;break;
       case(2):flock.boidType = BoidType.CIRCLE;break;
-      case(3):flock.boidType = BoidType.BUBBLE;break;
-      case(4):flock.boidType = BoidType.LINE;break;
-      case(5):flock.boidType = BoidType.CURVE;break;
+      case(3):flock.boidType = BoidType.CURVE;break;
+      case(4):flock.boidType = BoidType.LETTER;break;
     }
     for (int i = flock.boids.size()-1; i>=0; i--){
       Boid b = flock.boids.get(i);
       flock.addBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);
       flock.boids.get(flock.boids.size()-1).lifespan = b.lifespan;
       flock.boids.get(flock.boids.size()-1).lifetime = b.lifetime;
+      flock.boids.get(flock.boids.size()-1).mortal = b.mortal;
       flock.boids.remove(i);
     }
   }  

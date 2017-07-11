@@ -1,6 +1,7 @@
 abstract class Boid {
 
   //Dynamic parameters
+  PVector position0;
   PVector position;
   PVector velocity;
   PVector acceleration;
@@ -11,11 +12,9 @@ abstract class Boid {
   color c;
   float randomBrightness;
   float randomRed, randomGreen, randomBlue;
-  float size; //static
   float r;
   ArrayList<PVector> history;  
   int trailLength;  //static or brushable
-  int maxConnections;  //static or brushable
   int symmetry;  //static
   
   //Forces parameters
@@ -24,6 +23,7 @@ abstract class Boid {
   float alignment;
   float cohesion;
   float friction;
+  float origin;
   PVector g;
   
   //Global physical parameters
@@ -36,10 +36,11 @@ abstract class Boid {
   int lifespan;
   
   float xoff, yoff;
-  float xnoiseScale, ynoiseScale;
+  float noise;
   
   Boid(float x, float y, float vx, float vy) {
     position = new PVector(x, y);
+    position0 = position.copy();
     velocity = new PVector(vx,vy);    
     acceleration = new PVector();
     sumForces = new PVector(); 
@@ -50,20 +51,19 @@ abstract class Boid {
     randomRed = random(0,controller.getController("red").getValue());
     randomGreen = random(0,controller.getController("green").getValue());
     randomBlue = random(0,controller.getController("blue").getValue());
-    size = controller.getController("size").getValue();
     r = 1;
     history = new ArrayList<PVector>();  
     trailLength = (int)controller.getController("trailLength").getValue();    
-    maxConnections = (int)controller.getController("N_connections").getValue();
     symmetry = (int)controller.getController("symmetry").getValue();
     
-    forcesToggle = new boolean[6];
+    forcesToggle = new boolean[controller.get(CheckBox.class,"forceToggle").getArrayValue().length];
     for (int i = 0; i < forcesToggle.length; i++) 
       forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
     separation = controller.getController("separation").getValue();
     alignment = controller.getController("alignment").getValue();
     cohesion = controller.getController("cohesion").getValue();
     friction = controller.getController("friction").getValue();
+    origin = controller.getController("origin").getValue();
     g = g();
        
     paramToggle = new boolean[2];
@@ -78,8 +78,7 @@ abstract class Boid {
     
     xoff = int(random(0,10));
     yoff = (random(0,10));
-    xnoiseScale = controller.getController("noise").getValue()*0.01;
-    ynoiseScale = 2*xnoiseScale;
+    noise = controller.getController("noise").getValue();
   }
 
   void run(ArrayList<Boid> boids) {
@@ -88,6 +87,7 @@ abstract class Boid {
     if(forcesToggle[3]) applyFriction();
     if(forcesToggle[4]) applyGravity();
     if(forcesToggle[5]) applyNoise();
+    if(forcesToggle[6]) applyOrigin();
     update();
     borders();
     if(position.x > controllerSize)
@@ -100,12 +100,18 @@ abstract class Boid {
     else return false;
   }
   
+  void applyOrigin(){
+    PVector fo = seek(position0);
+    fo.setMag(maxforce);
+    fo.mult(origin);
+    sumForces.add(fo);
+  }
   
   void applyNoise(){
-    xoff += xnoiseScale;
-    yoff += ynoiseScale;
-    float x = map(noise(xoff),0,1,-1,1);
-    float y = map(noise(yoff),0,1,-1,1);
+    xoff += 0.01;
+    yoff += 0.02;
+    float x = map(noise(xoff),0,1,-noise,noise);
+    float y = map(noise(yoff),0,1,-noise,noise);
     position.add(x,y); 
   }
   
@@ -364,9 +370,12 @@ abstract class Boid {
 //============================================================================
 
 abstract class Particle extends Boid {
+  
+  float size; //static
     
   Particle(float x, float y, float vx, float vy){
     super(x,y,vx,vy);
+    size = controller.getController("size").getValue();    
   }
   
   abstract void draw(float x, float y, float r, float theta, float alpha);
@@ -411,9 +420,9 @@ class TriangleBoid extends Particle {
     fill(c,alpha);
     noStroke();
     beginShape(TRIANGLES);
-    vertex(0, -r*2);
-    vertex(-r, r*2);
-    vertex(r, r*2);
+    vertex(0, -r);
+    vertex(-r, r);
+    vertex(r, r);
     endShape();
     popMatrix();
   }
@@ -426,7 +435,6 @@ class LetterBoid extends Particle {
   LetterBoid(float x, float y, float vx, float vy){
     super(x,y,vx,vy);
     letter = alphabet.get(int(random(alphabet.size()-1)));
-    //r = random(0,2);
   }
   
   void draw(float x, float y, float r, float theta, float alpha){
@@ -435,7 +443,7 @@ class LetterBoid extends Particle {
     rotate(theta);
     fill(c,alpha);
     noStroke();
-    textSize(10*this.r*r+1);
+    textSize(this.r*2*r+1);
     text(letter,0,0);
     popMatrix();
   }
@@ -451,32 +459,20 @@ class CircleBoid extends Particle {
     pushMatrix();
     fill(c,alpha);
     noStroke();
-    ellipse(x, y,10*this.r*r,10*this.r*r);
+    ellipse(x, y,this.r*2*r,this.r*2*r);
     popMatrix();
   } 
 }
 
-class BubbleBoid extends Particle {
-  
-  BubbleBoid(float x, float y, float vx, float vy){
-    super(x,y,vx,vy);
-  }
-  
-  
-  void draw(float x, float y, float r, float theta, float alpha){
-    pushMatrix();
-    this.r = random(0,1);
-    fill(c,alpha);
-    noStroke();
-    ellipse(x, y,25*this.r*r,25*this.r*r);
-    popMatrix();
-  }
-}
-
 abstract class Connection extends Boid{
+  
+  float d_max;
+  int maxConnections;
   
   Connection(float x, float y, float vx, float vy){
     super(x,y,vx,vy);
+    d_max = controller.getController("d_max").getValue();
+    maxConnections = (int)controller.getController("N_links").getValue();
   }
   
   abstract void draw(PVector origin, PVector neighboor, float alpha);
@@ -492,7 +488,7 @@ abstract class Connection extends Boid{
     if(neighboors.size()>maxConnections){
       for (int i = 0; i<maxConnections; i++){
         float d = PVector.dist(position,neighboors.get(i).position);
-        if ((d > 0) && (d < 20*size)){
+        if ((d > 0) && (d < 20*d_max)){
           draw(position,neighboors.get(i).position,255);
         //if (other.history.size() >= history.size()){
         //  for ( int i=0; i<history.size(); i++)  
@@ -533,7 +529,7 @@ class CurveBoid extends Connection {
         if (other.history.size() >= history.size()){    
           //draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),255/history.size()*(i+1));
           float scope = PVector.dist(history.get(i), other.history.get(i)); 
-          if ((scope > 0) && (scope < 20*size)) {
+          if ((scope > 0) && (scope < 20*d_max)) {
             //count++;            // Keep track of how many            
             stroke(c,alpha);
             noFill();

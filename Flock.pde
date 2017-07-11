@@ -33,7 +33,6 @@ class Flock implements ControlListener{
       case TRIANGLE : boids.add(new TriangleBoid(x, y, vx, vy)); break;
       case LETTER : boids.add(new LetterBoid(x, y, vx, vy)); break;
       case CIRCLE : boids.add(new CircleBoid(x, y, vx, vy)); break;
-      case BUBBLE : boids.add(new BubbleBoid(x, y, vx, vy)); break;
       case LINE : boids.add(new LineBoid(x, y, vx, vy)); break;
       case CURVE : boids.add(new CurveBoid(x, y, vx, vy)); break;
     }
@@ -125,22 +124,31 @@ class Flock implements ControlListener{
      if(theEvent.isFrom("N")) this.setSize();
      
      for (Boid b : boids){
-      if(theEvent.isFrom("size"))     b.size = theEvent.getController().getValue();     
-      if(theEvent.isFrom("trailLength"))     b.trailLength = (int)theEvent.getController().getValue();
+      if (b instanceof Particle){
+        Particle p = (Particle)b;
+        if(theEvent.isFrom("size"))     p.size = theEvent.getController().getValue();     
+      }
+      if (b instanceof Connection){
+        Connection c = (Connection)b;
+        if(theEvent.isFrom("N_links")) c.maxConnections = (int)controller.getController("N_links").getValue();      
+        if(theEvent.isFrom("d_max")) c.d_max = (int)controller.getController("d_max").getValue();              
+      }
+      if(theEvent.isFrom("maxforce"))     b.maxforce = controller.getController("maxforce").getValue();    
+      if(theEvent.isFrom("maxspeed"))     b.maxspeed = controller.getController("maxspeed").getValue();    
+      if(theEvent.isFrom("k_density"))     b.k_density = controller.getController("k_density").getValue();
       if(theEvent.isFrom("separation"))     b.separation = controller.getController("separation").getValue();
       if(theEvent.isFrom("alignment"))     b.alignment = controller.getController("alignment").getValue();
       if(theEvent.isFrom("cohesion"))     b.cohesion = controller.getController("cohesion").getValue();
       if(theEvent.isFrom("gravity") || theEvent.isFrom("gravity_Angle"))     b.g = b.g();
       if(theEvent.isFrom("friction"))     b.friction = controller.getController("friction").getValue();
-      if(theEvent.isFrom("maxforce"))     b.maxforce = controller.getController("maxforce").getValue();    
-      if(theEvent.isFrom("maxspeed"))     b.maxspeed = controller.getController("maxspeed").getValue();    
-      if(theEvent.isFrom("k_density"))     b.k_density = controller.getController("k_density").getValue();
+      if(theEvent.isFrom("noise"))        b.noise = controller.getController("noise").getValue(); 
+      if(theEvent.isFrom("origin"))     b.origin = controller.getController("origin").getValue();
+      if(theEvent.isFrom("symmetry")) b.symmetry = (int)controller.getController("symmetry").getValue();
+      if(theEvent.isFrom("trailLength"))     b.trailLength = (int)theEvent.getController().getValue();
       if(theEvent.isFrom("contrast"))     b.randomBrightness = random(-controller.getController("contrast").getValue(),controller.getController("contrast").getValue());
       if(theEvent.isFrom("red"))     b.randomRed = random(0,controller.getController("red").getValue());
       if(theEvent.isFrom("green"))     b.randomGreen = random(0,controller.getController("green").getValue());
       if(theEvent.isFrom("blue"))     b.randomBlue = random(0,controller.getController("blue").getValue());
-      if(theEvent.isFrom("N_connections")) b.maxConnections = (int)controller.getController("N_connections").getValue();      
-      if(theEvent.isFrom("symmetry")) b.symmetry = (int)controller.getController("symmetry").getValue();
     }
      
      //SOURCES
