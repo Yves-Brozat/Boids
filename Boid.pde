@@ -10,6 +10,7 @@ abstract class Boid {
   
   //Visual parameters
   color c;
+  int red,green,blue;
   float randomBrightness;
   float randomRed, randomGreen, randomBlue;
   float r;
@@ -46,6 +47,9 @@ abstract class Boid {
     sumForces = new PVector(); 
     mortal = true;
     
+    red = controller.get(ColorWheel.class,"particleColor").r(); 
+    green =controller.get(ColorWheel.class,"particleColor").g(); 
+    blue = controller.get(ColorWheel.class,"particleColor").b();
     c = controller.get(ColorWheel.class,"particleColor").getRGB();
     randomBrightness = random(-controller.getController("contrast").getValue(),controller.getController("contrast").getValue());
     randomRed = random(0,controller.getController("red").getValue());
@@ -83,18 +87,19 @@ abstract class Boid {
 
   void run(ArrayList<Boid> boids) {
     savePosition();
+    applyForces(boids);
+    update();
+    render(boids);
+  }
+  
+  void applyForces(ArrayList<Boid> boids){
     applyFlock(boids);
     if(forcesToggle[3]) applyFriction();
     if(forcesToggle[4]) applyGravity();
     if(forcesToggle[5]) applyNoise();
     if(forcesToggle[6]) applyOrigin();
-    update();
-    borders();
-    if(position.x > controllerSize)
-      render(boids);
-    if(mortal) lifetime++;
   }
-
+  
   boolean isDead(){
     if (mortal) return (lifetime > lifespan) ? true : false;
     else return false;
@@ -185,6 +190,7 @@ abstract class Boid {
     if (paramToggle[1]) velocity.limit(maxspeed);  // Limit speed
     position.add(velocity); 
     sumForces.mult(0);  // Reset forces to 0 each cycle
+    if(mortal) lifetime++;
   }
 
   // A method that calculates and applies a steering force towards a target
@@ -215,7 +221,7 @@ abstract class Boid {
   }
   
   void reflect(int n, ArrayList<Boid> boids){
-    PVector center = new PVector(0.5*(controllerSize+width),0.5*height);
+    PVector center = new PVector(0.5*width,0.5*height);
     float section = 2*PI/n;
     if (n > 1){  
       Boid b = this;
@@ -232,45 +238,11 @@ abstract class Boid {
 
   void draw(ArrayList<Boid> boids){
     int alpha = 255;
-    if (mortal) alpha = (int)map(lifetime,0,lifespan,255,1);
-    c = color(controller.get(ColorWheel.class,"particleColor").r() + randomBrightness + randomRed - randomGreen - randomBlue,
-              controller.get(ColorWheel.class,"particleColor").g() + randomBrightness - randomRed + randomGreen - randomBlue,
-              controller.get(ColorWheel.class,"particleColor").b() + randomBrightness - randomRed - randomGreen + randomBlue,
+    if (mortal) alpha = (int)map(lifetime,0,lifespan,alpha,1);
+    c = color(red + randomBrightness + randomRed - randomGreen - randomBlue,
+              green + randomBrightness - randomRed + randomGreen - randomBlue,
+              blue + randomBrightness - randomRed - randomGreen + randomBlue,
               alpha);
-  }
-  
-  void borders() {
-    switch (borderType)
-    {
-      case WALLS :
-      if (position.x < controllerSize-r) {
-        velocity.x *= -1;
-        position.x = controllerSize-r;
-      }
-      if (position.x > width+r) {
-        velocity.x *= -1;
-        position.x = width+r;
-      }
-      if (position.y < -r) {
-        velocity.y *= -1;
-        position.y = -r;
-      }
-      if (position.y > height+r) {
-        velocity.y *= -1;
-        position.y = height+r;
-      }
-      break;
-    
-      case LOOPS : 
-      if (position.x < controllerSize-r) position.x = width+r;
-      if (position.y < -r) position.y = height+r;
-      if (position.x > width+r) position.x = controllerSize + r;
-      if (position.y > height+r) position.y = -r;
-      break;
-      
-      case NOBORDER : 
-      break;
-    }
   }
 
   // Separation
@@ -434,7 +406,6 @@ class LetterBoid extends Particle {
   
   LetterBoid(float x, float y, float vx, float vy){
     super(x,y,vx,vy);
-    letter = alphabet.get(int(random(alphabet.size()-1)));
   }
   
   void draw(float x, float y, float r, float theta, float alpha){

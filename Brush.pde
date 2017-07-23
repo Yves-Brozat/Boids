@@ -71,18 +71,18 @@ class Source extends Brush {
     vel = new PVector(0,0);
     angle = 0;
     type = SourceType.O;
-    lifespan = 300;
+    lifespan = 100;
   }
   
   void apply(){
-    PVector pos = new PVector();
-    switch(type){
-      case O : pos.set(position.x + random(-r,r),position.y + random(-r,r));  break;
-      case I : 
-      float z = random(-10*r,10*r);
-      pos.set(position.x + z*cos(angle),position.y + z*sin(angle));  break;
-    }
     for(int i = 0; i<outflow; i++){  
+      PVector pos = new PVector();
+      switch(type){
+        case O : pos.set(position.x + random(-r,r),position.y + random(-r,r));  break;
+        case I : 
+        float z = random(-10*r,10*r);
+        pos.set(position.x + z*cos(angle),position.y + z*sin(angle));  break;
+      }
       f.addBoid(pos.x,pos.y,vel.x,vel.y);
       f.boids.get(f.boids.size()-1).lifespan = lifespan;
     }
