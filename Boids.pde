@@ -77,7 +77,7 @@ boolean isRecording = false;
 Flock flock;
 
 void settings(){
-  size(1366 - controllerSize,703,P2D);
+  size(1366 - controllerSize,703,P3D);
 }
 
 void setup(){ 

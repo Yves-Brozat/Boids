@@ -64,6 +64,7 @@ class Source extends Brush {
   PVector vel;
   SourceType type;
   int lifespan;
+  boolean randomVel;
   
   Source(float x, float y, Flock flock){
     super(x,y,flock);
@@ -72,6 +73,7 @@ class Source extends Brush {
     angle = 0;
     type = SourceType.O;
     lifespan = 100;
+    randomVel = false;
   }
   
   void apply(){
@@ -83,14 +85,15 @@ class Source extends Brush {
         float z = random(-10*r,10*r);
         pos.set(position.x + z*cos(angle),position.y + z*sin(angle));  break;
       }
-      f.addBoid(pos.x,pos.y,vel.x,vel.y);
+      if(randomVel) f.addBoid(pos.x, pos.y, random(-5,5), random(-5,5));
+      else  f.addBoid(pos.x,pos.y,vel.x,vel.y);
       f.bornList.get(f.bornList.size()-1).lifespan = lifespan;
     }
   }
   
   PVector vel(int i){
     float r = controller.getController("src"+i+"_strength").getValue();
-    PVector velocity = new PVector(r*cos(angle+0.5*PI),r*sin(angle+0.5*PI));
+    PVector velocity = new PVector(r*cos(angle+HALF_PI),r*sin(angle+HALF_PI));
     return velocity;
   }
   

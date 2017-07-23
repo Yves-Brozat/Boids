@@ -45,17 +45,18 @@ class ControlFrame extends PApplet {
               .addItem("walls", 0).addItem("loops", 1).addItem("no_border", 2).activate(2);
     
     //Group 2 : Sources  
-    Group g2 = controller.addGroup("Sources").setBackgroundColor(color(0, 64)).setBackgroundHeight(210);  
+    Group g2 = controller.addGroup("Sources").setBackgroundColor(color(0, 64)).setBackgroundHeight(221);  
     controller.addBang("add src").setPosition(10,10).setSize(20,20).moveTo(g2);
     controller.addCheckBox("src_activation").setPosition(40,12).setSize(15,15).setItemsPerRow(4).setSpacingColumn(20).moveTo(g2);
-    controller.addAccordion("acc_sources").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(67).setCollapseMode(Accordion.SINGLE).moveTo(g2);
+    controller.addAccordion("acc_sources").setPosition(10,60).setWidth(controllerSize-10).setMinItemHeight(78).setCollapseMode(Accordion.SINGLE).moveTo(g2);
     for(int i = 0; i<8; i++){
-      Group s1 = controller.addGroup("Source "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(67).hide();
+      Group s1 = controller.addGroup("Source "+i).setBackgroundColor(color(0, 64)).setBackgroundHeight(78).hide();
       controller.addRadioButton("src"+i+"_type").setPosition(0,5).setSize(10,10).setItemsPerRow(2).setSpacingColumn(25).addItem("0 ("+i+")", 0).addItem("| ("+i+")", 1).activate(0).moveTo(s1);
       controller.addSlider("src"+i+"_size").setPosition(0,21).setSize(50,10).setRange(10,100).setValue(20).moveTo(s1);  
       controller.addSlider("src"+i+"_outflow").setPosition(0,32).setSize(50,10).setRange(1,30).setValue(1).moveTo(s1);
       controller.addSlider("src"+i+"_strength").setPosition(0,43).setSize(50,10).setRange(0,10).setValue(1).moveTo(s1); 
       controller.addSlider("lifespan " + i).setPosition(0,54).setSize(50,10).setRange(1,1000).setValue(100).moveTo(s1);
+      controller.addButton("random " + i).setPosition(0,65).setSize(40,10).setSwitch(true).moveTo(s1);
       controller.addKnob("src"+i+"_angle").setPosition(145,21).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(9).moveTo(s1);
       controller.get(Accordion.class,"acc_sources").addItem(s1);
     }
@@ -99,15 +100,16 @@ class ControlFrame extends PApplet {
     controller.addKnob("gravity_Angle").setPosition(50,90).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(10).moveTo(g5);
   
     //Group 6 : Visual parameters
-    Group g6 = controller.addGroup("Visual parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(140);  
+    Group g6 = controller.addGroup("Visual parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(152);  
     controller.addSlider("symmetry").plugTo(flock.boids,"symmetry").setPosition(10,10).setRange(1,12).setValue(1).moveTo(g6);
     controller.addSlider("trailLength").plugTo(flock.boids,"trailLength").setPosition(10,22).setRange(0,20).setValue(0).moveTo(g6); 
-    controller.addRadioButton("Visual").setPosition(10,40).setSize(15,15).setItemsPerRow(2).setSpacingColumn(85).moveTo(g6)
+    controller.addSlider("alpha").plugTo(flock.boids,"alpha").setPosition(10,34).setRange(20,255).setValue(100).moveTo(g6); 
+    controller.addRadioButton("Visual").setPosition(10,52).setSize(15,15).setItemsPerRow(2).setSpacingColumn(85).moveTo(g6)
               .addItem("triangle", 0).addItem("line", 1).addItem("circle", 2).addItem("curve", 3).addItem("letter", 4).activate(2);
-    Group part = controller.addGroup("Particules").setPosition(10,105).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
+    Group part = controller.addGroup("Particules").setPosition(10,117).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
     controller.addSlider("size").setPosition(0,5).setSize(50,10).setRange(0.1,100).setValue(2.0).moveTo(part); 
             
-    Group connex = controller.addGroup("Connections").setPosition(110,105).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
+    Group connex = controller.addGroup("Connections").setPosition(110,117).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
     controller.addSlider("N_links").setPosition(0,5).setSize(50,10).setRange(1,30).setValue(3).moveTo(connex);
     controller.addSlider("d_max").setPosition(0,16).setSize(50,10).setRange(0.1,10).setValue(1.0).moveTo(connex); 
   
@@ -209,7 +211,7 @@ class ControlFrame extends PApplet {
       }
     }
   
-   if(theEvent.isFrom("grid")) flock.createGrid();
+   if(theEvent.isFrom("grid")) flock.grid = true;
    if(theEvent.isFrom("kill")) flock.killAll();
    if(theEvent.isFrom("N")) flock.NChange = true;
      
@@ -247,6 +249,9 @@ class ControlFrame extends PApplet {
        if(theEvent.isFrom("src"+i+"_angle")){
          s.angle = radians(controller.getController("src"+i+"_angle").getValue());
          s.vel = s.vel(i);
+       }
+       if(theEvent.isFrom("random "+ i)){
+         s.randomVel = controller.get(Button.class,"random " + i).isOn();
        }
      }
      

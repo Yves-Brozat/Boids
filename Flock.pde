@@ -12,9 +12,11 @@ class Flock {
   ArrayList<String> alphabet;
   boolean boidTypeChange;
   boolean NChange;
+  boolean grid;
 
   Flock() {
     NChange = false;
+    grid = false;
     boids = new ArrayList<Boid>(); // Initialize the ArrayList
     deathList = new ArrayList<Boid>(); 
     bornList = new ArrayList<Boid>();
@@ -80,7 +82,12 @@ class Flock {
       setSize();
       NChange = false;
     }
-      
+    
+    if (grid){
+      createGrid();
+      grid = false;
+    }
+    
     for (Boid b : deathList) boids.remove(b);
     for (Boid b : bornList) boids.add(b);
     
@@ -191,7 +198,7 @@ class Flock {
   void createGrid(){
     for(int i = 0; i<29; i++){
       for(int j = 0; j<19; j++){
-        addBoid(map(i,0,29,0,width),map(j,0,19,0,height),0,0);
+        addBoid(map(i,0,29,0,width)+map(0.5,0,29,0,width),map(j,0,19,0,height)+map(0.5,0,19,0,height),0,0);
         bornList.get(bornList.size()-1).xoff = 0.01*i+0.1*j;
         bornList.get(bornList.size()-1).yoff = 0.1*i+0.01*j;       
         bornList.get(bornList.size()-1).mortal = false; 

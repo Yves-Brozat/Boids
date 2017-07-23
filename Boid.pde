@@ -10,13 +10,14 @@ abstract class Boid {
   
   //Visual parameters
   color c;
+  float alpha;
   int red,green,blue;
   float randomBrightness;
   float randomRed, randomGreen, randomBlue;
   float r;
   ArrayList<PVector> history;  
-  int trailLength;  //static or brushable
-  int symmetry;  //static
+  float trailLength;  //static or brushable
+  float symmetry;  //static
   
   //Forces parameters
   boolean[] forcesToggle;
@@ -51,14 +52,15 @@ abstract class Boid {
     green =controller.get(ColorWheel.class,"particleColor").g(); 
     blue = controller.get(ColorWheel.class,"particleColor").b();
     c = controller.get(ColorWheel.class,"particleColor").getRGB();
+    alpha = controller.getController("alpha").getValue();
     randomBrightness = random(-controller.getController("contrast").getValue(),controller.getController("contrast").getValue());
     randomRed = random(0,controller.getController("red").getValue());
     randomGreen = random(0,controller.getController("green").getValue());
     randomBlue = random(0,controller.getController("blue").getValue());
     r = 1;
     history = new ArrayList<PVector>();  
-    trailLength = (int)controller.getController("trailLength").getValue();    
-    symmetry = (int)controller.getController("symmetry").getValue();
+    trailLength = controller.getController("trailLength").getValue();    
+    symmetry = controller.getController("symmetry").getValue();
     
     forcesToggle = new boolean[controller.get(CheckBox.class,"forceToggle").getArrayValue().length];
     for (int i = 0; i < forcesToggle.length; i++) 
@@ -204,26 +206,14 @@ abstract class Boid {
   }
 
   void render(ArrayList<Boid> boids){
-    if(keyPressed){
-      switch(key){
-        case 'é'  : reflect(2,boids);  break;
-        case '"'  : reflect(3,boids);  break;
-        case '\'' : reflect(4,boids);  break;
-        case '('  : reflect(5,boids);  break;
-        case '-'  : reflect(6,boids);  break;
-        case 'è'  : reflect(7,boids);  break;
-        case '_'  : reflect(8,boids);  break;
-        case 'ç'  : reflect(9,boids);  break;
-      }
-    }
     reflect(symmetry,boids);
     draw(boids);
   }
   
-  void reflect(int n, ArrayList<Boid> boids){
-    PVector center = new PVector(0.5*width,0.5*height);
-    float section = 2*PI/n;
-    if (n > 1){  
+  void reflect(float n, ArrayList<Boid> boids){
+    if ((int)n > 1){  
+      PVector center = new PVector(0.5*width,0.5*height);
+      float section = TWO_PI/(int)n; 
       Boid b = this;
       for (int i=0; i<n-1; i++){ 
         pushMatrix();
@@ -237,12 +227,12 @@ abstract class Boid {
   }
 
   void draw(ArrayList<Boid> boids){
-    int alpha = 255;
-    if (mortal) alpha = (int)map(lifetime,0,lifespan,alpha,1);
+    float a = alpha;
+    if (mortal) a = map(lifetime,0,lifespan,alpha,20);
     c = color(red + randomBrightness + randomRed - randomGreen - randomBlue,
               green + randomBrightness - randomRed + randomGreen - randomBlue,
               blue + randomBrightness - randomRed - randomGreen + randomBlue,
-              alpha);
+              a);
   }
 
   // Separation
@@ -369,12 +359,12 @@ abstract class Particle extends Boid {
     //for(int i = 0; i< neighboors.size(); i++){
     //  if(i<10) isolation += 0.1*PVector.dist(position,neighboors.get(i).position);
     //}
-    draw(position.x, position.y, size*max(map(isolation,0,1000,10,0),0), velocity.heading() + 0.5*PI, 100);
+    draw(position.x, position.y, size*max(map(isolation,0,1000,10,0),0), velocity.heading() + HALF_PI, alpha);
    
     if(history.size() > 0){
-      float angle = velocity.heading() + 0.5*PI;
+      float angle = velocity.heading() + HALF_PI;
       for ( int i=0; i< history.size(); i++)
-        draw(history.get(i).x, history.get(i).y, size, angle, map(i,0,history.size(),0,255));
+        draw(history.get(i).x, history.get(i).y, size, angle, map(i,0,history.size(),0,alpha));
     }
   }
 }
@@ -460,10 +450,10 @@ abstract class Connection extends Boid{
       for (int i = 0; i<maxConnections; i++){
         float d = PVector.dist(position,neighboors.get(i).position);
         if ((d > 0) && (d < 20*d_max)){
-          draw(position,neighboors.get(i).position,255);
+          draw(position,neighboors.get(i).position,alpha);
         //if (other.history.size() >= history.size()){
         //  for ( int i=0; i<history.size(); i++)  
-        //    draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),255/history.size()*(i+1));
+        //    draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),alpha/history.size()*(i+1));
         //}
         }
       }
@@ -493,16 +483,16 @@ class CurveBoid extends Connection {
   void draw(ArrayList<Boid> boids){
     super.draw(boids);
     for ( int i=0; i<history.size(); i++){
-      float alpha = 255/history.size()*(i+1);
+      float a = alpha/history.size()*(i+1);
       beginShape();
       curveVertex(history.get(i).x,history.get(i).y);
       for (Boid other : boids){
         if (other.history.size() >= history.size()){    
-          //draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),255/history.size()*(i+1));
+          //draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),alpha/history.size()*(i+1));
           float scope = PVector.dist(history.get(i), other.history.get(i)); 
           if ((scope > 0) && (scope < 20*d_max)) {
             //count++;            // Keep track of how many            
-            stroke(c,alpha);
+            stroke(c,a);
             noFill();
             strokeWeight(1);
             curveVertex(other.history.get(i).x,other.history.get(i).y);
@@ -519,16 +509,16 @@ class CurveBoid extends Connection {
 
 
     /*//EFFET BULLES DE SAVON
-    r = int(map(missionPoint.dist(position),1,height/2,255,1));
-    r = constrain(r,1,255);
-    stroke(255-r);
+    r = int(map(missionPoint.dist(position),1,height/2,alpha,1));
+    r = constrain(r,1,alpha);
+    stroke(alpha-r);
     strokeWeight(r);
     point(0,0);
     */
     /*//NUAGEUX, VENT
-    r = int(map(missionPoint.dist(position),1,height/2,255,50));
-    r = constrain(r,50,255);
-    stroke(255-r,10);
+    r = int(map(missionPoint.dist(position),1,height/2,alpha,50));
+    r = constrain(r,50,alpha);
+    stroke(alpha-r,10);
     strokeWeight(r);
     point(0,0);
     */ 
