@@ -11,16 +11,16 @@ IDEES :
 - Ajout slider visuel particule : influence de la proximité sur la taille des particules
 - Améliorer lettres de grande taille (avec scale() p.e au lieu de textSize())
 - Creer des constantes pour les valeurs initiales (toutes celles dans les sliders)
-- Eviter les erreurs de modifications simultanées du tableau "flock.boids"
-- Plug les controller<>variables
 
 EN COURS :
+- Plug les controller<>variables
 - Garder en mémoire la position d'origine pour pouvoir y retourner
 - Separer le GUI sur une autre fenetre
 - Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
 - Utiliser la donnée du nombre de voisins proches (pour un changement visuel, une fusion ou une fission)
 
 FAIT :
+- Eviter les erreurs de modifications simultanées du tableau "flock.boids"
 - Réflexion sur la couleur : aléatoire, changement de teinte via 2 sliders sur l'ensemble des couleurs
 - Creer des autres objets (des brosses ?) type Attractor, Repulsor, Source, Blackhole pour interaction de tracking
 - Idem pour repousser les éléments (interaction de tracking)
@@ -60,7 +60,6 @@ import controlP5.*;
 import netP5.*;
 import oscP5.*;
 import java.util.Collections.*;
-import java.awt.*;
 
 enum BoidType {TRIANGLE, LETTER, CIRCLE, LINE, CURVE;}
 enum BorderType {WALLS, LOOPS, NOBORDER;}

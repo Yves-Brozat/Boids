@@ -1,35 +1,43 @@
 class Flock {
   ArrayList<Boid> boids; // An ArrayList for all the boids  
-  ArrayList<Brush> brushes;  
+  ArrayList<Boid> deathList;
+  ArrayList<Boid> bornList; 
   BoidType boidType;
   BorderType borderType;
+  ArrayList<Brush> brushes; 
   ArrayList<Source> sources;
   ArrayList<Magnet> magnets;
   ArrayList<Obstacle> obstacles;
   
   ArrayList<String> alphabet;
+  boolean boidTypeChange;
+  boolean NChange;
 
   Flock() {
+    NChange = false;
     boids = new ArrayList<Boid>(); // Initialize the ArrayList
+    deathList = new ArrayList<Boid>(); 
+    bornList = new ArrayList<Boid>();
     brushes = new ArrayList<Brush>();
     sources = new ArrayList<Source>();
     magnets = new ArrayList<Magnet>();
     obstacles = new ArrayList<Obstacle>();
     
     boidType = BoidType.LINE;
+    boidTypeChange = false;
     borderType = BorderType.NOBORDER;
     
     setAlphabet();
   }
 
   void run() {
+    removeDeads();
     for (Brush b : brushes)
       b.run();
     savePosition();
     applyForces();
     update();
     render();
-    removeDeads();
     borders();
   }
   
@@ -50,12 +58,36 @@ class Flock {
   }
   
   void removeDeads(){
-    for (int i = 0; i<boids.size(); i++) {
-      if (boids.get(i).isDead()) { 
-        boids.remove(i);
-        controller.getController("N").setValue(boids.size());
-      }
+    //natural death
+    for (Boid b : boids) {
+      if (b.isDead()) removeBoid(b);
     }
+    
+    if (boidTypeChange){
+      for (int i = boids.size()-1; i>=0; i--){
+        Boid b = boids.get(i);
+        flock.addBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);
+        Boid newborn = bornList.get(bornList.size()-1);
+        newborn.lifespan = b.lifespan;
+        newborn.lifetime = b.lifetime;
+        newborn.mortal = b.mortal;
+        removeBoid(b);
+      }
+      boidTypeChange = false;
+    }
+    
+    if (NChange){
+      setSize();
+      NChange = false;
+    }
+      
+    for (Boid b : deathList) boids.remove(b);
+    for (Boid b : bornList) boids.add(b);
+    
+    deathList.clear();
+    bornList.clear();
+    
+    controller.getController("N").setValue(boids.size());
   }
   
   void borders(){
@@ -96,18 +128,22 @@ class Flock {
     }
   }
   
-  void addBoid(float x, float y, float vx, float vy) {
-    switch(boidType){
-      case TRIANGLE : boids.add(new TriangleBoid(x, y, vx, vy)); break;
+  void addBoid(float x, float y, float vx, float vy){
+     switch(boidType){
+      case TRIANGLE : bornList.add(new TriangleBoid(x, y, vx, vy)); break;
       case LETTER : 
       LetterBoid l = new LetterBoid(x, y, vx, vy);
-      boids.add(l); 
+      bornList.add(l); 
       l.letter = alphabet.get(int(random(alphabet.size()-1)));
       break;
-      case CIRCLE : boids.add(new CircleBoid(x, y, vx, vy)); break;
-      case LINE : boids.add(new LineBoid(x, y, vx, vy)); break;
-      case CURVE : boids.add(new CurveBoid(x, y, vx, vy)); break;
+      case CIRCLE : bornList.add(new CircleBoid(x, y, vx, vy)); break;
+      case LINE : bornList.add(new LineBoid(x, y, vx, vy)); break;
+      case CURVE : bornList.add(new CurveBoid(x, y, vx, vy)); break;
     }
+  }
+  
+  void removeBoid(Boid b){
+    deathList.add(b);
   }
   
   void killAll(){
@@ -156,21 +192,24 @@ class Flock {
     for(int i = 0; i<29; i++){
       for(int j = 0; j<19; j++){
         addBoid(map(i,0,29,0,width),map(j,0,19,0,height),0,0);
-        boids.get(boids.size()-1).xoff = 0.01*i+0.1*j;
-        boids.get(boids.size()-1).yoff = 0.1*i+0.01*j;        
-        controller.getController("N").setValue(boids.size());
+        bornList.get(bornList.size()-1).xoff = 0.01*i+0.1*j;
+        bornList.get(bornList.size()-1).yoff = 0.1*i+0.01*j;       
+        bornList.get(bornList.size()-1).mortal = false; 
       }
     }
-    for (Boid b : boids) b.mortal = false;
   }
   
   void setSize() {
-    while (boids.size() < controller.getController("N").getValue()-1){
+    int f = boids.size() - (int)controller.getController("N").getValue();
+    while(f < 0){      
       addBoid(random(0,width),random(0,height),random(-10,10),random(-10,10));
-      boids.get(boids.size()-1).mortal = false;
+      bornList.get(bornList.size()-1).mortal = false;
+      f++;
     }
-    while (boids.size() > controller.getController("N").getValue()+1)
-      boids.remove(boids.size()-1);
+    while (f > 0){
+      removeBoid(boids.get(f-1));
+      f--;
+    }
   }
   
   void mouseDragged(){   

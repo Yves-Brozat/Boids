@@ -78,7 +78,7 @@ abstract class Boid {
     density = 1.0;
     k_density = controller.getController("k_density").getValue();
     lifetime = 0;
-    lifespan = 300;
+    lifespan = 100;
     
     xoff = int(random(0,10));
     yoff = (random(0,10));

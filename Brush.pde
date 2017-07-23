@@ -84,9 +84,8 @@ class Source extends Brush {
         pos.set(position.x + z*cos(angle),position.y + z*sin(angle));  break;
       }
       f.addBoid(pos.x,pos.y,vel.x,vel.y);
-      f.boids.get(f.boids.size()-1).lifespan = lifespan;
+      f.bornList.get(f.bornList.size()-1).lifespan = lifespan;
     }
-    controller.getController("N").setValue(f.boids.size());
   }
   
   PVector vel(int i){

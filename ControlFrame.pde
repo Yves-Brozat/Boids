@@ -33,10 +33,10 @@ class ControlFrame extends PApplet {
     //Group 1 : Global parameters
     Group g1 = controller.addGroup("Global physical parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(160);
     controller.addCheckBox("parametersToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).addItem("F",0).addItem("S",1).moveTo(g1);                       
-    controller.addSlider("maxforce").setPosition(30,10).setRange(0.01,1).setValue(1).moveTo(g1);
-    controller.addSlider("maxspeed").setPosition(30,20).setRange(0.01,20).setValue(20).moveTo(g1);
+    controller.addSlider("maxforce").plugTo(flock.boids,"maxforce").setPosition(30,10).setRange(0.01,1).setValue(1).moveTo(g1);
+    controller.addSlider("maxspeed").plugTo(flock.boids,"maxspeed").setPosition(30,20).setRange(0.01,20).setValue(20).moveTo(g1);
     controller.addSlider("N").setPosition(30,40).setRange(0,1000).moveTo(g1);
-    controller.addSlider("k_density").setPosition(30,60).setRange(0.1,2).setValue(1.0).moveTo(g1);          
+    controller.addSlider("k_density").plugTo(flock.boids,"k_density").setPosition(30,60).setRange(0.1,2).setValue(1.0).moveTo(g1);          
     controller.addBang("grid").setPosition(115,85).setSize(20,20).moveTo(g1);
     controller.addBang("kill").setPosition(140,85).setSize(20,20).moveTo(g1);
     controller.addBang("brushes").setPosition(115,120).setSize(20,20).moveTo(g1);
@@ -55,7 +55,7 @@ class ControlFrame extends PApplet {
       controller.addSlider("src"+i+"_size").setPosition(0,21).setSize(50,10).setRange(10,100).setValue(20).moveTo(s1);  
       controller.addSlider("src"+i+"_outflow").setPosition(0,32).setSize(50,10).setRange(1,30).setValue(1).moveTo(s1);
       controller.addSlider("src"+i+"_strength").setPosition(0,43).setSize(50,10).setRange(0,10).setValue(1).moveTo(s1); 
-      controller.addSlider("lifespan " + i).setPosition(0,54).setSize(50,10).setRange(1,1000).setValue(300).moveTo(s1);
+      controller.addSlider("lifespan " + i).setPosition(0,54).setSize(50,10).setRange(1,1000).setValue(100).moveTo(s1);
       controller.addKnob("src"+i+"_angle").setPosition(145,21).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(9).moveTo(s1);
       controller.get(Accordion.class,"acc_sources").addItem(s1);
     }
@@ -89,19 +89,19 @@ class ControlFrame extends PApplet {
     Group g5 = controller.addGroup("Forces").setBackgroundColor(color(0, 64)).setBackgroundHeight(125);                       
     controller.addCheckBox("forceToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).moveTo(g5)
               .addItem("s",0).addItem("a",1).addItem("c",2).addItem("f",3).addItem("g",4).addItem("n",5).addItem("o",6);
-    controller.addSlider("separation").setPosition(30,10).setRange(0.01,4).setValue(1.5).moveTo(g5);
-    controller.addSlider("alignment").setPosition(30,20).setRange(0.01,4).setValue(1.0).moveTo(g5);
-    controller.addSlider("cohesion").setPosition(30,30).setRange(0.01,4).setValue(1.0).moveTo(g5);
-    controller.addSlider("friction").setPosition(30,40).setRange(0.01,4).moveTo(g5);
+    controller.addSlider("separation").plugTo(flock.boids,"separation").setPosition(30,10).setRange(0.01,4).setValue(1.5).moveTo(g5);
+    controller.addSlider("alignment").plugTo(flock.boids,"alignment").setPosition(30,20).setRange(0.01,4).setValue(1.0).moveTo(g5);
+    controller.addSlider("cohesion").plugTo(flock.boids,"cohesion").setPosition(30,30).setRange(0.01,4).setValue(1.0).moveTo(g5);
+    controller.addSlider("friction").plugTo(flock.boids,"friction").setPosition(30,40).setRange(0.01,4).moveTo(g5);
     controller.addSlider("gravity").setPosition(30,50).setRange(0.01,4).setValue(1.0).moveTo(g5);  
-    controller.addSlider("noise").setPosition(30,60).setRange(0.01,4).setValue(1.0).moveTo(g5);
-    controller.addSlider("origin").setPosition(30,70).setRange(0.01,4).setValue(1.0).moveTo(g5);
+    controller.addSlider("noise").plugTo(flock.boids,"noise").setPosition(30,60).setRange(0.01,4).setValue(1.0).moveTo(g5);
+    controller.addSlider("origin").plugTo(flock.boids,"origin").setPosition(30,70).setRange(0.01,4).setValue(1.0).moveTo(g5);
     controller.addKnob("gravity_Angle").setPosition(50,90).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(10).moveTo(g5);
   
     //Group 6 : Visual parameters
     Group g6 = controller.addGroup("Visual parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(140);  
-    controller.addSlider("symmetry").setPosition(10,10).setRange(1,12).setValue(1).moveTo(g6);
-    controller.addSlider("trailLength").setPosition(10,22).setRange(0,20).setValue(0).moveTo(g6); 
+    controller.addSlider("symmetry").plugTo(flock.boids,"symmetry").setPosition(10,10).setRange(1,12).setValue(1).moveTo(g6);
+    controller.addSlider("trailLength").plugTo(flock.boids,"trailLength").setPosition(10,22).setRange(0,20).setValue(0).moveTo(g6); 
     controller.addRadioButton("Visual").setPosition(10,40).setSize(15,15).setItemsPerRow(2).setSpacingColumn(85).moveTo(g6)
               .addItem("triangle", 0).addItem("line", 1).addItem("circle", 2).addItem("curve", 3).addItem("letter", 4).activate(2);
     Group part = controller.addGroup("Particules").setPosition(10,105).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
@@ -115,7 +115,7 @@ class ControlFrame extends PApplet {
     //Group 7 : Colors
     Group g7 = controller.addGroup("Colors").setBackgroundColor(color(0, 64)).setBackgroundHeight(200);  
     controller.addColorWheel("particleColor",5,10,90).setRGB(color(255)).moveTo(g7);           
-    controller.addColorWheel("backgroundColor",105,10,90).setRGB(color(0)).moveTo(g7);
+    controller.addColorWheel("backgroundColor",105,10,90).setRGB(color(0)).plugTo(parent, "backgroundColor").moveTo(g7);
     controller.addBang("Black&White").setPosition(10,120).setSize(10,10).moveTo(g7);
     controller.addSlider("contrast").setPosition(10,150).setRange(0,200).setValue(50).moveTo(g7);
     controller.addSlider("red").setPosition(10,160).setRange(0,200).setValue(0).moveTo(g7);
@@ -137,15 +137,7 @@ class ControlFrame extends PApplet {
         case(3):flock.boidType = BoidType.CURVE;break;
         case(4):flock.boidType = BoidType.LETTER;break;
       }
-      for (int i = flock.boids.size()-1; i>=0; i--){
-        Boid b = flock.boids.get(i);
-        flock.addBoid(b.position.x,b.position.y,b.velocity.x,b.velocity.y);
-        Boid newborn = flock.boids.get(flock.boids.size()-1);
-        newborn.lifespan = b.lifespan;
-        newborn.lifetime = b.lifetime;
-        newborn.mortal = b.mortal;
-        flock.boids.remove(i);
-      }
+      flock.boidTypeChange = true;
     }  
     if (theEvent.isFrom("Borders type")) {
       switch(int(theEvent.getValue())) {
@@ -216,14 +208,10 @@ class ControlFrame extends PApplet {
         controller.get(ColorWheel.class,"backgroundColor").setRGB(color(255));
       }
     }
-    
-    if(theEvent.isFrom(controller.get(ColorWheel.class,"backgroundColor"))){
-      backgroundColor = controller.get(ColorWheel.class,"backgroundColor").getRGB();
-    }
   
-  if(theEvent.isFrom("grid")) flock.createGrid();
+   if(theEvent.isFrom("grid")) flock.createGrid();
    if(theEvent.isFrom("kill")) flock.killAll();
-   if(theEvent.isFrom("N")) flock.setSize();
+   if(theEvent.isFrom("N")) flock.NChange = true;
      
     for (Boid b : flock.boids){
       if (b instanceof Particle){
@@ -235,19 +223,7 @@ class ControlFrame extends PApplet {
         if(theEvent.isFrom("N_links")) c.maxConnections = (int)controller.getController("N_links").getValue();      
         if(theEvent.isFrom("d_max")) c.d_max = (int)controller.getController("d_max").getValue();              
       }
-      if(theEvent.isFrom("maxforce"))     b.maxforce = controller.getController("maxforce").getValue();    
-      if(theEvent.isFrom("maxspeed"))     b.maxspeed = controller.getController("maxspeed").getValue();    
-      if(theEvent.isFrom("k_density"))     b.k_density = controller.getController("k_density").getValue();
-      if(theEvent.isFrom("separation"))     b.separation = controller.getController("separation").getValue();
-      if(theEvent.isFrom("alignment"))     b.alignment = controller.getController("alignment").getValue();
-      if(theEvent.isFrom("cohesion"))     b.cohesion = controller.getController("cohesion").getValue();
       if(theEvent.isFrom("gravity") || theEvent.isFrom("gravity_Angle"))     b.g = b.g();
-      if(theEvent.isFrom("friction"))     b.friction = controller.getController("friction").getValue();
-      if(theEvent.isFrom("noise"))        b.noise = controller.getController("noise").getValue(); 
-      if(theEvent.isFrom("origin"))     b.origin = controller.getController("origin").getValue();
-      if(theEvent.isFrom("symmetry")) b.symmetry = (int)controller.getController("symmetry").getValue();
-      if(theEvent.isFrom("trailLength"))     b.trailLength = (int)theEvent.getController().getValue();
-      if(theEvent.isFrom("contrast"))     b.randomBrightness = random(-controller.getController("contrast").getValue(),controller.getController("contrast").getValue());
       if(theEvent.isFrom("red"))     b.randomRed = random(0,controller.getController("red").getValue());
       if(theEvent.isFrom("green"))     b.randomGreen = random(0,controller.getController("green").getValue());
       if(theEvent.isFrom("blue"))     b.randomBlue = random(0,controller.getController("blue").getValue());
