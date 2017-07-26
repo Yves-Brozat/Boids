@@ -107,7 +107,8 @@ class ControlFrame extends PApplet {
     controller.addRadioButton("Visual").setPosition(10,52).setSize(15,15).setItemsPerRow(2).setSpacingColumn(85).moveTo(g6)
               .addItem("triangle", 0).addItem("line", 1).addItem("circle", 2).addItem("curve", 3).addItem("letter", 4).activate(2);
     Group part = controller.addGroup("Particules").setPosition(10,117).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
-    controller.addSlider("size").setPosition(0,5).setSize(50,10).setRange(0.1,100).setValue(2.0).moveTo(part); 
+    controller.addSlider("size").setPosition(0,5).setSize(50,10).setRange(0.1,10).setValue(2.0).moveTo(part); 
+    controller.addButton("isolation").setPosition(0,15).setSize(35,10).setSwitch(true).setOff().moveTo(part); 
             
     Group connex = controller.addGroup("Connections").setPosition(110,117).setBackgroundColor(color(0, 64)).setBackgroundHeight(33).setWidth(90).moveTo(g6);
     controller.addSlider("N_links").setPosition(0,5).setSize(50,10).setRange(1,30).setValue(3).moveTo(connex);
@@ -119,7 +120,7 @@ class ControlFrame extends PApplet {
     controller.addColorWheel("particleColor",5,10,90).setRGB(color(255)).moveTo(g7);           
     controller.addColorWheel("backgroundColor",105,10,90).setRGB(color(0)).plugTo(parent, "backgroundColor").moveTo(g7);
     controller.addBang("Black&White").setPosition(10,120).setSize(10,10).moveTo(g7);
-    controller.addSlider("contrast").setPosition(10,150).setRange(0,200).setValue(50).moveTo(g7);
+    controller.addSlider("contrast").setPosition(10,150).setRange(0,200).setValue(0).moveTo(g7);
     controller.addSlider("red").setPosition(10,160).setRange(0,200).setValue(0).moveTo(g7);
     controller.addSlider("green").setPosition(10,170).setRange(0,200).setValue(0).moveTo(g7);
     controller.addSlider("blue").setPosition(10,180).setRange(0,200).setValue(0).moveTo(g7);
@@ -218,7 +219,8 @@ class ControlFrame extends PApplet {
     for (Boid b : flock.boids){
       if (b instanceof Particle){
         Particle p = (Particle)b;
-        if(theEvent.isFrom("size"))     p.size = theEvent.getController().getValue();     
+        if(theEvent.isFrom("size"))     p.size = theEvent.getController().getValue();
+        if(theEvent.isFrom("isolation")) p.isolationIsActive = controller.get(Button.class, "isolation").isOn();
       }
       if (b instanceof Connection){
         Connection c = (Connection)b;

@@ -334,6 +334,7 @@ abstract class Boid {
 abstract class Particle extends Boid {
   
   float size; //static
+  boolean isolationIsActive = false;
     
   Particle(float x, float y, float vx, float vy){
     super(x,y,vx,vy);
@@ -344,25 +345,24 @@ abstract class Particle extends Boid {
   
   void draw(ArrayList<Boid> boids){
     super.draw(boids);
-    
-    ArrayList<Boid> neighboors = new ArrayList<Boid>();
-    for(int i = 0; i<boids.size(); i++)
-      neighboors.add(boids.get(i));
-    sortNeighboors(neighboors);
-    neighboors.remove(0); //Remove itself
-    float isolation = 0;
-    int count = 0;
-    while(count<10 && count<neighboors.size()){
-      isolation += PVector.dist(position,neighboors.get(count).position);
-      count++;
+    float angle = velocity.heading() + HALF_PI;
+    if (isolationIsActive){
+      ArrayList<Boid> neighboors = new ArrayList<Boid>();
+      for(int i = 0; i<boids.size(); i++)
+        neighboors.add(boids.get(i));
+      sortNeighboors(neighboors);
+      neighboors.remove(0); //Remove itself
+      float isolation = 0;
+      int count = 0;
+      while(count<10 && count<neighboors.size()){
+        isolation += PVector.dist(position,neighboors.get(count).position);
+        count++;
+      }
+      draw(position.x, position.y, size*max(map(isolation,0,1000,10,0),0), angle, alpha);
     }
-    //for(int i = 0; i< neighboors.size(); i++){
-    //  if(i<10) isolation += 0.1*PVector.dist(position,neighboors.get(i).position);
-    //}
-    draw(position.x, position.y, size*max(map(isolation,0,1000,10,0),0), velocity.heading() + HALF_PI, alpha);
-   
+    else
+      draw(position.x, position.y, size, angle, alpha);
     if(history.size() > 0){
-      float angle = velocity.heading() + HALF_PI;
       for ( int i=0; i< history.size(); i++)
         draw(history.get(i).x, history.get(i).y, size, angle, map(i,0,history.size(),0,alpha));
     }

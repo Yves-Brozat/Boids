@@ -164,44 +164,48 @@ class Obstacle extends Brush {
       for (Boid b: f.boids){
         if (b.position.dist(position) < 5*r){
           PVector n = PVector.sub(position,b.position);
-          float angle = b.velocity.heading() - n.heading();
-          b.velocity.rotate(PI-2*angle);
+          float theta = b.velocity.heading() - n.heading();
+          b.velocity.rotate(PI-2*theta);
           PVector v = n.copy();
           v.setMag(-5*r);
           b.position = PVector.add(position,v);
-          b.sumForces.add(velocity.mult(1.0));
+          b.sumForces.add(velocity);
+        }
+      }
+      break;
+      case U : 
+      for (Boid b: f.boids){
+        PVector a = new PVector(sin(angle),-cos(angle));
+        PVector n = PVector.sub(position,b.position);
+        if (b.position.dist(position) > 5*r-e && b.position.dist(position) < 5*r+e && n.x*a.x > - n.y*a.y){
+          float theta = b.velocity.heading() - n.heading();
+          b.velocity.rotate(PI-2*theta);
+          PVector v = n.copy();
+          if (b.position.dist(position) < 5*r)
+            v.setMag(-5*r+e);
+          else
+            v.setMag(-5*r-e);
+          b.position = PVector.add(position,v);
+          b.sumForces.add(velocity);
         }
       }
       break;
       case I :
       for (Boid b: f.boids){
-        if ((b.position.x - position.x)*sin(angle) < (b.position.y - position.y)*cos(angle) + e 
-         && (b.position.x - position.x)*sin(angle) > (b.position.y - position.y)*cos(angle) - e
-         && (b.position.x - position.x)*cos(angle) < -(b.position.y - position.y)*sin(angle) + 10*r
-         && (b.position.x - position.x)*cos(angle) > -(b.position.y - position.y)*sin(angle) - 10*r )
-        {
-          PVector n = new PVector(sin(angle),-cos(angle));
-          float a = b.velocity.heading() - n.heading();
-          b.velocity.rotate(PI-2*a);
-          b.sumForces.add(velocity);        
-          if ((b.position.x - position.x)*sin(angle) > (b.position.y - position.y)*cos(angle))
-            b.position.add(0.5*e*sin(angle),-0.5*e*cos(angle));
+        PVector n = new PVector(sin(angle),-cos(angle));
+        PVector d = PVector.sub(b.position,position);
+        if (d.x*n.x < -d.y*n.y + e  && d.x*n.x > -d.y*n.y - e && -d.x*n.y < -d.y*n.x + 10*r && -d.x*n.y > -d.y*n.x - 10*r )
+        {          
+          float theta = b.velocity.heading() - n.heading();
+          b.velocity.rotate(PI-2*theta);
+          b.sumForces.add(velocity);         
+          float dAngle = d.y*n.x - d.x*n.y;
+          if (d.x*n.x > - d.y*n.y)
+            b.position = new PVector(position.x - dAngle*n.y + e*n.x, position.y + dAngle*n.x + e*n.y);
           else
-            b.position.add(-0.5*e*sin(angle),0.5*e*cos(angle));
+            b.position = new PVector(position.x - dAngle*n.y - e*n.x, position.y + dAngle*n.x - e*n.y);
         }
       }    
-      break;
-      case U : 
-      for (Boid b: f.boids){
-        if (b.position.dist(position) > 5*r-e && b.position.dist(position) < 5*r+e && b.position.y >= position.y){
-          PVector n = PVector.sub(position,b.position);
-          float angle = b.velocity.heading() - n.heading();
-          b.velocity.rotate(PI-2*angle);
-          PVector v = n.copy();
-          v.setMag(-5*r+e);
-          b.position = PVector.add(position,v);
-        }
-      }
       break;
     }    
   }
