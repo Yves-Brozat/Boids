@@ -125,6 +125,12 @@ void mouseReleased(){
 
 void keyPressed(){
   if (key == ' ') isRecording = !isRecording;
+  if (key == 's') {
+    java.util.Date dNow = new java.util.Date( );
+    java.text.SimpleDateFormat ft = new java.text.SimpleDateFormat ("yyyy_MM_dd_hhmmss_S");
+    saveFrame("Screenshot/"+this.getClass().getName()+"_"+ft.format(dNow)+  ".png");
+    text("Screenshot done",0.5*width,15);
+  }
 }
 
 float distSq(PVector v1, PVector v2){

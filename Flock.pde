@@ -81,9 +81,133 @@ class Flock {
   }
   
   void applyFlock(){
-    if(flockForcesToggle[0]){ for(Boid b : boids) b.applySep(boids); }
-    if(flockForcesToggle[1]){ for(Boid b : boids) b.applyAli(boids); }
-    if(flockForcesToggle[2]){ for(Boid b : boids) b.applyCoh(boids); }
+    if(flockForcesToggle[0]) applySeparation(boids);
+    if(flockForcesToggle[1]) applyAlignment(boids); 
+    if(flockForcesToggle[2]) applyCohesion(boids);
+  }
+  
+  void applySeparation(ArrayList<Boid> boidsToSeparate){
+    PVector[] separationForces = separate(boidsToSeparate);   // Separation
+    for (int i = 0; i<boidsToSeparate.size(); i++){
+      Boid bi = boidsToSeparate.get(i);
+      PVector sep = separationForces[i];
+      sep.mult(bi.separation);
+      bi.sumForces.add(sep);      
+    }
+  }
+  
+  PVector[] separate(ArrayList<Boid> boidsToSeparate){
+    int n = boidsToSeparate.size();
+    PVector[] steer = new PVector[n];
+    int count[] = new int[n];    
+    for (int i = 0; i<n; i++)
+      steer[i] = new PVector();
+      
+    for (int i = 0; i<n; i++){
+      Boid bi = boidsToSeparate.get(i);
+        for (int j = i+1; j<n; j++) {
+        Boid bj = boids.get(j);
+        float d = distSq(bi.position, bj.position);
+        if ((d > 0) && (d < bi.sep_rSq)) {
+          PVector diff = PVector.sub(bi.position, bj.position); // Calculate vector pointing away from neighbor
+          diff.normalize();
+          diff.div(sqrt(d));        // Weight by distance
+          steer[i].add(diff);
+          steer[j].sub(diff);
+          count[i]++;            // Keep track of how many
+          count[j]++;
+        }
+      }
+      if (count[i] > 0)   steer[i].div((float)count[i]);      // Average -- divide by how many
+      if (steer[i].magSq() > 0) {    // As long as the vector is greater than 0
+        steer[i].setMag(bi.maxspeed);
+        steer[i].sub(bi.velocity);   // Implement Reynolds: Steering = Desired - Velocity
+        if (bi.paramToggle[0]) steer[i].limit(bi.maxforce);
+      } 
+    }
+    return steer;
+  }
+  
+  void applyAlignment(ArrayList<Boid> boidsToAlign){
+    PVector[] alignmentForces = align(boidsToAlign);   // Separation
+    for (int i = 0; i<boidsToAlign.size(); i++){
+      Boid bi = boidsToAlign.get(i);
+      PVector ali = alignmentForces[i];
+      ali.mult(bi.alignment);
+      bi.sumForces.add(ali);      
+    }
+  }
+  
+  PVector[] align(ArrayList<Boid> boidsToAlign) {
+    int n = boidsToAlign.size();
+    PVector[] sum = new PVector[n];
+    PVector[] steer = new PVector[n];
+    int count[] = new int[n];
+    for (int i=0; i<n; i++){
+      sum[i] = new PVector();
+      steer[i] = new PVector();
+    }
+    
+    for (int i=0; i<n; i++) {
+      Boid bi = boidsToAlign.get(i);
+      for (int j = i+1; j<n; j++) {
+        Boid bj = boidsToAlign.get(j);
+        float d = distSq(bi.position, bj.position);       
+        if ((d > 0) && (d < bi.ali_rSq)) {
+          sum[i].add(bj.velocity);
+          sum[j].add(bi.velocity);
+          count[i]++;
+          count[j]++;
+        }
+      }
+      if (count[i] > 0) {
+        sum[i].div((float)count[i]);
+        sum[i].setMag(bi.maxspeed);
+        steer[i] = PVector.sub(sum[i], bi.velocity);      // Implement Reynolds: Steering = Desired - Velocity
+        if (bi.paramToggle[0]) steer[i].limit(bi.maxforce);
+      } 
+    }   
+    return steer;
+  }
+  
+  void applyCohesion(ArrayList<Boid> boidsToCohesion){
+    PVector[] cohesionForces = cohesion(boidsToCohesion);   // Separation
+    for (int i = 0; i<boidsToCohesion.size(); i++){
+      Boid bi = boidsToCohesion.get(i);
+      PVector coh = cohesionForces[i];
+      coh.mult(bi.cohesion);
+      bi.sumForces.add(coh);      
+    }
+  }
+  
+  PVector[] cohesion(ArrayList<Boid> boidsToCohesion) {
+    int n = boidsToCohesion.size();
+    PVector sum[] = new PVector[n];  
+    PVector steer[] = new PVector[n];  
+    int count[] = new int[n];
+    for(int i= 0; i<n; i++){
+      sum[i] = new PVector();
+      steer[i] = new PVector();
+    }
+    
+    for(int i= 0; i<n; i++) {
+      Boid bi = boidsToCohesion.get(i);
+      for (int j = i+1; j<n; j++) { 
+        Boid bj = boidsToCohesion.get(j);
+        float d = distSq(bi.position, bj.position);
+        if ((d > 0) && (d < bi.coh_rSq)) {
+          sum[i].add(bj.position);
+          sum[j].add(bi.position);
+          count[i]++;
+          count[j]++;
+        }
+      }
+      if (count[i] > 0) {
+        sum[i].div(count[i]);
+        steer[i] = bi.seek(sum[i]);  // Steer towards the position
+      } 
+    }
+    return steer;
   }
   
   void update(){

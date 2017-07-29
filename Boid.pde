@@ -145,23 +145,6 @@ abstract class Boid {
     sumForces.add(mis);
   }
   
-  void applySep(ArrayList<Boid> boids) {
-    PVector sep = separate(boids);   // Separation
-    sep.mult(separation);
-    sumForces.add(sep);
-  }
-  
-  void applyAli(ArrayList<Boid> boids) {
-    PVector ali = align(boids);      // Alignment
-    ali.mult(alignment);
-    sumForces.add(ali);
-  }
-  void applyCoh(ArrayList<Boid> boids) {
-    PVector coh = cohesion(boids);   // Cohesion
-    coh.mult(cohesion);
-    sumForces.add(coh);
-  }
-  
   // Save old position in history
   void savePosition(){    
     while (history.size() > trailLength) {
@@ -221,79 +204,6 @@ abstract class Boid {
               a);
   }
 
-  // Separation
-  // Method checks for nearby boids and steers away
-  PVector separate (ArrayList<Boid> boids) {
-    PVector steer = new PVector(0, 0, 0);
-    int count = 0;
-    for (Boid other : boids) {
-      float d = distSq(position, other.position);
-      if ((d > 0) && (d < sep_rSq)) {
-        PVector diff = PVector.sub(position, other.position); // Calculate vector pointing away from neighbor
-        diff.normalize();
-        diff.div(sqrt(d));        // Weight by distance
-        steer.add(diff);
-        count++;            // Keep track of how many
-      }
-    }
-    // Average -- divide by how many
-    if (count > 0) {
-      steer.div((float)count);
-    }
-
-    // As long as the vector is greater than 0
-    if (steer.magSq() > 0) {
-      steer.setMag(maxspeed);
-      steer.sub(velocity);   // Implement Reynolds: Steering = Desired - Velocity
-      if (paramToggle[0]) steer.limit(maxforce);
-    }
-    return steer;
-  }
-
-  // Alignment
-  // For every nearby boid in the system, calculate the average velocity
-  PVector align (ArrayList<Boid> boids) {
-    PVector sum = new PVector(0, 0);
-    int count = 0;
-    for (Boid other : boids) {
-      float d = distSq(position, other.position);
-      if ((d > 0) && (d < ali_rSq)) {
-        sum.add(other.velocity);
-        count++;
-      }
-    }
-    if (count > 0) {
-      sum.div((float)count);
-      sum.setMag(maxspeed);
-      PVector steer = PVector.sub(sum, velocity);      // Implement Reynolds: Steering = Desired - Velocity
-      if (paramToggle[0]) steer.limit(maxforce);
-      return steer;
-    } 
-    else {
-      return new PVector(0, 0);
-    }
-  }
-
-  // Cohesion
-  // For the average position (i.e. center) of all nearby boids, calculate steering vector towards that position
-  PVector cohesion (ArrayList<Boid> boids) {
-    PVector sum = new PVector(0, 0);   // Start with empty vector to accumulate all positions
-    int count = 0;
-    for (Boid other : boids) {
-      float d = distSq(position, other.position);
-      if ((d > 0) && (d < coh_rSq)) {
-        sum.add(other.position); // Add position
-        count++;
-      }
-    }
-    if (count > 0) {
-      sum.div(count);
-      return seek(sum);  // Steer towards the position
-    } 
-    else {
-      return new PVector(0, 0);
-    }
-  }
   
   void sortNeighboors(ArrayList<Boid> boids){  
     java.util.Collections.sort(boids,  new java.util.Comparator<Boid>() {
@@ -433,10 +343,11 @@ abstract class Connection extends Boid{
       for (int i = 0; i<maxConnections; i++){
         float d = distSq(position,neighboors.get(i).position);
         if ((d > 0) && (d < d_maxSq)){
-          draw(position,neighboors.get(i).position,alpha);
+          float a = map(d,0,d_maxSq, alpha, 0); 
+          draw(position,neighboors.get(i).position,a);
           if (neighboors.get(i).history.size() >= history.size()){
             for ( int j=0; j<history.size(); j++)  
-              draw(history.get(j), neighboors.get(i).history.get(j), alpha/history.size()*(j+1));
+              draw(history.get(j), neighboors.get(i).history.get(j), a/history.size()*(j+1));
           }
         }
       }
