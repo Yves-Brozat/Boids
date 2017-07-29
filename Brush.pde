@@ -5,7 +5,7 @@ abstract class Brush{
   boolean isSelected;
   boolean isVisible;
   Flock f;
-  float r;
+  float r, rSq;
   
   Brush(float x, float y, Flock flock){
     f = flock;
@@ -15,6 +15,7 @@ abstract class Brush{
     isSelected = false;
     isVisible = true;
     r=20;
+    rSq = r*r;
   }
   
   void run(){
@@ -41,7 +42,7 @@ abstract class Brush{
     if (isActivated)
     {
       PVector mouse = new PVector(mouseX,mouseY);
-      isSelected = (mouse.dist(position) <= r) ? true : false;      
+      isSelected = (distSq(mouse, position) <= rSq) ? true : false;      
     }
   }
   void mouseReleased(){
@@ -85,7 +86,7 @@ class Source extends Brush {
         float z = random(-10*r,10*r);
         pos.set(position.x + z*cos(angle),position.y + z*sin(angle));  break;
       }
-      if(randomVel) f.addBoid(pos.x, pos.y, random(-5,5), random(-5,5));
+      if(randomVel) f.addBoid(pos.x, pos.y, random(-3,3), random(-3,3));
       else  f.addBoid(pos.x,pos.y,vel.x,vel.y);
       f.bornList.get(f.bornList.size()-1).lifespan = lifespan;
     }
@@ -162,7 +163,7 @@ class Obstacle extends Brush {
     switch(type){
       case O :
       for (Boid b: f.boids){
-        if (b.position.dist(position) < 5*r){
+        if (distSq(b.position,position) < 25*rSq){
           PVector n = PVector.sub(position,b.position);
           float theta = b.velocity.heading() - n.heading();
           b.velocity.rotate(PI-2*theta);
@@ -177,11 +178,11 @@ class Obstacle extends Brush {
       for (Boid b: f.boids){
         PVector a = new PVector(sin(angle),-cos(angle));
         PVector n = PVector.sub(position,b.position);
-        if (b.position.dist(position) > 5*r-e && b.position.dist(position) < 5*r+e && n.x*a.x > - n.y*a.y){
+        if (n.magSq() > (5*r-e)*(5*r-e) && n.magSq() < (5*r+e)*(5*r+e) && n.x*a.x > - n.y*a.y){
           float theta = b.velocity.heading() - n.heading();
           b.velocity.rotate(PI-2*theta);
           PVector v = n.copy();
-          if (b.position.dist(position) < 5*r)
+          if (n.magSq() < 25*rSq)
             v.setMag(-5*r+e);
           else
             v.setMag(-5*r-e);

@@ -20,10 +20,12 @@ abstract class Boid {
   float symmetry;  //static
   
   //Forces parameters
-  boolean[] forcesToggle;
   float separation;
   float alignment;
   float cohesion;
+  float sep_r, sep_rSq;
+  float ali_r, ali_rSq;
+  float coh_r, coh_rSq;
   float friction;
   float origin;
   PVector g;
@@ -62,12 +64,15 @@ abstract class Boid {
     trailLength = controller.getController("trailLength").getValue();    
     symmetry = controller.getController("symmetry").getValue();
     
-    forcesToggle = new boolean[controller.get(CheckBox.class,"forceToggle").getArrayValue().length];
-    for (int i = 0; i < forcesToggle.length; i++) 
-      forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
     separation = controller.getController("separation").getValue();
     alignment = controller.getController("alignment").getValue();
     cohesion = controller.getController("cohesion").getValue();
+    sep_r = controller.getController("sep_r").getValue();
+    sep_rSq = sep_r*sep_r;
+    ali_r = controller.getController("ali_r").getValue();
+    ali_rSq = ali_r*ali_r;
+    coh_r = controller.getController("coh_r").getValue();
+    coh_rSq = coh_r*coh_r;
     friction = controller.getController("friction").getValue();
     origin = controller.getController("origin").getValue();
     g = g();
@@ -82,26 +87,11 @@ abstract class Boid {
     lifetime = 0;
     lifespan = 100;
     
-    xoff = int(random(0,10));
-    yoff = (random(0,10));
+    xoff = random(0,10);
+    yoff = random(0,10);
     noise = controller.getController("noise").getValue();
   }
-
-  void run(ArrayList<Boid> boids) {
-    savePosition();
-    applyForces(boids);
-    update();
-    render(boids);
-  }
-  
-  void applyForces(ArrayList<Boid> boids){
-    applyFlock(boids);
-    if(forcesToggle[3]) applyFriction();
-    if(forcesToggle[4]) applyGravity();
-    if(forcesToggle[5]) applyNoise();
-    if(forcesToggle[6]) applyOrigin();
-  }
-  
+    
   boolean isDead(){
     if (mortal) return (lifetime > lifespan) ? true : false;
     else return false;
@@ -129,65 +119,61 @@ abstract class Boid {
   
   PVector g(){
     float angle = radians(controller.getController("gravity_Angle").getValue()+90);
-    float r = controller.getController("gravity").getValue();
-    PVector gravity = new PVector(r*cos(angle),r*sin(angle));
+    float mag = controller.getController("gravity").getValue();
+    PVector gravity = new PVector(mag*cos(angle),mag*sin(angle));
     return gravity;
   }
   
   void applyFriction(){
-     PVector fri = new PVector(velocity.x,velocity.y);
+     PVector fri = velocity.copy();
      fri.normalize();
-     float f = -0.1*velocity.mag()*r*r;
-     fri.mult(f);
-     fri.mult(friction);
+     fri.mult(-0.01*velocity.magSq()*r*r*friction);
      sumForces.add(fri);   
   }
   
   void applyRepulsion(PVector v, float k){
-    PVector rep = PVector.sub(position,v);
+    PVector rep = PVector.sub(position,v).mult(k);
     float d = rep.magSq();
-    rep.setMag(100*density*r*r/d);
-    rep.mult(k);
+    rep.setMag(density*r*r/d);
     sumForces.add(rep);
   }
   
   void applyAttraction(PVector v, float k){
-    PVector mis = PVector.sub(v,position);
-    float d = mis.mag();
-    mis.setMag(100*density*r*r/d);
-    mis.mult(k);
+    PVector mis = PVector.sub(v,position).mult(k);
+    float d = mis.magSq();
+    mis.setMag(density*r*r/d);
     sumForces.add(mis);
   }
   
-  void applyFlock(ArrayList<Boid> boids) {
+  void applySep(ArrayList<Boid> boids) {
     PVector sep = separate(boids);   // Separation
-    PVector ali = align(boids);      // Alignment
-    PVector coh = cohesion(boids);   // Cohesion
-
-    // Arbitrarily weight these forces
     sep.mult(separation);
+    sumForces.add(sep);
+  }
+  
+  void applyAli(ArrayList<Boid> boids) {
+    PVector ali = align(boids);      // Alignment
     ali.mult(alignment);
+    sumForces.add(ali);
+  }
+  void applyCoh(ArrayList<Boid> boids) {
+    PVector coh = cohesion(boids);   // Cohesion
     coh.mult(cohesion);
-    // Add the force vectors to acceleration
-    if(forcesToggle[0])  sumForces.add(sep);
-    if(forcesToggle[1])  sumForces.add(ali);
-    if(forcesToggle[2])  sumForces.add(coh);
+    sumForces.add(coh);
   }
   
   // Save old position in history
-  void savePosition(){
-    
+  void savePosition(){    
     while (history.size() > trailLength) {
       history.remove(0);
     }
-    history.add(new PVector(position.x,position.y));
-    
+    history.add(new PVector(position.x,position.y));    
   }
   
   // Method to update position
   void update() {
-    float masse = density * r * r * k_density;  //density : initial density of the particular boid. k_density : coefficient on slider "density" to change weight of all boids
-    acceleration = PVector.mult(sumForces,1/masse);  // Newton's 2nd law  
+    //float masse = density * r * r * k_density;  //density : initial density of the particular boid. k_density : coefficient on slider "density" to change weight of all boids
+    acceleration = PVector.mult(sumForces,1);  // Newton's 2nd law  
     velocity.add(acceleration);
     if (paramToggle[1]) velocity.limit(maxspeed);  // Limit speed
     position.add(velocity); 
@@ -238,15 +224,14 @@ abstract class Boid {
   // Separation
   // Method checks for nearby boids and steers away
   PVector separate (ArrayList<Boid> boids) {
-    float desiredseparation = 25;
     PVector steer = new PVector(0, 0, 0);
     int count = 0;
     for (Boid other : boids) {
-      float d = PVector.dist(position, other.position);
-      if ((d > 0) && (d < desiredseparation)) {
+      float d = distSq(position, other.position);
+      if ((d > 0) && (d < sep_rSq)) {
         PVector diff = PVector.sub(position, other.position); // Calculate vector pointing away from neighbor
         diff.normalize();
-        diff.div(d);        // Weight by distance
+        diff.div(sqrt(d));        // Weight by distance
         steer.add(diff);
         count++;            // Keep track of how many
       }
@@ -257,7 +242,7 @@ abstract class Boid {
     }
 
     // As long as the vector is greater than 0
-    if (steer.mag() > 0) {
+    if (steer.magSq() > 0) {
       steer.setMag(maxspeed);
       steer.sub(velocity);   // Implement Reynolds: Steering = Desired - Velocity
       if (paramToggle[0]) steer.limit(maxforce);
@@ -268,12 +253,11 @@ abstract class Boid {
   // Alignment
   // For every nearby boid in the system, calculate the average velocity
   PVector align (ArrayList<Boid> boids) {
-    float neighbordist = 50;
     PVector sum = new PVector(0, 0);
     int count = 0;
     for (Boid other : boids) {
-      float d = PVector.dist(position, other.position);
-      if ((d > 0) && (d < neighbordist)) {
+      float d = distSq(position, other.position);
+      if ((d > 0) && (d < ali_rSq)) {
         sum.add(other.velocity);
         count++;
       }
@@ -293,12 +277,11 @@ abstract class Boid {
   // Cohesion
   // For the average position (i.e. center) of all nearby boids, calculate steering vector towards that position
   PVector cohesion (ArrayList<Boid> boids) {
-    float neighbordist = 50;
     PVector sum = new PVector(0, 0);   // Start with empty vector to accumulate all positions
     int count = 0;
     for (Boid other : boids) {
-      float d = PVector.dist(position, other.position);
-      if ((d > 0) && (d < neighbordist)) {
+      float d = distSq(position, other.position);
+      if ((d > 0) && (d < coh_rSq)) {
         sum.add(other.position); // Add position
         count++;
       }
@@ -312,17 +295,14 @@ abstract class Boid {
     }
   }
   
-  void sortNeighboors(ArrayList<Boid> boids){
-    
+  void sortNeighboors(ArrayList<Boid> boids){  
     java.util.Collections.sort(boids,  new java.util.Comparator<Boid>() {
-        public int compare(Boid b1, Boid b2)
-        {
-          Float f1 = new Float(PVector.dist(b1.position,position));
-          Float f2 = new Float(PVector.dist(b2.position,position));
-          
-          return f1.compareTo(f2);
-         
-        }
+      public int compare(Boid b1, Boid b2)
+      {
+        Float f1 = new Float(distSq(b1.position,position));
+        Float f2 = new Float(distSq(b2.position,position));          
+        return f1.compareTo(f2);         
+      }
     });
   }
 }
@@ -334,11 +314,12 @@ abstract class Boid {
 abstract class Particle extends Boid {
   
   float size; //static
-  boolean isolationIsActive = false;
+  boolean isolationIsActive;
     
   Particle(float x, float y, float vx, float vy){
     super(x,y,vx,vy);
-    size = controller.getController("size").getValue();    
+    size = controller.getController("size").getValue();   
+    isolationIsActive = controller.get(Button.class, "isolation").isOn();
   }
   
   abstract void draw(float x, float y, float r, float theta, float alpha);
@@ -355,13 +336,14 @@ abstract class Particle extends Boid {
       float isolation = 0;
       int count = 0;
       while(count<10 && count<neighboors.size()){
-        isolation += PVector.dist(position,neighboors.get(count).position);
+        isolation += distSq(position,neighboors.get(count).position);
         count++;
       }
-      draw(position.x, position.y, size*max(map(isolation,0,1000,10,0),0), angle, alpha);
+      r = max(map(isolation,0,100000,4,0.25),1/size);
     }
     else
-      draw(position.x, position.y, size, angle, alpha);
+      r = 1;
+    draw(position.x, position.y, r*size, angle, alpha);
     if(history.size() > 0){
       for ( int i=0; i< history.size(); i++)
         draw(history.get(i).x, history.get(i).y, size, angle, map(i,0,history.size(),0,alpha));
@@ -404,7 +386,7 @@ class LetterBoid extends Particle {
     rotate(theta);
     fill(c,alpha);
     noStroke();
-    textSize(this.r*2*r+1);
+    textSize(2*r);
     text(letter,0,0);
     popMatrix();
   }
@@ -420,19 +402,20 @@ class CircleBoid extends Particle {
     pushMatrix();
     fill(c,alpha);
     noStroke();
-    ellipse(x, y,this.r*2*r,this.r*2*r);
+    ellipse(x, y, 2*r, 2*r);
     popMatrix();
   } 
 }
 
 abstract class Connection extends Boid{
   
-  float d_max;
+  float d_max, d_maxSq;
   int maxConnections;
   
   Connection(float x, float y, float vx, float vy){
     super(x,y,vx,vy);
     d_max = controller.getController("d_max").getValue();
+    d_maxSq = d_max*d_max;
     maxConnections = (int)controller.getController("N_links").getValue();
   }
   
@@ -448,13 +431,13 @@ abstract class Connection extends Boid{
     neighboors.remove(0); //Remove itself
     if(neighboors.size()>maxConnections){
       for (int i = 0; i<maxConnections; i++){
-        float d = PVector.dist(position,neighboors.get(i).position);
-        if ((d > 0) && (d < 20*d_max)){
+        float d = distSq(position,neighboors.get(i).position);
+        if ((d > 0) && (d < d_maxSq)){
           draw(position,neighboors.get(i).position,alpha);
-        //if (other.history.size() >= history.size()){
-        //  for ( int i=0; i<history.size(); i++)  
-        //    draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),alpha/history.size()*(i+1));
-        //}
+          if (neighboors.get(i).history.size() >= history.size()){
+            for ( int j=0; j<history.size(); j++)  
+              draw(history.get(j), neighboors.get(i).history.get(j), alpha/history.size()*(j+1));
+          }
         }
       }
     }
@@ -488,9 +471,8 @@ class CurveBoid extends Connection {
       curveVertex(history.get(i).x,history.get(i).y);
       for (Boid other : boids){
         if (other.history.size() >= history.size()){    
-          //draw(history.get(i), other.history.get(i), PVector.dist(history.get(i), other.history.get(i)),alpha/history.size()*(i+1));
-          float scope = PVector.dist(history.get(i), other.history.get(i)); 
-          if ((scope > 0) && (scope < 20*d_max)) {
+          float scope = distSq(history.get(i), other.history.get(i)); 
+          if ((scope > 0) && (scope < d_maxSq)) {
             //count++;            // Keep track of how many            
             stroke(c,a);
             noFill();
@@ -505,20 +487,4 @@ class CurveBoid extends Connection {
     
   void draw(PVector origin, PVector neighboor, float alpha){ 
   } 
-}
-
-
-    /*//EFFET BULLES DE SAVON
-    r = int(map(missionPoint.dist(position),1,height/2,alpha,1));
-    r = constrain(r,1,alpha);
-    stroke(alpha-r);
-    strokeWeight(r);
-    point(0,0);
-    */
-    /*//NUAGEUX, VENT
-    r = int(map(missionPoint.dist(position),1,height/2,alpha,50));
-    r = constrain(r,50,alpha);
-    stroke(alpha-r,10);
-    strokeWeight(r);
-    point(0,0);
-    */ 
+} 

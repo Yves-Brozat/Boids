@@ -4,8 +4,6 @@ YVES BROZAT - BOIDS : MODELE PHYSIQUE DE SYSTEME PARTICULAIRE
 IDEES : 
 - Creer des bangs (WALL puis NO_BORDER, MASSE = 0 puis normal, FORCE = 0, SPEED = 0, ...) pour une interaction ponctuelle (type break) ou répétitive (type beat)
 - Creer des decoupes ronde, triangle et carre pour remplacer les borders de la fenetre et contenir les éléments
-- Sablier
-- Ajouter slider pour régler la taille des zones de forces de groupe
 - Création de chemins à suivre (droite, courbe, cercle)
 - Ressorts entre particules pour creer des tissus
 - Ajout slider visuel particule : influence de la proximité sur la taille des particules
@@ -13,13 +11,16 @@ IDEES :
 - Creer des constantes pour les valeurs initiales (toutes celles dans les sliders)
 
 EN COURS :
-- Plug les controller<>variables
-- Garder en mémoire la position d'origine pour pouvoir y retourner
-- Separer le GUI sur une autre fenetre
+
+- Sablier
 - Creer des forces environnementales, sur tout l'écran ou par zone : type vent, gravité, tourbillon (coriolis ?), poussée d'Archimede, milieux visqueux 
 - Utiliser la donnée du nombre de voisins proches (pour un changement visuel, une fusion ou une fission)
 
 FAIT :
+- Ajouter slider pour régler la taille des zones de forces de groupe
+- Garder en mémoire la position d'origine pour pouvoir y retourner
+- Separer le GUI sur une autre fenetre
+- Plug les controller<>variables : abandonné car fonctionne a la creation du boid mais pas de maj quand il est deja cree
 - Eviter les erreurs de modifications simultanées du tableau "flock.boids"
 - Réflexion sur la couleur : aléatoire, changement de teinte via 2 sliders sur l'ensemble des couleurs
 - Creer des autres objets (des brosses ?) type Attractor, Repulsor, Source, Blackhole pour interaction de tracking
@@ -75,20 +76,26 @@ color backgroundColor;
 
 boolean isRecording = false;
 Flock flock;
+//PImage sablier;
+
 
 void settings(){
   size(1366 - controllerSize,703,P3D);
+  //sablier = loadImage("Sablier.png");
+  cf = new ControlFrame(this, controllerSize, 703, "Controls");
+
 }
 
 void setup(){ 
   flock = new Flock(); 
-  cf = new ControlFrame(this, controllerSize, 703, "Controls");
   surface.setLocation(controllerSize,0);
   osc = new OscP5(this,12000);
+  //sablier.resize(400,703);
 }
 
 void draw(){
   background(backgroundColor);
+  //image(sablier,300,0);
   flock.run();
   
   strokeWeight(1);
@@ -99,6 +106,9 @@ void draw(){
   }
   else  noFill();
   ellipse(width-15,15,10,10);
+  textAlign(RIGHT);
+  fill(255);
+  text(frameRate,width-30,15);
 }
 
 void mouseDragged(){
@@ -117,6 +127,9 @@ void keyPressed(){
   if (key == ' ') isRecording = !isRecording;
 }
 
+float distSq(PVector v1, PVector v2){
+  return (v1.x-v2.x)*(v1.x-v2.x) + (v1.y-v2.y)*(v1.y-v2.y);
+}
 
 //OSC
 void oscEvent(OscMessage theOscMessage) {

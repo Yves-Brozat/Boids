@@ -13,6 +13,9 @@ class Flock {
   boolean boidTypeChange;
   boolean NChange;
   boolean grid;
+    
+  boolean[] forcesToggle;
+  boolean[] flockForcesToggle;
 
   Flock() {
     NChange = false;
@@ -25,22 +28,44 @@ class Flock {
     magnets = new ArrayList<Magnet>();
     obstacles = new ArrayList<Obstacle>();
     
-    boidType = BoidType.LINE;
+    boidType = BoidType.CIRCLE;
     boidTypeChange = false;
     borderType = BorderType.NOBORDER;
     
     setAlphabet();
+    
+    forcesToggle = new boolean[controller.get(CheckBox.class,"forceToggle").getArrayValue().length];
+    for (int i = 0; i < forcesToggle.length; i++) 
+      forcesToggle[i] = controller.get(CheckBox.class,"forceToggle").getState(i);
+    flockForcesToggle = new boolean[controller.get(CheckBox.class,"flockForceToggle").getArrayValue().length];
+    for (int i = 0; i < flockForcesToggle.length; i++) 
+      flockForcesToggle[i] = controller.get(CheckBox.class,"flockForceToggle").getState(i);
   }
 
   void run() {
+    long t; 
+    //t = System.nanoTime();
     removeDeads();
-    for (Brush b : brushes)
-      b.run();
-    savePosition();
-    applyForces();
+    //print("removeDeads() : " + (System.nanoTime() - t) + '\t');
+    //t = System.nanoTime();
     update();
+    //print("update() : " + (System.nanoTime() - t) + '\t');
+    //t = System.nanoTime();
+    savePosition();
+    //print("savePosition() : " + (System.nanoTime() - t) + '\t');
+    t = System.nanoTime();
+    applyForces();
+    println("applyForces() : " + (System.nanoTime() - t) + '\t');
+    //t = System.nanoTime();
     render();
+    //print("render() : " + (System.nanoTime() - t) + '\t');
+    //t = System.nanoTime();
     borders();
+    //print("borders() : " + (System.nanoTime() - t) + '\t');
+    //t = System.nanoTime();
+    for (Brush b : brushes)
+      b.run();   
+    //println("brushes.run() : " + (System.nanoTime() - t + '\t'));
   }
   
   void savePosition(){
@@ -48,7 +73,17 @@ class Flock {
   }
   
   void applyForces(){
-    for(Boid b : boids) b.applyForces(boids);
+    if(forcesToggle[0]){ for(Boid b : boids) b.applyFriction(); }
+    if(forcesToggle[1]){ for(Boid b : boids) b.applyGravity(); }
+    if(forcesToggle[2]){ for(Boid b : boids) b.applyNoise(); }
+    if(forcesToggle[3]){ for(Boid b : boids) b.applyOrigin(); }
+    if(forcesToggle[4]) applyFlock(); 
+  }
+  
+  void applyFlock(){
+    if(flockForcesToggle[0]){ for(Boid b : boids) b.applySep(boids); }
+    if(flockForcesToggle[1]){ for(Boid b : boids) b.applyAli(boids); }
+    if(flockForcesToggle[2]){ for(Boid b : boids) b.applyCoh(boids); }
   }
   
   void update(){
