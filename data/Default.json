@@ -1,0 +1,37 @@
+{
+	"boidType" : 2,
+	"borderType" : 2,
+	"forceToggle" : [false,false,false,false,false],
+	"flockForceToggle" : [false,false,false],
+	"symmetry" : 0,
+	
+	"maxforce" : 0.03,
+	"maxspeed" : 5.0,
+	"parametersToggle" : [true,true],
+	"friction" : 1,
+	"gravity" : 1,
+	"noise" : 1,
+	"origin" : 1,
+	"separation" : 1.5,
+	"alignment" : 1,
+	"cohesion" : 1,
+	"sep_r" : 50,
+	"ali_r" : 100,
+	"coh_r" : 100,
+	"gravity_angle" : 0,
+	"trailLength" : 0,
+	"alpha" : 200,
+	"red" : 255,
+	"green" : 255,
+	"blue" : 255,
+	"randomBrightness" : 0,
+	"randomRed" : 0,
+	"randomGreen" : 0,
+	"randomBlue" : 0,
+	
+	"size" : 3,
+	"isolationIsActive" : false,
+	
+	"d_max" : 500,
+	"maxConnections" : 3
+}
