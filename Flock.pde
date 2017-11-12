@@ -6,6 +6,7 @@ class Flock {
   ArrayList<Boid> bornList; 
   int boidType;
   int borderType;
+  int connectionsType;
   
   ArrayList<String> alphabet;
   boolean boidTypeChange;
@@ -21,7 +22,9 @@ class Flock {
   
   float d_max, d_maxSq;
   int maxConnections;
-      
+  
+  FlowField flowfield;
+  
   Flock(int i) {
     
     index = i;
@@ -29,53 +32,26 @@ class Flock {
     grid = false;
     gridX = 0;
     gridY = 0;
-    connectionsDisplayed = true;
+    connectionsDisplayed = false;
     boidTypeChange = false;
     boids = new ArrayList<Boid>(); // Initialize the ArrayList
     deathList = new ArrayList<Boid>(); 
     bornList = new ArrayList<Boid>();
-    sources = new ArrayList<Source>();
     
     setAlphabet();
+    flowfield = new FlowField(20);
     
     loadPreset(preset.get(0),cf.controllerFlock[index]);
     d_maxSq = d_max*d_max;
-
   }
   
-  //void init(){
-  //  forcesToggle = new boolean[cf.controllerFlock[index].get(CheckBox.class,"forceToggle").getArrayValue().length];
-  //  for (int j = 0; j < forcesToggle.length; j++) 
-  //    forcesToggle[j] = cf.controllerFlock[index].get(CheckBox.class,"forceToggle").getState(j);
-  //  flockForcesToggle = new boolean[cf.controllerFlock[index].get(CheckBox.class,"flockForceToggle").getArrayValue().length];
-  //  for (int j = 0; j < flockForcesToggle.length; j++) 
-  //    flockForcesToggle[j] = cf.controllerFlock[index].get(CheckBox.class,"flockForceToggle").getState(j);        
-  //  symmetry = cf.controllerFlock[index].getController("symmetry").getValue();
-    
-  //  d_max = cf.controllerFlock[index].getController("d_max").getValue();
-  //  maxConnections = (int)cf.controllerFlock[index].getController("N_links").getValue();
-  //}
-  
   void run() {
-    //long t; 
-    //t = System.nanoTime();
     removeDeads();
-    //print("removeDeads() : " + (System.nanoTime() - t) + '\t');
-    //t = System.nanoTime();
     update();
-    //print("update() : " + (System.nanoTime() - t) + '\t');
-    //t = System.nanoTime();
     savePosition();
-    //print("savePosition() : " + (System.nanoTime() - t) + '\t');
-    //t = System.nanoTime();
     applyForces();
-    //println("applyForces() : " + (System.nanoTime() - t) + '\t');
-    //t = System.nanoTime();
     render();
-    //print("render() : " + (System.nanoTime() - t) + '\t');
-    //t = System.nanoTime();
     borders();
-    //print("borders() : " + (System.nanoTime() - t) + '\t');
   }
   
   void savePosition(){
@@ -88,6 +64,7 @@ class Flock {
     if(forcesToggle[2]){ for(Boid b : boids) b.applyNoise(); }
     if(forcesToggle[3]){ for(Boid b : boids) b.applyOrigin(); }
     if(forcesToggle[4]) applyFlock(); 
+    if(flowfield.isActivated) { for(Boid b : boids) b.follow(flowfield); }
   }
   
   void applyFlock(){
@@ -97,7 +74,7 @@ class Flock {
   }
   
   void applySeparation(ArrayList<Boid> boidsToSeparate){
-    PVector[] separationForces = separate(boidsToSeparate);   // Separation
+    PVector[] separationForces = separate(boidsToSeparate); 
     for (int i = 0; i<boidsToSeparate.size(); i++){
       Boid bi = boidsToSeparate.get(i);
       PVector sep = separationForces[i];
@@ -224,7 +201,24 @@ class Flock {
     for (Boid b : boids) b.update();
   }
   
-  void reflect(Boid b, float n){
+  void reflectParticles(ArrayList<Boid> boids, float n){
+    for(Boid b : boids){
+      if ((int)n > 1){  
+        PVector center = new PVector(0.5*width,0.5*height);
+        float section = TWO_PI/(int)n; 
+        for (int i=0; i<n-1; i++){ 
+          pushMatrix();
+          translate(center.x,center.y);     
+          rotate(section*(i+1));
+          translate(-center.x,-center.y);
+          b.draw(boids);
+          popMatrix();
+        }
+      }
+    }
+  }
+  
+  void reflectConnections(ArrayList<Boid> boids, float n){
     if ((int)n > 1){  
       PVector center = new PVector(0.5*width,0.5*height);
       float section = TWO_PI/(int)n; 
@@ -233,20 +227,31 @@ class Flock {
         translate(center.x,center.y);     
         rotate(section*(i+1));
         translate(-center.x,-center.y);
-        b.draw(boids);
+        drawConnections(boids);
         popMatrix();
       }
     }
-  }
- 
+  } 
   void drawParticles(){
+    reflectParticles(boids, symmetry);
     for(Boid b : boids){
-      reflect(b, symmetry);
       b.draw(boids);
     }
   }
   
-  void drawConnections(ArrayList<Boid> boidsToConnect){
+  void drawQueue(ArrayList<Boid> boidsToConnect){
+    noFill();
+    strokeWeight(1);
+    beginShape();
+    for (int i=0; i<boidsToConnect.size(); i++) {
+      Boid bi = boidsToConnect.get(i);
+      stroke(bi.c, bi.alpha);
+      curveVertex(bi.position.x, bi.position.y);
+    }
+    endShape();
+  }
+  
+  void drawMesh(ArrayList<Boid> boidsToConnect){
     int n = boidsToConnect.size();
     ArrayList<Boid> boidsNear[] = new ArrayList[n];
     ArrayList<Float> distTo[] = new ArrayList[n];
@@ -293,6 +298,14 @@ class Flock {
     }     
   }
   
+  void drawConnections(ArrayList<Boid> boidsToConnect){
+    switch(connectionsType){
+      case MESH : drawMesh(boidsToConnect); break;
+      case QUEUE : drawQueue(boidsToConnect); break;
+    }
+    
+  }
+  
   void render(){
     if (boidType == PIXEL){
       loadPixels();
@@ -302,8 +315,10 @@ class Flock {
     else
       drawParticles();
     
-    if (connectionsDisplayed)
+    if (connectionsDisplayed){
+      reflectConnections(boids, symmetry);
       drawConnections(boids);
+    }
   }
   
   void removeDeads(){
@@ -349,31 +364,31 @@ class Flock {
     {
       case WALLS :
       for(Boid b : boids){
-        if (b.position.x < -b.r) {
+        if (b.position.x < -b.r*b.size) {
           b.velocity.x *= -1;
-          b.position.x = -b.r;
+          b.position.x = -b.r*b.size;
         }
-        if (b.position.x > width+b.r) {
+        if (b.position.x > width+b.r*b.size) {
           b.velocity.x *= -1;
-          b.position.x = width+b.r;
+          b.position.x = width+b.r*b.size;
         }
-        if (b.position.y < -b.r) {
+        if (b.position.y < -b.r*b.size) {
           b.velocity.y *= -1;
-          b.position.y = -b.r;
+          b.position.y = -b.r*b.size;
         }
-        if (b.position.y > height+b.r) {
+        if (b.position.y > height+b.r*b.size) {
           b.velocity.y *= -1;
-          b.position.y = height+b.r;
+          b.position.y = height+b.r*b.size;
         }
       }
       break;
     
       case LOOPS : 
       for(Boid b : boids){
-        if (b.position.x < -b.r) b.position.x = width+b.r;
-        if (b.position.y < -b.r) b.position.y = height+b.r;
-        if (b.position.x > width+b.r) b.position.x = b.r;
-        if (b.position.y > height+b.r) b.position.y = -b.r;
+        if (b.position.x < -b.r*b.size) b.position.x = width+b.r*b.size;
+        if (b.position.y < -b.r*b.size) b.position.y = height+b.r*b.size;
+        if (b.position.x > width+b.r*b.size) b.position.x = b.r*b.size;
+        if (b.position.y > height+b.r*b.size) b.position.y = -b.r*b.size;
       }
       break;
       
@@ -391,9 +406,10 @@ class Flock {
       l.letter = alphabet.get(int(random(alphabet.size()-1)));
       break;
       case CIRCLE : bornList.add(new CircleBoid(x, y, vx, vy, index)); break;
-   //   case LINE : bornList.add(new LineBoid(x, y, vx, vy, index)); break;
-   //   case CURVE : bornList.add(new CurveBoid(x, y, vx, vy, index)); break;
       case PIXEL : bornList.add(new PixelBoid(x, y, vx, vy, index)); break;
+      case LEAF : bornList.add(new AnimationBoid(x, y, vx, vy, index, texture_Leaf)); break;
+      case BIRD : bornList.add(new AnimationBoid(x, y, vx, vy, index, texture_Bird)); break;
+      default : bornList.add(new ImageBoid(x, y, vx, vy, index, texture[boidType])); break;
     }
   }
   
@@ -471,11 +487,14 @@ class Flock {
   void updateParameters(JSONObject preset){
     boidType = preset.getInt("boidType");
     borderType = preset.getInt("borderType");
+    connectionsType = preset.getInt("connectionsType");
     forcesToggle = preset.getJSONArray("forceToggle").getBooleanArray();
     flockForcesToggle = preset.getJSONArray("flockForceToggle").getBooleanArray();
     symmetry = preset.getInt("symmetry");
     d_max = preset.getFloat("d_max");
     maxConnections = preset.getInt("maxConnections");
+    connectionsDisplayed = preset.getBoolean("connectionsDisplayed");
+    flowfield.strength = preset.getFloat("ff_strength");
   }
   
   void loadPreset(JSONObject preset, ControlP5 c){

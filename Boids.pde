@@ -17,6 +17,7 @@ IDEES :
        - Menu déroulant : type (obstacle, magnet, source, spring, gravity, black hole, noise, speed, slow, friction, go back, ...)
        - Group : hidden sauf quand le type est choisi. -> Paramètres propres au type.
 - Utiliser thread("nameOfTheFunctionToExecuteOnTheSeparatedThread") pour gérer tout ce qui n'est pas de la visualisation
+- Utiliser des PGraphic pour chaque flock -> facilite les empilements, les symmétries et transformations
 
 EN COURS :
 
@@ -40,51 +41,55 @@ FAIT :
 - Chaque source produit des particules qui ont une esperance de vie propre a la source
 - Reorganiser l'accordeon : Extraire "Visuel particule", "Visuel Connection", "Source", 
 
-CONFIG : (123 boids)
-
-maxforce = 0.03;
-maxspeed = 10.0;
-no border
-Source 0 : O, size = 10.0, outflow = 2, strength = 0, lifespan = 50
-Source 1 : O, size = 50.0, outflow 1, strength = 1, lifespan 20
-Magnet 0 : -, strength = 0.5
-Obstacle 0 : O, size = 3
-noise = 4
-summetry = 2
-trailength = 20
-color = light green
-contrast = 187
-red = 119
-green = 16
-blue = 62
-
-A FAIRE : 
-
-r*sin(t/T + phi*i) se transforme en r+r/2*sin(t/T+phi*i)
-r/8*(2*i+1)+r/8*sin(t/t+phi*i)
-tester avec petits ronds immobiles
-
-
 */
 
+import themidibus.*;
 import controlP5.*;
 import netP5.*;
 import oscP5.*;
 import java.util.Collections.*;
 
-final int TRIANGLE = 0;
-final int LINE = 1;
-final int CIRCLE = 2;
-final int CURVE = 3;
-final int LETTER = 4;
-final int PIXEL = 5;
+//boidType : Natural static shapes of particles
+final int RADIAL_GRADIANT_1 = 0;
+final int RADIAL_GRADIANT_2 = 1;
+final int RADIAL_GRADIANT_3 = 2;
+final int RADIAL_GRADIANT_4 = 3;
+final int SPRAY = 4;
+final int POLISHED = 5;
+final int PEARL = 6;
+final int GLASS = 7;
+final int WAVE = 8;
+final int HAIR = 9;
+final int CIRCLE = 10;
+final int TRIANGLE = 11;
+final int LETTER = 12;
+final int PIXEL = 13;
+final int LEAF = 14;
+final int BIRD = 15;
 
+//borderType : Boarders' states
 final int WALLS = 0;
 final int LOOPS = 1;
 final int NOBORDER = 2;
 
-enum SourceType {O,I;}
-enum ObstacleType {O,I,U;}
+//boidMove : Natural cinetic states of particles affecting their size
+final int CONSTANT = 0;
+final int CLOUDY = 1;
+final int SHINY = 2;
+final int NOISY = 3;
+
+//connectionsType : Natural static shapes of connections
+final int MESH = 0;
+final int QUEUE = 1;
+
+//Flowfield type
+final int NOISE = 0;
+final int IMAGE = 1;
+
+//Brush type
+final int POINT = 0;
+final int LINE = 1;
+final int BOWL = 2;
 
 OscP5 osc;
 ControlFrame cf;
@@ -93,6 +98,7 @@ ControlP5 cp5;
 int cp5TabToSave = 0;
 ArrayList<JSONObject> preset;
 color backgroundColor;
+MidiBus bus;
 
 boolean isRecording = false;
 Flock[] flocks;
@@ -100,17 +106,58 @@ ArrayList<Brush> brushes;
 ArrayList<Magnet> magnets;
 ArrayList<Obstacle> obstacles;
 ArrayList<Source> sources;
-//PImage sablier;
+int blendMode;
+
+
+//Data
+PImage[] texture;
+PImage[] texture_Leaf;
+List_directory texture_Leaf_list;
+PImage[] texture_Bird;
+List_directory texture_Bird_list;
+PImage flowfield_Face;
+PImage flowfield_Scene;
+PImage flowfield_Sil;
+
+PFont pfont;
+
 
 
 void settings(){
-  //sablier = loadImage("Sablier.png"); 
+  //Data loading
+  texture = new PImage[10];
+  texture[RADIAL_GRADIANT_1] = loadImage("texture_RadialGradiant1.png"); 
+  texture[RADIAL_GRADIANT_2] = loadImage("texture_RadialGradiant2.png"); 
+  texture[RADIAL_GRADIANT_3] = loadImage("texture_RadialGradiant3.png"); 
+  texture[RADIAL_GRADIANT_4] = loadImage("texture_RadialGradiant4.png"); 
+  texture[POLISHED] = loadImage("texture_Polished.png"); 
+  texture[PEARL] = loadImage("texture_Pearl.png"); 
+  texture[HAIR] = loadImage("texture_Hair.png"); 
+  texture[GLASS] = loadImage("texture_Glass.png"); 
+  texture[WAVE] = loadImage("texture_Wave.png"); 
+  texture[SPRAY] = loadImage("texture_Spray.png"); 
+  texture_Leaf_list = new List_directory("/texture_Leaf" ,"png");
+  texture_Leaf = new PImage[texture_Leaf_list.nb_items];
+  for (int i = 0; i < texture_Leaf_list.nb_items; i++) {
+    texture_Leaf[i] = loadImage(texture_Leaf_list.fichiers[i]);
+  }
+  texture_Bird_list = new List_directory("/texture_BirdWater" ,"png");
+  texture_Bird = new PImage[texture_Bird_list.nb_items];
+  for (int i = 0; i < texture_Bird_list.nb_items; i++) {
+    texture_Bird[i] = loadImage(texture_Bird_list.fichiers[i]);
+  }
+  flowfield_Face = loadImage("flowfield_Face.jpg");
+  flowfield_Scene = loadImage("flowfield_Scene.jpg");
+  flowfield_Sil = loadImage("flowfield_Sil.png");
+  
   cf = new ControlFrame(this, 200, 703, "Controls");
   presetNames = new List_directory("","json");
   preset = new ArrayList<JSONObject>();
   for (int i = 0; i<presetNames.fichiers.length; i++)
     preset.add(loadJSONObject(presetNames.fichiers[i]));
-  size(1366 - cf.w,703,P3D);
+  size(1366 - cf.w,703,P2D);
+  
+  pfont = loadFont("MalgunGothic-Semilight-12.vlw"); // use true/false for smooth/no-smooth
 }
 
 void setup(){ 
@@ -128,6 +175,9 @@ void setup(){
   cp5 = new ControlP5(this);
   cp5.addTextfield("save as").setPosition(0.5*width,0.5*height).setSize(100,20).setFocus(true).hide();
 
+  MidiBus.list();
+  bus = new MidiBus(this, 0, 1);
+  blendMode = 0;
 }
 void savePreset(int i, String name){
    JSONObject newPreset = new JSONObject();
@@ -142,10 +192,15 @@ void savePreset(int i, String name){
    newPreset.setFloat("sep_r",cf.controllerFlock[i].getController("sep_r").getValue());
    newPreset.setFloat("ali_r",cf.controllerFlock[i].getController("ali_r").getValue());
    newPreset.setFloat("coh_r",cf.controllerFlock[i].getController("coh_r").getValue());
+   newPreset.setFloat("cloud_spreading",cf.controllerFlock[i].getController("cloud_spreading").getValue());
+   newPreset.setFloat("shining_frequence",cf.controllerFlock[i].getController("shining_frequence").getValue());
+   newPreset.setFloat("shining_phase",cf.controllerFlock[i].getController("shining_phase").getValue());
+   newPreset.setFloat("strength_noise",cf.controllerFlock[i].getController("strength_noise").getValue());
    newPreset.setFloat("trailLength",cf.controllerFlock[i].getController("trailLength").getValue());
    newPreset.setFloat("gravity",cf.controllerFlock[i].getController("gravity").getValue());
    newPreset.setFloat("gravity_angle",cf.controllerFlock[i].getController("gravity_Angle").getValue());
    newPreset.setFloat("size",cf.controllerFlock[i].getController("size").getValue());
+   newPreset.setBoolean("random_r", cf.controllerFlock[i].get(Button.class,"random r").getBooleanValue());
    newPreset.setFloat("alpha",cf.controllerFlock[i].getController("alpha").getValue());
    newPreset.setFloat("d_max",cf.controllerFlock[i].getController("d_max").getValue());
    newPreset.setFloat("maxConnections",cf.controllerFlock[i].getController("N_links").getValue());
@@ -157,7 +212,11 @@ void savePreset(int i, String name){
    newPreset.setInt("randomBlue",int(cf.controllerFlock[i].getController("blue").getValue()));
    newPreset.setInt("randomBrightness",int(cf.controllerFlock[i].getController("contrast").getValue()));
    newPreset.setInt("symmetry",int(cf.controllerFlock[i].getController("symmetry").getValue()));
-   newPreset.setBoolean("isolationIsActive",cf.controllerFlock[i].get(Button.class,"isolation").isOn());
+   newPreset.setInt("boidType",int(cf.controllerFlock[i].get(DropdownList.class, "Select a type").getValue()));
+   newPreset.setInt("connectionsType",int(cf.controllerFlock[i].get(DropdownList.class, "Select a connection").getValue()));
+   newPreset.setInt("boidMove",int(cf.controllerFlock[i].get(RadioButton.class,"boidMove").getValue()));
+   newPreset.setBoolean("connectionsDisplayed", cf.controllerFlock[i].get(Button.class,"show links").getBooleanValue());
+   newPreset.setFloat("ff_strength", cf.controllerFlock[i].getController("ff_strength").getValue());
    
    JSONArray parametersToggle = new JSONArray();
    for (int j = 0; j< cf.controllerFlock[i].get(CheckBox.class, "parametersToggle").getArrayValue().length; j++)
@@ -174,10 +233,6 @@ void savePreset(int i, String name){
      flockForceToggle.setBoolean(j,cf.controllerFlock[i].get(CheckBox.class, "flockForceToggle").getState(j));
    newPreset.setJSONArray("flockForceToggle", flockForceToggle);
    
-   for (int j = 0; j< cf.controllerFlock[i].get(RadioButton.class, "Visual").getArrayValue().length; j++){
-     if (cf.controllerFlock[i].get(RadioButton.class, "Visual").getState(j)) 
-       newPreset.setInt("boidType",j);
-   }
    for (int j = 0; j< cf.controllerFlock[i].get(RadioButton.class, "Borders type").getArrayValue().length; j++){
      if (cf.controllerFlock[i].get(RadioButton.class, "Borders type").getState(j)) 
        newPreset.setInt("borderType",j);
@@ -220,15 +275,36 @@ void YB(){
   }
 }
 
+void setBlendMode(int i){
+  switch(i){
+    case 0 : blendMode(BLEND); break;
+    case 1 : blendMode(ADD); break;
+    case 2 : blendMode(SUBTRACT); break;
+    case 3 : blendMode(DARKEST); break;
+    case 4 : blendMode(LIGHTEST); break;
+    case 5 : blendMode(DIFFERENCE); break;
+    case 6 : blendMode(EXCLUSION); break;
+    case 7 : blendMode(MULTIPLY); break;
+    case 8 : blendMode(SCREEN); break;
+    case 9 : blendMode(REPLACE); break;
+  }
+}
+
 void draw(){
   background(backgroundColor);
-  //image(sablier,300,0);
-  for (int i = 0; i< flocks.length; i++)
+  setBlendMode(blendMode);
+  for (int i = 0; i< flocks.length; i++){
     flocks[i].run();
+    flocks[i].flowfield.run();
+  }
   for (Brush b : brushes)
      b.run(); 
-  //YB();
   
+  record();
+  displayFrameRate();
+}
+
+void record(){
   if(isRecording){
     saveFrame("output/accelerometer_####.png");
     fill(255,0,0);
@@ -238,6 +314,9 @@ void draw(){
   strokeWeight(1);
   stroke(255,0,0);
   ellipse(width-15,15,10,10);
+}
+
+void displayFrameRate(){
   textAlign(RIGHT);
   textSize(12);
   if(cf.controller.get(ColorWheel.class,"backgroundColor").getRGB() != -16777216)
@@ -260,7 +339,6 @@ void mouseReleased(){
   for (Brush b : brushes)
     b.mouseReleased();
 }
-
 
 void keyPressed(){
   if (!cp5.get(Textfield.class, "save as").isFocus()){
@@ -357,4 +435,64 @@ void controlEvent(ControlEvent theEvent) {
     savePreset(cp5TabToSave,cp5.get(Textfield.class,"save as").getText());
     cp5.get(Textfield.class,"save as").hide();
   }
+}
+
+void noteOn(int channel, int pitch, int velocity) {
+  // Receive a noteOn
+  println();
+  println("Note On:");
+  println("--------");
+  println("Channel:"+channel);
+  println("Pitch:"+pitch);
+  println("Velocity:"+velocity);
+  
+  if (channel == 0){
+      for (Boid b : flocks[0].boids)
+        b.separation += 10;
+  }
+  
+  if (channel == 9){ //pads
+  
+  
+    if (pitch == 46){
+      if (sources.size()>0){
+        sources.get(0).strength = map(velocity, 0, 127, 1 , 10);
+        sources.get(0).isActivated = true;
+      }
+    }
+  }
+}
+
+void noteOff(int channel, int pitch, int velocity) {
+  // Receive a noteOff
+  println();
+  println("Note Off:");
+  println("--------");
+  println("Channel:"+channel);
+  println("Pitch:"+pitch);
+  println("Velocity:"+velocity);
+  
+  if (channel == 0){
+      for (Boid b : flocks[0].boids)
+        b.separation -=10;
+  }
+  
+  if (channel == 9){ //pads
+    if (pitch == 46){
+      if (sources.size()>0){
+        sources.get(0).isActivated = false;
+        sources.get(0).position = new PVector(random(0,width), random(0,height));
+      }
+    }
+  }
+}
+
+void controllerChange(int channel, int number, int value) {
+  // Receive a controllerChange
+  println();
+  println("Controller Change:");
+  println("--------");
+  println("Channel:"+channel);
+  println("Number:"+number);
+  println("Value:"+value);
 }

@@ -6,7 +6,6 @@ abstract class Brush{
   boolean isVisible;
   float r, rSq;
   boolean[] apply;
-
   
   Brush(float x, float y){
     position = new PVector(x,y);
@@ -48,16 +47,16 @@ abstract class Brush{
       isSelected = (distSq(mouse, position) <= rSq) ? true : false;      
     }
   }
+  
   void mouseReleased(){
     if (isActivated){
       isSelected = false;
       velocity.set(0,0);
     }
   }
+  
   void mouseDragged(){
-    if (isSelected) {
 
-    }
   }
 }
 
@@ -67,10 +66,11 @@ class Source extends Brush {
   float angle;
   float strength;
   PVector vel;
-  SourceType type;
+  int type;
   int lifespan;
   boolean randomStrength;
   boolean randomAngle;
+  boolean ejected;
   
   Source(float x, float y){
     super(x,y);
@@ -78,10 +78,11 @@ class Source extends Brush {
     vel = new PVector(0,0);
     angle = 0;
     strength = 0;
-    type = SourceType.O;
+    type = POINT;
     lifespan = 200;
     randomStrength = false;
     randomAngle = false;
+    ejected = false;
   }
   
   void apply(){
@@ -107,25 +108,30 @@ class Source extends Brush {
   PVector getBoidInitPosition(float r){
     PVector pos = new PVector();
     switch(type){
-      case O : 
-      pos.set(position.x + random(-r,r),position.y + random(-r,r));  
+      case POINT : 
+      float amp = random(r);
+      float heading = random(TWO_PI);
+      pos.set(position.x + amp*cos(heading),position.y + amp*sin(heading));  
       break;
-      case I : 
-      float z = random(-10*r,10*r);
-      pos.set(position.x + z*cos(angle),position.y + z*sin(angle));  
+      case LINE : 
+      float z = random(-r,r);
+      float a = (ejected ? velocity.heading() + HALF_PI : angle);
+      pos.set(position.x + z*cos(a),position.y + z*sin(a));  
       break;
     }
     return pos;
   }
   
   PVector getBoidInitVelocity(){
-    PVector velocity = new PVector();
-    velocity.set(vel.x,vel.y);
+    PVector v = new PVector();
+    v.set(vel.x,vel.y);
     if(randomAngle)
-      velocity.set(strength*cos(random(0,TWO_PI)),strength*sin(random(0,TWO_PI)));
+      v.set(strength*cos(random(0,TWO_PI)),strength*sin(random(0,TWO_PI)));
+    if(ejected)
+      v.set(velocity.x,velocity.y);
     if(randomStrength) 
-      velocity.mult(random(0,1));   
-    return velocity;
+      v.mult(random(0,1));   
+    return v;
   }
   
   void render(){
@@ -133,14 +139,15 @@ class Source extends Brush {
     stroke(100);
     strokeWeight(1);
     switch(type){
-      case O : ellipse(position.x,position.y,2*r,2*r);  break;
-      case I : 
-      float d = min(20*r,width);
+      case POINT : ellipse(position.x,position.y,2*r,2*r);  break;
+      case LINE : 
+      float d = min(2*r,width);
       rectMode(CENTER);
       pushMatrix();
       translate(position.x,position.y);
-      rotate(angle);
-      rect(0,0, d, 0.01*d);
+      float a = (ejected ? velocity.heading() + HALF_PI : angle);
+      rotate(a);
+      rect(0,0, d, 10);
       popMatrix();
       break;     
     }
@@ -176,7 +183,7 @@ class Magnet extends Brush {
 
 class Obstacle extends Brush {
 
-  ObstacleType type;
+  int type;
   float e;
   float angle;
   
@@ -184,12 +191,12 @@ class Obstacle extends Brush {
     super(x,y);
     e = 50;
     angle = 0;
-    type = ObstacleType.O;
+    type = CIRCLE;
   }
   
   void apply(){     
     switch(type){
-      case O :
+      case POINT :
       for (int i = 0; i< flocks.length; i++){
         if (apply[i]){
           for (Boid b: flocks[i].boids){
@@ -206,7 +213,7 @@ class Obstacle extends Brush {
         }
       }
       break;
-      case U : 
+      case BOWL : 
       for (int i = 0; i< flocks.length; i++){
         if (apply[i]){
           for (Boid b: flocks[i].boids){
@@ -227,7 +234,7 @@ class Obstacle extends Brush {
         }
       }
       break;
-      case I :
+      case LINE :
       for (int i = 0; i< flocks.length; i++){
         if (apply[i]){
           for (Boid b: flocks[i].boids){
@@ -253,13 +260,13 @@ class Obstacle extends Brush {
   
   void render(){
     switch(type){
-      case O :
+      case POINT :
       noFill();
       stroke(125,40);
       ellipse(position.x,position.y,10*r,10*r);
       ellipse(position.x,position.y,r,r);
       break;
-      case I :
+      case LINE :
       noFill();
       stroke(125,40);
       rectMode(CENTER);
@@ -270,7 +277,7 @@ class Obstacle extends Brush {
       rect(0,0,10,10);
       popMatrix();
       break;
-      case U :
+      case BOWL :
       noFill();
       stroke(125,40);
       arc(position.x, position.y, 10*r, 10*r, angle, angle + PI);

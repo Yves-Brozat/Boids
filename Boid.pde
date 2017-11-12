@@ -1,22 +1,16 @@
 abstract class Boid {
 
+  int index;  
+  int lifetime;
+  int lifespan;
+  boolean mortal;
+  
   //Dynamic parameters
   PVector position0;
   PVector position;
   PVector velocity;
   PVector acceleration;
   PVector sumForces;
-  boolean mortal;
-  
-  //Visual parameters
-  color c;
-  float alpha;
-  int red,green,blue;
-  float randomBrightness;
-  float randomRed, randomGreen, randomBlue;
-  float r;
-  ArrayList<PVector> history;  
-  float trailLength;  //static or brushable
   
   //Forces parameters
   float separation;
@@ -26,41 +20,58 @@ abstract class Boid {
   float ali_r, ali_rSq;
   float coh_r, coh_rSq;
   float friction;
-  float origin;
+  float origin;  
+  float xoff, yoff;
+  float noise;
   PVector g;
-  
-  //Global physical parameters
   boolean[] paramToggle;
   float maxforce;    // Maximum steering force
   float maxspeed;    // Maximum speed
-  float density;  // Personal density of the particle
-  float k_density;  // Global coefficient to increase/decrease density of all particles
-  int lifetime;
-  int lifespan;
   
-  float xoff, yoff;
-  float noise;
-  
-  int index;
-  
+  //Particle design
+  float r;
+  boolean random_r;
+  float random;
   float size; //static
-  boolean isolationIsActive;
+  int boidMove;
+  float cloud_spreading;  //static or brushable
+  float shining_frequence;  //static or brushable
+  float shining_phase;  //static or brushable
+  float roff;
+  float strength_noise;  //static or brushable  
+  float density;  // Personal density of the particle
+  float k_density;  // Global coefficient to increase/decrease density of all particles 
+  float trailLength;  //static or brushable
+  ArrayList<PVector> history; 
+  boolean isSpinning;
+  float spinSpeed = 1;
+  
+  //Colors
+  color c;
+  float alpha;
+  int red,green,blue;
+  float randomBrightness;
+  float randomRed, randomGreen, randomBlue;  
   
   Boid(float x, float y, float vx, float vy, int i) {
     index = i;
+    lifetime = 0;
+    lifespan = 100;    
+    mortal = true;    
     position = new PVector(x, y);
     position0 = position.copy();
     velocity = new PVector(vx,vy);    
     acceleration = new PVector();
     sumForces = new PVector(); 
-    mortal = true;    
+    
     r = 1;
     history = new ArrayList<PVector>();  
     density = 1.0;
-    lifetime = 0;
-    lifespan = 100;    
+   
     xoff = random(0,10);
     yoff = random(0,10);
+    roff = random(0,10);
+    random = random(0,1);
     init();
   }
   
@@ -76,8 +87,13 @@ abstract class Boid {
     g = new PVector(mag*cos(angle),mag*sin(angle));
     noise = cf.controllerFlock[index].getController("noise").getValue();
     size = cf.controllerFlock[index].getController("size").getValue();   
-    isolationIsActive = cf.controllerFlock[index].get(Button.class, "isolation").isOn();
-    trailLength = cf.controllerFlock[index].getController("trailLength").getValue();    
+    random_r = cf.controllerFlock[index].get(Button.class, "random r").isOn();
+    boidMove = int(cf.controllerFlock[index].get(RadioButton.class, "boidMove").getValue());
+    cloud_spreading = cf.controllerFlock[index].get(Slider.class,"cloud_spreading").getValue();    
+    shining_frequence = cf.controllerFlock[index].get(Slider.class,"shining_frequence").getValue();    
+    shining_phase = cf.controllerFlock[index].get(Slider.class,"shining_phase").getValue();    
+    strength_noise = cf.controllerFlock[index].get(Slider.class,"strength_noise").getValue();    
+    trailLength = cf.controllerFlock[index].get(Slider.class,"trailLength").getValue();    
     separation = cf.controllerFlock[index].getController("separation").getValue();
     alignment = cf.controllerFlock[index].getController("alignment").getValue();
     cohesion = cf.controllerFlock[index].getController("cohesion").getValue();
@@ -98,6 +114,7 @@ abstract class Boid {
     randomRed = random(0,cf.controllerFlock[index].getController("red").getValue());
     randomGreen = random(0,cf.controllerFlock[index].getController("green").getValue());
     randomBlue = random(0,cf.controllerFlock[index].getController("blue").getValue());
+    isSpinning = cf.controllerFlock[index].get(Button.class, "is Spinning").isOn();
   }
   
   boolean isDead(){
@@ -107,7 +124,6 @@ abstract class Boid {
   
   void applyOrigin(){
     PVector fo = seek(position0);
-    fo.setMag(maxforce);
     fo.mult(origin);
     sumForces.add(fo);
   }
@@ -165,46 +181,82 @@ abstract class Boid {
   // STEER = DESIRED MINUS VELOCITY
   PVector seek(PVector target) {
     PVector desired = PVector.sub(target, position);  // A vector pointing from the position to the target
-    desired.setMag(maxspeed); // Scale to maximum speed
-    PVector steer = PVector.sub(desired, velocity); // Steering = Desired minus Velocity
-    if (paramToggle[0]) steer.limit(maxforce);  // Limit to maximum steering force
-    return steer;
+    float d = desired.magSq();
+    desired.normalize();
+    if (d < 40000)
+      desired.mult(map(d,0,40000,0,maxspeed));
+    else 
+      desired.mult(maxspeed);
+    desired.sub(velocity); // Steering = Desired minus Velocity
+    if (paramToggle[0]) desired.limit(maxforce);  // Limit to maximum steering force
+    return desired;
   }
 
-  void setColor(){
+  void follow(FlowField flow){
+    PVector desired = flow.getVector(position);
+    desired.mult(flow.strength);
+    desired.sub(velocity);
+    if (paramToggle[0])  desired.limit(maxforce);
+    sumForces.add(desired);
+  }
+  
+  color getColor(){
     float a = alpha;
     if (mortal) a = map(lifetime,0,lifespan,alpha,20);
-    c = color(red + randomBrightness + randomRed - randomGreen - randomBlue,
+    return color(red + randomBrightness + randomRed - randomGreen - randomBlue,
               green + randomBrightness - randomRed + randomGreen - randomBlue,
               blue + randomBrightness - randomRed - randomGreen + randomBlue,
               a);
   }
   
-  float proximityTo(ArrayList<Boid> boids, float d_Sq, float r_min, float r_max){
+  float getR(ArrayList<Boid> boids){
+    float r = 1;
+    switch(boidMove){
+      case CONSTANT : 
+      r = 1;
+      break;
+      case CLOUDY : 
+      r = proximityTo(boids, cloud_spreading*cloud_spreading);
+      break;
+      case SHINY : 
+      if (mortal)  {
+        r = 0.5*(1+sin(shining_frequence*frameCount+shining_phase*PI*lifetime/lifespan));
+      }
+      else {
+        float phase = map(shining_phase, 0 ,16, 0, PI);
+        r = 0.5*(1+sin(shining_frequence*frameCount+phase*boids.indexOf(this)));
+      }
+      break;
+      case NOISY : 
+      roff += strength_noise;
+      r = noise(roff);
+      break;
+    }
+    if (random_r) r *= random;
+    return r;
+  }
+  
+  float proximityTo(ArrayList<Boid> boids, float d_Sq){
     float isolation = 0;
-    float count = 0;
     for (int i = 0; i< boids.size(); i++){
       float dist_Sq = distSq(position,boids.get(i).position);
-      if ( dist_Sq < d_Sq){
-        isolation += dist_Sq;
-        count ++;
+      if ( dist_Sq < d_Sq && dist_Sq > 0){
+        isolation += d_Sq - dist_Sq;
       }
     }
-    return max(map(isolation,0,d_Sq*count,r_max,r_min),1/size);
+    float _r = map(isolation, 0, d_Sq, 1/size, 1);
+    _r = constrain(_r, 1/size, 1); 
+    return _r;
   }
   
   void draw(ArrayList<Boid> boids){
-    setColor();
-    float angle = velocity.heading() + HALF_PI;
-    if (isolationIsActive){
-      r = proximityTo(boids, 10000, 0.25, 4);
-    }
-    else
-      r = 1;
+    c = getColor();
+    float angle = (isSpinning ? (0.01*spinSpeed*frameCount)%TWO_PI : velocity.heading() + HALF_PI);
+    r = getR(boids);
     draw(position.x, position.y, r*size, angle, alpha);
     if(history.size() > 0){
-      for ( int i=0; i< history.size(); i++)
-        draw(history.get(i).x, history.get(i).y, size*i/history.size(), angle, map(i,0,history.size(),0,alpha));
+      for (int i=0; i< history.size(); i++)
+        draw(history.get(i).x, history.get(i).y, map(i,0,history.size(),0,r*size), angle, map(i,0,history.size(),0,alpha));
     }
   }
   
@@ -243,6 +295,10 @@ abstract class Boid {
     sep_r = preset.getFloat("sep_r");
     ali_r = preset.getFloat("ali_r");
     coh_r = preset.getFloat("coh_r");
+    cloud_spreading = preset.getFloat("cloud_spreading");
+    shining_frequence = preset.getFloat("shining_frequence");
+    shining_phase = preset.getFloat("shining_phase");
+    strength_noise = preset.getFloat("strength_noise");
     trailLength = preset.getFloat("trailLength");
     g = vector(preset.getFloat("gravity"),preset.getFloat("gravity_angle"));
     alpha = preset.getFloat("alpha");
@@ -253,8 +309,10 @@ abstract class Boid {
     randomRed = preset.getInt("randomRed");
     randomGreen = preset.getInt("randomGreen");
     randomBlue = preset.getInt("randomBlue");
+    boidMove = preset.getInt("boidMove");
     size = preset.getFloat("size");
-    isolationIsActive = preset.getBoolean("isolationIsActive");
+    random_r = preset.getBoolean("random_r");
+    isSpinning = preset.getBoolean("is Spinning");
   }
 }
 
@@ -324,10 +382,54 @@ class CircleBoid extends Boid {
   }
   
   void draw(float x, float y, float r, float theta, float alpha){
-    pushMatrix();
     fill(c,alpha);
     noStroke();
     ellipse(x, y, 2*r, 2*r);
+  } 
+}
+
+class ImageBoid extends Boid {
+  
+  PImage image;
+  
+  ImageBoid(float x, float y, float vx, float vy, int i, PImage img){
+    super(x,y,vx,vy,i);    
+    image = img;
+  }
+  
+  void draw(float x, float y, float r, float theta, float alpha){
+    pushMatrix();
+    imageMode(CENTER);
+    tint(c,alpha);
+    translate(x,y);
+    rotate(theta - HALF_PI);
+    image(image,0,0,2*r,2*r);
+    popMatrix();
+  } 
+}
+
+class AnimationBoid extends Boid {
+  
+  PImage[] images;
+  int frame;
+  
+  AnimationBoid(float x, float y, float vx, float vy, int index, PImage[] img){
+    super(x,y,vx,vy,index);
+    images = img;
+
+    frame = int(random(0,images.length));
+  }
+  
+  void draw(float x, float y, float r, float theta, float alpha){
+    pushMatrix();
+    imageMode(CENTER);
+    translate(x,y);
+    rotate(theta - HALF_PI);
+    tint(c,alpha);
+    int animationSpeed = int(constrain(map(velocity.magSq(),0, 25, 10, 1),1,10));
+    if (frameCount%animationSpeed == 0)
+      frame = (frame+1) % images.length;
+    image(images[frame], 0, 0, r, r);
     popMatrix();
   } 
 }
