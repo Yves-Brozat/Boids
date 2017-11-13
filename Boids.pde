@@ -50,22 +50,12 @@ import oscP5.*;
 import java.util.Collections.*;
 
 //boidType : Natural static shapes of particles
-final int RADIAL_GRADIANT_1 = 0;
-final int RADIAL_GRADIANT_2 = 1;
-final int RADIAL_GRADIANT_3 = 2;
-final int RADIAL_GRADIANT_4 = 3;
-final int SPRAY = 4;
-final int POLISHED = 5;
-final int PEARL = 6;
-final int GLASS = 7;
-final int WAVE = 8;
-final int HAIR = 9;
-final int CIRCLE = 10;
-final int TRIANGLE = 11;
-final int LETTER = 12;
-final int PIXEL = 13;
-final int LEAF = 14;
-final int BIRD = 15;
+final int CIRCLE = 0;
+final int TRIANGLE = 1;
+final int LETTER = 2;
+final int PIXEL = 3;
+final int LEAF = 4;
+final int BIRD = 5;
 
 //borderType : Boarders' states
 final int WALLS = 0;
@@ -111,6 +101,7 @@ int blendMode;
 
 //Data
 PImage[] texture;
+List_directory texture_list;
 PImage[] texture_Leaf;
 List_directory texture_Leaf_list;
 PImage[] texture_Bird;
@@ -125,39 +116,30 @@ PFont pfont;
 
 void settings(){
   //Data loading
-  texture = new PImage[10];
-  texture[RADIAL_GRADIANT_1] = loadImage("texture_RadialGradiant1.png"); 
-  texture[RADIAL_GRADIANT_2] = loadImage("texture_RadialGradiant2.png"); 
-  texture[RADIAL_GRADIANT_3] = loadImage("texture_RadialGradiant3.png"); 
-  texture[RADIAL_GRADIANT_4] = loadImage("texture_RadialGradiant4.png"); 
-  texture[POLISHED] = loadImage("texture_Polished.png"); 
-  texture[PEARL] = loadImage("texture_Pearl.png"); 
-  texture[HAIR] = loadImage("texture_Hair.png"); 
-  texture[GLASS] = loadImage("texture_Glass.png"); 
-  texture[WAVE] = loadImage("texture_Wave.png"); 
-  texture[SPRAY] = loadImage("texture_Spray.png"); 
-  texture_Leaf_list = new List_directory("/texture_Leaf" ,"png");
+  texture_list = new List_directory("/texture", "png");
+  texture = new PImage[texture_list.nb_items];
+  for (int i = 0; i < texture_list.nb_items; i++)
+    texture[i] = loadImage(texture_list.fichiers[i]);
+  texture_Leaf_list = new List_directory("/texture/texture_Leaf" ,"png");
   texture_Leaf = new PImage[texture_Leaf_list.nb_items];
-  for (int i = 0; i < texture_Leaf_list.nb_items; i++) {
+  for (int i = 0; i < texture_Leaf_list.nb_items; i++)
     texture_Leaf[i] = loadImage(texture_Leaf_list.fichiers[i]);
-  }
-  texture_Bird_list = new List_directory("/texture_BirdWater" ,"png");
+  texture_Bird_list = new List_directory("/texture/texture_BirdWater" ,"png");
   texture_Bird = new PImage[texture_Bird_list.nb_items];
-  for (int i = 0; i < texture_Bird_list.nb_items; i++) {
+  for (int i = 0; i < texture_Bird_list.nb_items; i++)
     texture_Bird[i] = loadImage(texture_Bird_list.fichiers[i]);
-  }
-  flowfield_Face = loadImage("flowfield_Face.jpg");
-  flowfield_Scene = loadImage("flowfield_Scene.jpg");
-  flowfield_Sil = loadImage("flowfield_Sil.png");
-  
+    
+  flowfield_Face = loadImage("/flowfield/flowfield_Face.jpg");
+  flowfield_Scene = loadImage("/flowfield/flowfield_Scene.jpg");
+  flowfield_Sil = loadImage("/flowfield/flowfield_Sil.png");
+
+  pfont = loadFont("/font/MalgunGothic-Semilight-12.vlw"); // use true/false for smooth/no-smooth
   cf = new ControlFrame(this, 200, 703, "Controls");
-  presetNames = new List_directory("","json");
+  presetNames = new List_directory("/preset","json");
   preset = new ArrayList<JSONObject>();
   for (int i = 0; i<presetNames.fichiers.length; i++)
     preset.add(loadJSONObject(presetNames.fichiers[i]));
   size(1366 - cf.w,703,P2D);
-  
-  pfont = loadFont("MalgunGothic-Semilight-12.vlw"); // use true/false for smooth/no-smooth
 }
 
 void setup(){ 
@@ -178,6 +160,8 @@ void setup(){
   MidiBus.list();
   bus = new MidiBus(this, 0, 1);
   blendMode = 0;
+  
+  surface.setResizable(true);
 }
 void savePreset(int i, String name){
    JSONObject newPreset = new JSONObject();
@@ -217,6 +201,7 @@ void savePreset(int i, String name){
    newPreset.setInt("boidMove",int(cf.controllerFlock[i].get(RadioButton.class,"boidMove").getValue()));
    newPreset.setBoolean("connectionsDisplayed", cf.controllerFlock[i].get(Button.class,"show links").getBooleanValue());
    newPreset.setFloat("ff_strength", cf.controllerFlock[i].getController("ff_strength").getValue());
+   newPreset.setFloat("spin_speed", cf.controllerFlock[i].getController("spin_speed").getValue());
    
    JSONArray parametersToggle = new JSONArray();
    for (int j = 0; j< cf.controllerFlock[i].get(CheckBox.class, "parametersToggle").getArrayValue().length; j++)
@@ -238,9 +223,9 @@ void savePreset(int i, String name){
        newPreset.setInt("borderType",j);
    }
    
-   saveJSONObject(newPreset,"data" + "/"+name+".json");    
+   saveJSONObject(newPreset,"/data/preset/"+preset.size()+" - " + name+".json");    
    DropdownList ddl = cf.controllerFlock[i].get(DropdownList.class, "Select a preset");
-   ddl.addItem("/"+name+".json", ddl.getArrayValue().length);
+   ddl.addItem(+preset.size()+" - " + name, ddl.getArrayValue().length);
    preset.add(newPreset);
  }
    

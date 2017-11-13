@@ -6,15 +6,15 @@ abstract class Brush{
   boolean isVisible;
   float r, rSq;
   boolean[] apply;
+  int index;
   
-  Brush(float x, float y){
+  Brush(float x, float y, int index){
+    this.index = index;
     position = new PVector(x,y);
     velocity = new PVector();
     isActivated = true;
     isSelected = false;
-    isVisible = false;
-    r=10;
-    rSq = r*r;    
+    isVisible = cf.controller.get(Button.class,"Show brushes").isOn();    
     apply = new boolean[flocks.length];
     for (int i = 0; i< apply.length; i++) apply[i] = false;
     brushes.add(this);
@@ -37,15 +37,26 @@ abstract class Brush{
     }
   }
   
-  abstract void render();
+  void render(){
+    noFill();
+    stroke(100);
+    strokeWeight(1);
+    rectMode(CENTER);
+    textMode(CENTER);
+    text(index,position.x+5,position.y+5);
+  }
+  
   abstract void apply();
+  abstract void select();
   
   void mousePressed(){
     if (isActivated)
     {
       PVector mouse = new PVector(mouseX,mouseY);
-      isSelected = (distSq(mouse, position) <= rSq) ? true : false;      
+      isSelected = (distSq(mouse, position) <= 400) ? true : false;    
+      if(isSelected)  select();
     }
+    
   }
   
   void mouseReleased(){
@@ -72,17 +83,19 @@ class Source extends Brush {
   boolean randomAngle;
   boolean ejected;
   
-  Source(float x, float y){
-    super(x,y);
-    outflow = 10;
-    vel = new PVector(0,0);
-    angle = 0;
-    strength = 0;
-    type = POINT;
-    lifespan = 200;
-    randomStrength = false;
-    randomAngle = false;
-    ejected = false;
+  Source(float x, float y, int index){
+    super(x,y,index);
+    r = map(cf.controller.getController("src"+index+"_size").getValue(),0,100,0,0.5*width);
+    rSq = r*r;
+    outflow = int(cf.controller.getController("src"+index+"_outflow").getValue());
+    angle = radians(cf.controller.getController("src"+index+"_angle").getValue());
+    strength = cf.controller.getController("src"+index+"_strength").getValue();
+    vel = new PVector(strength*cos(angle+HALF_PI),strength*sin(angle+HALF_PI));
+    lifespan = int(cf.controller.getController("lifespan "+ index).getValue());
+    type = int(cf.controller.get(RadioButton.class,"src"+index+"_type").getValue());
+    randomStrength = cf.controller.get(Button.class,"randomStrength " + index).isOn();
+    randomAngle = cf.controller.get(Button.class,"randomAngle " + index).isOn();
+    ejected = cf.controller.get(Button.class,"ejected " + index).isOn();
   }
   
   void apply(){
@@ -135,22 +148,30 @@ class Source extends Brush {
   }
   
   void render(){
-    noFill();
-    stroke(100);
-    strokeWeight(1);
+    super.render();
     switch(type){
-      case POINT : ellipse(position.x,position.y,2*r,2*r);  break;
+      case POINT : 
+      ellipse(position.x,position.y,2*r,2*r);
+      rect(position.x,position.y,20,20);
+      break;
+      
       case LINE : 
-      float d = min(2*r,width);
-      rectMode(CENTER);
       pushMatrix();
       translate(position.x,position.y);
       float a = (ejected ? velocity.heading() + HALF_PI : angle);
       rotate(a);
-      rect(0,0, d, 10);
+      rect(0,0, 2*r, 10);
+      rect(0,0,20,20);
       popMatrix();
       break;     
     }
+  }
+  
+  void select(){
+    for (int i =0; i< sources.size(); i++)
+      cf.controller.getGroup("Source "+i).hide();
+    cf.controller.getGroup("Source "+index).show();
+    cf.controller.get(DropdownList.class,"Select a source").setValue(index);
   }
 }
 
@@ -158,9 +179,9 @@ class Magnet extends Brush {
 
   float strength;
   
-  Magnet(float x, float y){
-    super(x,y);
-    strength = 1;
+  Magnet(float x, float y, int index){
+    super(x,y,index);
+    strength = cf.controller.getController("mag"+index+"_strength").getValue();
   }
   
   void apply(){
@@ -173,11 +194,20 @@ class Magnet extends Brush {
   }
   
   void render(){
-    noFill();
-    stroke(100);
-    strokeWeight(1);
-    rectMode(CENTER);
-    rect(position.x,position.y,r,r);
+    super.render();
+    pushMatrix();
+    translate(position.x,position.y);
+    rect(0,0,20,20);
+    rotate(QUARTER_PI);
+    rect(0,0,20,20);
+    popMatrix();
+  }
+  
+  void select(){
+    for (int i =0; i< magnets.size(); i++)
+      cf.controller.getGroup("Magnet "+i).hide();
+    cf.controller.getGroup("Magnet "+index).show();
+    cf.controller.get(DropdownList.class,"Select a magnet").setValue(index);
   }
 }
 
@@ -187,11 +217,13 @@ class Obstacle extends Brush {
   float e;
   float angle;
   
-  Obstacle(float x, float y){
-    super(x,y);
-    e = 50;
-    angle = 0;
-    type = CIRCLE;
+  Obstacle(float x, float y, int index){
+    super(x,y, index);
+    e = cf.controller.getController("obs"+index+"_e").getValue();
+    angle = radians(cf.controller.getController("obs"+index+"_angle").getValue());
+    type = int(cf.controller.get(RadioButton.class,"obs"+index+"_type").getValue());
+    r = map(cf.controller.getController("obs"+index+"_size").getValue(),0,100,0,0.5*width);
+    rSq= r*r;   
   }
   
   void apply(){     
@@ -200,13 +232,13 @@ class Obstacle extends Brush {
       for (int i = 0; i< flocks.length; i++){
         if (apply[i]){
           for (Boid b: flocks[i].boids){
-            if (distSq(b.position,position) < 25*rSq){
+            if (distSq(b.position,position) < rSq){
               PVector n = PVector.sub(position,b.position);
               float theta = b.velocity.heading() - n.heading();
               b.velocity.rotate(PI-2*theta);
-              PVector v = n.copy();
-              v.setMag(-5*r);
-              b.position = PVector.add(position,v);
+              PVector ray = n.copy();
+              ray.setMag(-r);
+              b.position = PVector.add(position,ray);
               b.sumForces.add(velocity);
             }
           }
@@ -219,14 +251,14 @@ class Obstacle extends Brush {
           for (Boid b: flocks[i].boids){
             PVector a = new PVector(sin(angle),-cos(angle));
             PVector n = PVector.sub(position,b.position);
-            if (n.magSq() > (5*r-e)*(5*r-e) && n.magSq() < (5*r+e)*(5*r+e) && n.x*a.x > - n.y*a.y){
+            if (n.magSq() > (r-e)*(r-e) && n.magSq() < (r+e)*(r+e) && n.x*a.x > - n.y*a.y){
               float theta = b.velocity.heading() - n.heading();
               b.velocity.rotate(PI-2*theta);
               PVector v = n.copy();
-              if (n.magSq() < 25*rSq)
-                v.setMag(-5*r+e);
+              if (n.magSq() < rSq)
+                v.setMag(-r+e);
               else
-                v.setMag(-5*r-e);
+                v.setMag(-r-e);
               b.position = PVector.add(position,v);
               b.sumForces.add(velocity);
             }
@@ -240,7 +272,7 @@ class Obstacle extends Brush {
           for (Boid b: flocks[i].boids){
             PVector n = new PVector(sin(angle),-cos(angle));
             PVector d = PVector.sub(b.position,position);
-            if (d.x*n.x < -d.y*n.y + e  && d.x*n.x > -d.y*n.y - e && -d.x*n.y < -d.y*n.x + 10*r && -d.x*n.y > -d.y*n.x - 10*r )
+            if (d.x*n.x < -d.y*n.y + e  && d.x*n.x > -d.y*n.y - e && -d.x*n.y < -d.y*n.x + r && -d.x*n.y > -d.y*n.x - r )
             {          
               float theta = b.velocity.heading() - n.heading();
               b.velocity.rotate(PI-2*theta);
@@ -259,29 +291,34 @@ class Obstacle extends Brush {
   }
   
   void render(){
+    super.render();
     switch(type){
       case POINT :
-      noFill();
-      stroke(125,40);
-      ellipse(position.x,position.y,10*r,10*r);
-      ellipse(position.x,position.y,r,r);
+      ellipse(position.x,position.y,2*r,2*r);
+      ellipse(position.x,position.y,20,20);
       break;
+      
       case LINE :
-      noFill();
-      stroke(125,40);
-      rectMode(CENTER);
       pushMatrix();
       translate(position.x,position.y);
       rotate(angle);
-      rect(0,0, 20*r, 2*e);
-      rect(0,0,10,10);
+      rect(0,0, 2*r, 2*e);
+      ellipse(0,0,20,20);
       popMatrix();
       break;
+      
       case BOWL :
-      noFill();
-      stroke(125,40);
-      arc(position.x, position.y, 10*r, 10*r, angle, angle + PI);
+      arc(position.x, position.y, 2*(r-e), 2*(r-e), angle, angle + PI);
+      arc(position.x, position.y, 2*(r+e), 2*(r+e), angle, angle + PI);
+      ellipse(position.x,position.y,20,20);
       break;
     }
+  }
+  
+  void select(){
+    for (int i =0; i< obstacles.size(); i++)
+      cf.controller.getGroup("Obstacle "+i).hide();
+    cf.controller.getGroup("Obstacle "+index).show();
+    cf.controller.get(DropdownList.class,"Select a obstacle").setValue(index);
   }
 }

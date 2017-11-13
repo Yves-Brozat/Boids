@@ -44,7 +44,7 @@ abstract class Boid {
   float trailLength;  //static or brushable
   ArrayList<PVector> history; 
   boolean isSpinning;
-  float spinSpeed = 1;
+  float spinSpeed;
   
   //Colors
   color c;
@@ -115,6 +115,7 @@ abstract class Boid {
     randomGreen = random(0,cf.controllerFlock[index].getController("green").getValue());
     randomBlue = random(0,cf.controllerFlock[index].getController("blue").getValue());
     isSpinning = cf.controllerFlock[index].get(Button.class, "is Spinning").isOn();
+    spinSpeed = cf.controllerFlock[index].getController("spin_speed").getValue();
   }
   
   boolean isDead(){
@@ -251,7 +252,7 @@ abstract class Boid {
   
   void draw(ArrayList<Boid> boids){
     c = getColor();
-    float angle = (isSpinning ? (0.01*spinSpeed*frameCount)%TWO_PI : velocity.heading() + HALF_PI);
+    float angle = (isSpinning ? random*TWO_PI+(0.02*spinSpeed*frameCount)%TWO_PI : velocity.heading() + HALF_PI);
     r = getR(boids);
     draw(position.x, position.y, r*size, angle, alpha);
     if(history.size() > 0){
@@ -313,6 +314,7 @@ abstract class Boid {
     size = preset.getFloat("size");
     random_r = preset.getBoolean("random_r");
     isSpinning = preset.getBoolean("is Spinning");
+    spinSpeed = preset.getFloat("spin_speed");
   }
 }
 

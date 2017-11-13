@@ -22,7 +22,7 @@ class FlowField{
    isActivated = false;
    strength = 1;
    speed = 1;
-   img = texture[RADIAL_GRADIANT_1];
+   img = texture[0];
    type = NOISE;
    
   }

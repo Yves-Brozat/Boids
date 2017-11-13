@@ -35,29 +35,44 @@ class ControlFrame extends PApplet {
   void mouseWheel(MouseEvent event){
     if (controller.getTab("default").isActive()){
       int y = int(controller.getGroup("accDefault").getPosition()[1]);
-      if(y <= 20 && y >= -200)
+      int maxH = 400;
+      if(y < 40 && y > -maxH)
         controller.getGroup("accDefault").setPosition(controller.getGroup("accDefault").getPosition()[0],y-20*event.getCount());
-      else if (y > 20)
-        controller.getGroup("accDefault").setPosition(0,20);
-      else if (y < -200)
-        controller.getGroup("accDefault").setPosition(0,-200);
+      else if (y == 40){
+        if (event.getCount() > 0) controller.getGroup("accDefault").setPosition(controller.getGroup("accDefault").getPosition()[0],y-20*event.getCount());
+      }
+      else if (y == -maxH){
+        if (event.getCount() < 0) controller.getGroup("accDefault").setPosition(controller.getGroup("accDefault").getPosition()[0],y-20*event.getCount());
+      }
+      else if (y < -maxH)
+        controller.getGroup("accDefault").setPosition(0,-maxH);
+      else if (y > 40)
+        controller.getGroup("accDefault").setPosition(0,40);
     }
     for (int i = 0; i< controllerFlock.length; i++){  
       if (controller.getTab("Flock "+i).isActive()){
         int y = int(controllerFlock[i].getGroup("acc").getPosition()[1]);
-        if(y <= 20 && y >= -800)
+        int maxH = 1100;
+        if(y < 40 && y > -maxH)
           controllerFlock[i].getGroup("acc").setPosition(controllerFlock[i].getGroup("acc").getPosition()[0],y-20*event.getCount());
-        else if (y > 20)
-          controllerFlock[i].getGroup("acc").setPosition(0,20);
-        else if (y < -800)
-          controllerFlock[i].getGroup("acc").setPosition(0,-800);
+        else if (y == 40){
+          if (event.getCount() > 0) controllerFlock[i].getGroup("acc").setPosition(controllerFlock[i].getGroup("acc").getPosition()[0],y-20*event.getCount());
+        }
+        else if (y == -maxH){
+          if (event.getCount() < 0) controllerFlock[i].getGroup("acc").setPosition(controllerFlock[i].getGroup("acc").getPosition()[0],y-20*event.getCount());
+        }
+        else if (y < -maxH)
+          controllerFlock[i].getGroup("acc").setPosition(0,-maxH);
+        else if (y > 40)
+          controllerFlock[i].getGroup("acc").setPosition(0,50);
+        
       }
     }
   }
   
     void addSource(){
     if(sources.size()<8){
-      Source s = new Source(0.5*parent.width,0.5*parent.height);
+      Source s = new Source(0.5*parent.width,0.5*parent.height, sources.size());
       sources.add(s);
       for (int i =0; i< sources.size()-1; i++){
         controller.getGroup("Source "+i).hide();
@@ -79,7 +94,7 @@ class ControlFrame extends PApplet {
  
   void addMagnet(){
     if(magnets.size()<8){
-      Magnet m = new Magnet(0.5*parent.width,0.5*parent.height);
+      Magnet m = new Magnet(0.5*parent.width,0.5*parent.height, magnets.size());
       magnets.add(m);
       for (int i =0; i< magnets.size()-1; i++){
         controller.getGroup("Magnet "+i).hide();
@@ -96,7 +111,7 @@ class ControlFrame extends PApplet {
     
   void addObstacle(){
     if(obstacles.size()<8){
-      Obstacle m = new Obstacle(0.5*parent.width,0.5*parent.height);
+      Obstacle m = new Obstacle(0.5*parent.width,0.5*parent.height, obstacles.size());
       obstacles.add(m);
       for (int i =0; i< obstacles.size()-1; i++){
         controller.getGroup("Obstacle "+i).hide();
@@ -105,7 +120,7 @@ class ControlFrame extends PApplet {
       controller.getGroup("Obstacle "+i).show();
       controller.get(CheckBox.class,"obs_activation").addItem("O"+i,i).activate(i);
       controller.get(DropdownList.class,"Select a obstacle").addItem("Obstacle "+i,i).setValue(i);
-      controller.getGroup("Obstacles").setSize(200,235);
+      controller.getGroup("Obstacles").setSize(200,255);
       controller.getGroup("accDefault").close();
       controller.getGroup("accDefault").open();
     }
@@ -165,7 +180,8 @@ class ControlFrame extends PApplet {
    c.getController("d_max").setValue(preset.getFloat("d_max"));
    c.getController("N_links").setValue(preset.getFloat("maxConnections"));
    if(preset.getBoolean("is Spinning"))  c.get(Button.class,"is Spinning").setOn();
-   else  c.get(Button.class,"is Spinning").setOff();    
+   else  c.get(Button.class,"is Spinning").setOff();
+   c.getController("spin_speed").setValue(preset.getFloat("spin_speed"));
    
   }
   
@@ -217,7 +233,7 @@ class ControlFrame extends PApplet {
       s1.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       for (int j = 0; j<controllerFlock.length; j++) 
         controller.addButton("s"+i+"_f"+j).setPosition(5+57*j,10).setSize(55,20).setLabel("Flock "+j).setSwitch(true).setOff().moveTo(s1).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
-      controller.addSlider("src"+i+"_size").setPosition(5,35).setSize(100,15).setLabel("Size").setRange(1,600).setValue(20).moveTo(s1).getCaptionLabel().toUpperCase(false);  
+      controller.addSlider("src"+i+"_size").setPosition(5,35).setSize(100,15).setLabel("Size").setRange(50/parent.width,100).setValue(20).moveTo(s1).getCaptionLabel().toUpperCase(false);  
       controller.addSlider("src"+i+"_outflow").setPosition(5,55).setSize(100,15).setLabel("Outflow").setRange(1,20).setNumberOfTickMarks(20).showTickMarks(false).setValue(3).moveTo(s1).getCaptionLabel().toUpperCase(false);
       controller.addSlider("src"+i+"_strength").setPosition(5,75).setSize(100,15).setLabel("Strength").setRange(0,10).setValue(1).moveTo(s1).getCaptionLabel().toUpperCase(false); 
       controller.addSlider("lifespan " + i).setPosition(5,95).setSize(100,15).setLabel("Lifespan").setRange(0,1000).setNumberOfTickMarks(21).showTickMarks(false).setValue(100).moveTo(s1).getCaptionLabel().toUpperCase(false);
@@ -253,13 +269,14 @@ class ControlFrame extends PApplet {
     controller.addBang("add obs").setLabel("+").setPosition(10,10).setSize(20,20).moveTo(c3).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);;
     controller.addCheckBox("obs_activation").setPosition(10,35).setSize(15,15).setItemsPerRow(4).setSpacingColumn(30).moveTo(c3);
     for(int i = 0; i<8; i++){
-      Group s1 = controller.addGroup("Obstacle "+i).setPosition(10,90).setBackgroundColor(color(0, 64)).setSize(180,135).hide().setBarHeight(15).moveTo(c3);
+      Group s1 = controller.addGroup("Obstacle "+i).setPosition(10,90).setBackgroundColor(color(0, 64)).setSize(180,155).hide().setBarHeight(15).moveTo(c3);
       s1.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       for (int j = 0; j<controllerFlock.length; j++) 
         controller.addButton("o"+i+"_f"+j).setPosition(5+57*j,10).setSize(55,20).setLabel("Flock "+j).setSwitch(true).setOff().moveTo(s1).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
-      controller.addSlider("obs"+i+"_size").setPosition(5,35).setSize(100,15).setLabel("Size").setRange(5,100).setValue(0).moveTo(s1).getCaptionLabel().toUpperCase(false);
-      controller.addKnob("obs"+i+"_angle").setPosition(60,70).setResolution(100).setLabel("Angle").setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(25).moveTo(s1).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).toUpperCase(false);
-      RadioButton rb_obs_type = controller.addRadioButton("obs"+i+"_type").setPosition(5,60).setSize(20,20).setItemsPerRow(1).setSpacingColumn(30).addItem("O ("+i+")", 0).addItem("/ ("+i+")", 1).addItem("U ("+i+")", 2).activate(0).moveTo(s1);
+      controller.addSlider("obs"+i+"_size").setPosition(5,35).setSize(100,15).setLabel("Size").setRange(1,100).setValue(20).moveTo(s1).getCaptionLabel().toUpperCase(false);
+      controller.addSlider("obs"+i+"_e").setPosition(5,55).setSize(100,15).setLabel("Thickness").setRange(1,100).setValue(50).moveTo(s1).getCaptionLabel().toUpperCase(false);
+      controller.addKnob("obs"+i+"_angle").setPosition(60,85).setResolution(100).setLabel("Angle").setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(25).moveTo(s1).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).toUpperCase(false);
+      RadioButton rb_obs_type = controller.addRadioButton("obs"+i+"_type").setPosition(5,90).setSize(20,20).setItemsPerRow(1).setSpacingColumn(30).addItem("O ("+i+")", 0).addItem("/ ("+i+")", 1).addItem("U ("+i+")", 2).activate(0).moveTo(s1);
       rb_obs_type.getItem(0).setLabel("O");
       rb_obs_type.getItem(1).setLabel("/");
       rb_obs_type.getItem(2).setLabel("U");
@@ -267,7 +284,7 @@ class ControlFrame extends PApplet {
     controller.addDropdownList("Select a obstacle").setPosition(40,10).setSize(150,100).setBarHeight(20).setItemHeight(15).close().onEnter(toFront).onLeave(close).moveTo(c3)
                                                    .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
     //Accordion
-    controller.addAccordion("accDefault").setPosition(0,20).setWidth(this.w).setMinItemHeight(50).setCollapseMode(Accordion.MULTI)
+    controller.addAccordion("accDefault").setPosition(0,40).setWidth(this.w).setMinItemHeight(50).setCollapseMode(Accordion.MULTI)
                 .addItem(c1).addItem(c2).addItem(c3).addItem(c0).open(3).bringToFront(c0);
                 
     for (int j = 0; j<controllerFlock.length; j++){
@@ -288,114 +305,124 @@ class ControlFrame extends PApplet {
       controllerFlock[j].getController("grid").getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).setPaddingX(0);
       controllerFlock[j].addBang("kill").setPosition(115,150).setSize(50,20).moveTo(g1);
       controllerFlock[j].getController("kill").getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).setPaddingX(0);
-      Group borders = controllerFlock[j].addGroup("Borders").setPosition(10,115).setBackgroundColor(color(0, 30)).setBackgroundHeight(58).setWidth(75).moveTo(g1);  
+      Group borders = controllerFlock[j].addGroup("Borders").setPosition(10,115).setBarHeight(15).setBackgroundColor(color(0, 30)).setBackgroundHeight(58).setWidth(75).moveTo(g1);  
+      borders.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       controllerFlock[j].addRadioButton("Borders type").setPosition(5,5).setSize(15,15).moveTo(borders)
                 .addItem("walls", 0).addItem("loops", 1).addItem("no_border", 2).activate(2);
       
       //Group 2 : Flowfield      
-      Group ff = controllerFlock[j].addGroup("Flowfield").setBackgroundColor(color(0, 64)).setBackgroundHeight(130).setBarHeight(20);
+      Group ff = controllerFlock[j].addGroup("Flowfield").setBackgroundColor(color(0, 64)).setBackgroundHeight(105).setBarHeight(20);
       ff.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addButton("show flowfield").setPosition(10,10).setLabel("show").setSize(35,35).setSwitch(true).setOff().moveTo(ff);      
-      controllerFlock[j].addButton("toggle flowfield").setPosition(10,60).setLabel("").setSize(10,10).setSwitch(true).setOff().moveTo(ff);      
-      controllerFlock[j].addSlider("ff_strength").setPosition(30,60).setLabel("strength").setRange(0.01,4).setValue(1.0).moveTo(ff);  
-      controllerFlock[j].addSlider("ff_speed").setPosition(30,75).setLabel("speed").setRange(0,10).setValue(1.0).moveTo(ff);  
+      controllerFlock[j].addButton("show flowfield").setPosition(30,10).setLabel("Show").setSize(50,35).setSwitch(true).setOff().moveTo(ff).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);;      
+      controllerFlock[j].addButton("toggle flowfield").setPosition(110,10).setLabel("Apply").setSize(50,35).setSwitch(true).setOff().moveTo(ff).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);;      
+      controllerFlock[j].addSlider("ff_strength").setPosition(10,60).setSize(120,15).setLabel("Strength").setRange(0.01,4).setValue(1.0).moveTo(ff).getCaptionLabel().toUpperCase(false);  
+      controllerFlock[j].addSlider("ff_speed").setPosition(10,80).setSize(120,15).setLabel("Speed").setRange(0,10).setValue(1.0).moveTo(ff).getCaptionLabel().toUpperCase(false);  
       
       //Group 5 : Forces
-      Group g5 = controllerFlock[j].addGroup("Forces").setBackgroundColor(color(0, 64)).setBackgroundHeight(230).setBarHeight(20); 
+      Group g5 = controllerFlock[j].addGroup("Forces").setBackgroundColor(color(0, 64)).setBackgroundHeight(300).setBarHeight(20); 
       g5.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addCheckBox("forceToggle").setPosition(10,10).setSize(9,9).setItemsPerRow(1).moveTo(g5)
-                .addItem("f",0).addItem("g",1).addItem("n",2).addItem("o",3).addItem(" ",4);
-      controllerFlock[j].addSlider("friction").setPosition(30,10).setRange(0.01,4).moveTo(g5);
-      controllerFlock[j].addSlider("gravity").setPosition(30,20).setRange(0.01,4).setValue(1.0).moveTo(g5);  
-      controllerFlock[j].addSlider("noise").setPosition(30,30).setRange(0.01,10).setValue(1.0).moveTo(g5);
-      controllerFlock[j].addSlider("origin").setPosition(30,40).setRange(0.01,4).setValue(1.0).moveTo(g5);
-      Group f = controllerFlock[j].addGroup("Flock").setBackgroundColor(color(0, 64)).setBackgroundHeight(65).setPosition(30,60).setWidth(100).moveTo(g5);  
-      controllerFlock[j].addCheckBox("flockForceToggle").setPosition(0,0).setSize(9,9).setItemsPerRow(1).moveTo(f)
+      controllerFlock[j].addCheckBox("forceToggle").setPosition(10,10).setSize(14,14).setItemsPerRow(1).moveTo(g5)
+                .addItem("f",0).addItem("g",1).addItem("n",2).addItem("o",3).addItem(" ",4).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("friction").setPosition(25,10).setSize(100,14).setRange(0.01,4).moveTo(g5).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("gravity").setPosition(25,25).setSize(100,14).setRange(0.01,4).setValue(1.0).moveTo(g5).getCaptionLabel().toUpperCase(false);  
+      controllerFlock[j].addSlider("noise").setPosition(25,40).setSize(100,14).setRange(0.01,10).setValue(1.0).moveTo(g5).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("origin").setPosition(25,55).setSize(100,14).setRange(0.01,4).setValue(1.0).moveTo(g5).getCaptionLabel().toUpperCase(false);
+      Group f = controllerFlock[j].addGroup("Flock").setBackgroundColor(color(0, 64)).setBarHeight(14).setBackgroundHeight(95).setPosition(25,85).setWidth(100).moveTo(g5);  
+      f.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      controllerFlock[j].addCheckBox("flockForceToggle").setPosition(0,0).setSize(14,14).setItemsPerRow(1).moveTo(f)
                 .addItem("s",0).addItem("a",1).addItem("c",2);
-      controllerFlock[j].addSlider("separation").setPosition(20,0).setSize(80,9).setRange(0.01,4).setValue(1.5).moveTo(f);
-      controllerFlock[j].addSlider("alignment").setPosition(20,10).setSize(80,9).setRange(0.01,4).setValue(1.0).moveTo(f);
-      controllerFlock[j].addSlider("cohesion").setPosition(20,20).setSize(80,9).setRange(0.01,4).setValue(1.0).moveTo(f);
-      controllerFlock[j].addSlider("sep_r").setPosition(20,32).setSize(80,9).setRange(1,1000).setValue(50).moveTo(f);
-      controllerFlock[j].addSlider("ali_r").setPosition(20,42).setSize(80,9).setRange(1,1000).setValue(100).moveTo(f);
-      controllerFlock[j].addSlider("coh_r").setPosition(20,52).setSize(80,9).setRange(1,1000).setValue(100).moveTo(f);
-      controllerFlock[j].addKnob("gravity_Angle").setPosition(70,135).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(20).moveTo(g5);
+      controllerFlock[j].addSlider("separation").setPosition(15,0).setSize(85,14).setRange(0.01,4).setValue(1.5).moveTo(f).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("alignment").setPosition(15,15).setSize(85,14).setRange(0.01,4).setValue(1.0).moveTo(f).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("cohesion").setPosition(15,30).setSize(85,14).setRange(0.01,4).setValue(1.0).moveTo(f).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("sep_r").setPosition(15,50).setSize(85,14).setRange(1,1000).setValue(50).moveTo(f).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("ali_r").setPosition(15,65).setSize(85,14).setRange(1,1000).setValue(100).moveTo(f).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("coh_r").setPosition(15,80).setSize(85,14).setRange(1,1000).setValue(100).moveTo(f).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addKnob("gravity_Angle").setLabel("Gravity angle").setPosition(70,195).setResolution(100).setRange(0,360).setAngleRange(2*PI).setStartAngle(0.5*PI).setRadius(20).moveTo(g5).getCaptionLabel().align(ControlP5.RIGHT_OUTSIDE, ControlP5.CENTER).toUpperCase(false);
       
-      controllerFlock[j].addCheckBox("parametersToggle").setPosition(10,200).setSize(9,9).setItemsPerRow(1).addItem("F",0).addItem("S",1).moveTo(g5);                       
-      controllerFlock[j].addSlider("maxforce").setPosition(30,200).setRange(0.01,1).setValue(1).moveTo(g5);
-      controllerFlock[j].addSlider("maxspeed").setPosition(30,210).setRange(0.01,20).setValue(20).moveTo(g5);
+      controllerFlock[j].addCheckBox("parametersToggle").setPosition(10,250).setSize(14,14).setItemsPerRow(1).addItem("F",0).addItem("S",1).moveTo(g5);                       
+      controllerFlock[j].addSlider("maxforce").setLabel("Max force").setPosition(25,250).setSize(100,14).setRange(0.01,1).setValue(1).moveTo(g5).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("maxspeed").setLabel("Max speed").setPosition(25,265).setSize(100,14).setRange(0.01,20).setValue(20).moveTo(g5).getCaptionLabel().toUpperCase(false);
       
        
       //Group 6 : Particle design
-      Group g6 = controllerFlock[j].addGroup("Particles design").setBackgroundColor(color(0, 64)).setBackgroundHeight(530).setBarHeight(20);
+      Group g6 = controllerFlock[j].addGroup("Particles design").setBackgroundColor(color(0, 64)).setBackgroundHeight(465).setBarHeight(20);
       g6.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addButton("is Spinning").setPosition(20,40).setSize(45,45).setSwitch(true).setOff().moveTo(g6); 
-      controllerFlock[j].addSlider("spin speed").setPosition(72,65).setSize(110,20).setRange(0.1,10).setValue(1.0).moveTo(g6).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).setPaddingX(0); 
+      controllerFlock[j].addButton("is Spinning").setLabel("Spin").setPosition(20,40).setSize(45,45).setSwitch(true).setOff().moveTo(g6).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
+      controllerFlock[j].addSlider("spin_speed").setLabel("Spin speed").setPosition(72,55).setSize(110,20).setRange(0.1,10).setValue(1.0).moveTo(g6).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).toUpperCase(false).setPaddingX(0); 
       
-      Group radius = controllerFlock[j].addGroup("Radius").setPosition(10,105).setBackgroundColor(color(0, 64)).setBackgroundHeight(290).setWidth(180).moveTo(g6);
-      controllerFlock[j].addButton("random r").setPosition(10,10).setSize(45,45).setSwitch(true).setOff().moveTo(radius); 
-      controllerFlock[j].addSlider("size").setPosition(62,25).setSize(110,20).setRange(0.1,500).setValue(2.0).moveTo(radius).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).setPaddingX(0); 
+      Group radius = controllerFlock[j].addGroup("Radius").setPosition(10,105).setBackgroundColor(color(0, 64)).setBackgroundHeight(290).setBarHeight(15).setWidth(180).moveTo(g6);
+      radius.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      controllerFlock[j].addButton("random r").setLabel("Random"+'\n'+'\t'+ "r").setPosition(10,10).setSize(45,45).setSwitch(true).setOff().moveTo(radius).getCaptionLabel().toUpperCase(false); 
+      controllerFlock[j].addSlider("size").setPosition(62,25).setSize(110,20).setRange(0.1,500).setValue(2.0).moveTo(radius).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).toUpperCase(false).setPaddingX(0); 
       controllerFlock[j].addRadioButton("boidMove").setPosition(10,65).setSize(15,15).setItemsPerRow(1).setSpacingRow(40).moveTo(radius)
                                                    .addItem("Constant",CONSTANT).addItem("Cloudy",CLOUDY).addItem("Shiny",SHINY).addItem("Noisy",NOISY).activate(CONSTANT); 
-      controllerFlock[j].addSlider("cloud_spreading").setPosition(20,140).setSize(100,15).setLabel("spreading").setRange(10,500).moveTo(radius);
-      controllerFlock[j].addSlider("shining_frequence").setPosition(20,195).setSize(100,10).setLabel("frequence").setRange(0.01,1).moveTo(radius);
-      controllerFlock[j].addSlider("shining_phase").setPosition(20,210).setSize(100,10).setLabel("phase").setNumberOfTickMarks(17).setRange(0,16).moveTo(radius);
-      controllerFlock[j].addSlider("strength_noise").setPosition(20,250).setSize(100,15).setLabel("noise").setRange(0.01,0.1).moveTo(radius);
+      controllerFlock[j].addSlider("cloud_spreading").setPosition(20,140).setSize(90,15).setLabel("Spreading").setRange(10,500).moveTo(radius).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("shining_frequence").setPosition(20,195).setSize(90,15).setLabel("Frequence").setRange(0.01,1).moveTo(radius).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("shining_phase").setPosition(20,211).setSize(90,15).setLabel("Phase").setNumberOfTickMarks(17).showTickMarks(false).setRange(0,16).moveTo(radius).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("strength_noise").setPosition(20,250).setSize(90,15).setLabel("Noise").setRange(0.01,0.1).moveTo(radius).getCaptionLabel().toUpperCase(false);
       
-      Group density = controllerFlock[j].addGroup("Density").setPosition(10,395).setBackgroundColor(color(0, 64)).setBackgroundHeight(30).setWidth(180).moveTo(g6);
-     
-      Group trail = controllerFlock[j].addGroup("Trail").setPosition(10,425).setBackgroundColor(color(0, 64)).setBackgroundHeight(60).setWidth(180).moveTo(g6);
-      controllerFlock[j].addSlider("trailLength").setLabel("length").setPosition(10,10).setRange(0,1000).setValue(0).moveTo(trail); 
+      Group density = controllerFlock[j].addGroup("Density").setPosition(10,395).setBackgroundColor(color(0, 64)).setBarHeight(15).setBackgroundHeight(30).setWidth(180).moveTo(g6);
+      density.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+
+      Group trail = controllerFlock[j].addGroup("Trail").setPosition(10,425).setBackgroundColor(color(0, 64)).setBarHeight(15).setBackgroundHeight(30).setWidth(180).moveTo(g6);
+      trail.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      controllerFlock[j].addSlider("trailLength").setLabel("Length").setPosition(10,10).setSize(100,15).setRange(0,1000).setValue(0).moveTo(trail).getCaptionLabel().toUpperCase(false); 
       
-      controllerFlock[j].addDropdownList("Select a type").setPosition(10,10).setSize(180,100).setBarHeight(15).onEnter(toFront).onLeave(close).close()
-                .addItem("Radial Gradiant 1", RADIAL_GRADIANT_1).addItem("Radial Gradiant 2", RADIAL_GRADIANT_2).addItem("Radial Gradiant 3", RADIAL_GRADIANT_3).addItem("Radial Gradiant 4", RADIAL_GRADIANT_4)
-                .addItem("Spray", SPRAY).addItem("Polished", POLISHED).addItem("Pearl", PEARL).addItem("Glass", GLASS).addItem("Wave", WAVE).addItem("Hair", HAIR)
-                .addItem("Circle", CIRCLE).addItem("Triangle", TRIANGLE).addItem("Letter", LETTER).addItem("Pixel", PIXEL)
-                .addItem("Leaf", LEAF).addItem("Bird", BIRD).moveTo(g6);
+      DropdownList ddl_type = controllerFlock[j].addDropdownList("Select a type").setPosition(10,10).setSize(180,100).setBarHeight(15).onEnter(toFront).onLeave(close).close();
+      ddl_type.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      ddl_type.addItem("Circle", CIRCLE).addItem("Triangle", TRIANGLE).addItem("Letter", LETTER).addItem("Pixel", PIXEL).addItem("Leaf", LEAF).addItem("Bird", BIRD).moveTo(g6);
+      for (int i = 0; i< texture_list.fichiers.length;i++){
+        String name_i = texture_list.fichiers[i].substring("/texture/texture_XX_".length(),texture_list.fichiers[i].length()-".png".length());
+        ddl_type.addItem(name_i,i+6);
+      }
       
       //Group Connections design        
       Group connex = controllerFlock[j].addGroup("Connections design").setBackgroundColor(color(0, 64)).setBackgroundHeight(100).setBarHeight(20);
       connex.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addButton("show links").setPosition(10,10).setLabel("show").setSize(35,35).setSwitch(true).setOff().moveTo(connex);
-      controllerFlock[j].addSlider("N_links").setPosition(35,55).setSize(100,15).setRange(1,30).setNumberOfTickMarks(30).showTickMarks(false).setValue(3).moveTo(connex);
-      controllerFlock[j].addSlider("d_max").setPosition(35,75).setSize(100,15).setRange(1,500).setValue(100).moveTo(connex); 
+      controllerFlock[j].addButton("show links").setPosition(10,10).setLabel("Show").setSize(35,35).setSwitch(true).setOff().moveTo(connex).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("N_links").setPosition(35,55).setSize(100,15).setRange(1,30).setNumberOfTickMarks(30).showTickMarks(false).setValue(3).moveTo(connex).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("d_max").setPosition(35,75).setSize(100,15).setRange(1,500).setValue(100).moveTo(connex).getCaptionLabel().toUpperCase(false); 
       controllerFlock[j].addDropdownList("Select a connection").setPosition(55,20).setSize(135,100).onEnter(toFront).onLeave(close).setBarHeight(15).close()
-                .addItem("Mesh", 0).addItem("Queue", 1).moveTo(connex);
+                .addItem("Mesh", 0).addItem("Queue", 1).moveTo(connex).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       
       //Group 7 Symmetry
       Group g7 = controllerFlock[j].addGroup("Symmetry").setBackgroundColor(color(0, 64)).setBackgroundHeight(60).setBarHeight(20);  
       g7.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addSlider("symmetry").setPosition(10,10).setSize(120,30).setNumberOfTickMarks(12).setRange(1,12).setValue(1).moveTo(g7);
+      controllerFlock[j].addSlider("symmetry").setLabel("Symmetry").setPosition(10,10).setSize(120,30).setNumberOfTickMarks(12).setRange(1,12).setValue(1).moveTo(g7).getCaptionLabel().toUpperCase(false);
       
       //Group 8 : Colors
-      Group g8 = controllerFlock[j].addGroup("Colors").setBackgroundColor(color(0, 64)).setBackgroundHeight(280).setBarHeight(20);  
+      Group g8 = controllerFlock[j].addGroup("Colors").setBackgroundColor(color(0, 64)).setBackgroundHeight(285).setBarHeight(20);  
       g8.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addColorWheel("particleColor",10,10,180).setRGB(color(255)).moveTo(g8).setSaturation(100);           
-      controllerFlock[j].addSlider("contrast").setPosition(10,220).setRange(0,200).setValue(0).moveTo(g8);
-      controllerFlock[j].addSlider("red").setPosition(10,230).setRange(0,200).setValue(0).moveTo(g8);
-      controllerFlock[j].addSlider("green").setPosition(10,240).setRange(0,200).setValue(0).moveTo(g8);
-      controllerFlock[j].addSlider("blue").setPosition(10,250).setRange(0,200).setValue(0).moveTo(g8);
-      controllerFlock[j].addSlider("alpha").setPosition(10,260).setRange(0,255).setValue(100).moveTo(g8); 
+      controllerFlock[j].addColorWheel("particleColor",10,10,180).setLabel("Particle color").setRGB(color(255)).moveTo(g8).getCaptionLabel().align(ControlP5.CENTER, ControlP5.BOTTOM).setColor(color(0)).toUpperCase(false);           
+      controllerFlock[j].addSlider("contrast").setPosition(10,200).setSize(100,14).setRange(0,200).setValue(0).moveTo(g8).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("red").setPosition(10,215).setSize(100,14).setRange(0,200).setValue(0).moveTo(g8).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("green").setPosition(10,230).setSize(100,14).setRange(0,200).setValue(0).moveTo(g8).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("blue").setPosition(10,245).setSize(100,14).setRange(0,200).setValue(0).moveTo(g8).getCaptionLabel().toUpperCase(false);
+      controllerFlock[j].addSlider("alpha").setPosition(10,260).setSize(100,14).setRange(0,255).setValue(100).moveTo(g8).getCaptionLabel().toUpperCase(false); 
      
       //Preset
       Group g_preset = controllerFlock[j].addGroup("Preset").setPosition(0,30).setBackgroundColor(color(0,64)).setBackgroundHeight(70).setWidth(200).setBarHeight(20);  
       g_preset.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addBang("load").setPosition(130,25).setSize(20,20).moveTo(g_preset);
-      controllerFlock[j].addBang("save").setPosition(160,25).setSize(20,20).moveTo(g_preset);
-      DropdownList ddl = controllerFlock[j].addDropdownList("Select a preset").setPosition(10,25).setSize(110,100).setBarHeight(20).onEnter(toFront).onLeave(close).setItemHeight(15).close().moveTo(g_preset);
-      for (int i = 0; i< presetNames.fichiers.length;i++)
-        ddl.addItem(presetNames.fichiers[i],i);
+      controllerFlock[j].addBang("load").setLabel("Load").setPosition(130,25).setSize(25,25).moveTo(g_preset).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      controllerFlock[j].addBang("save").setLabel("Save").setPosition(165,25).setSize(25,25).moveTo(g_preset).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      DropdownList ddl = controllerFlock[j].addDropdownList("Select a preset").setPosition(10,25).setSize(110,100).setBarHeight(25).onEnter(toFront).onLeave(close).setItemHeight(15).close().moveTo(g_preset);
+      ddl.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      for (int i = 0; i< presetNames.fichiers.length;i++){
+        String name_i = presetNames.fichiers[i].substring("/preset/".length(),presetNames.fichiers[i].length()-".json".length());
+        ddl.addItem(name_i,i);
+      }
         
       //Accordion
-      controllerFlock[j].addAccordion("acc").setPosition(0,20).setWidth(this.w).setMinItemHeight(20).setCollapseMode(Accordion.MULTI)
+      controllerFlock[j].addAccordion("acc").setPosition(0,40).setWidth(this.w).setMinItemHeight(20).setCollapseMode(Accordion.MULTI)
                 .addItem(g1).addItem(ff).addItem(g5).addItem(g6).addItem(connex).addItem(g7).addItem(g8).open(0,7).addItem(g_preset).bringToFront(g_preset);     
     }
     
     for (int j = 0; j<controllerFlock.length; j++){
       controller.addTab("Flock "+j);
       controllerFlock[j].get(Accordion.class, "acc").moveTo(controller.getTab("Flock "+j));
-      controller.getTab("Flock "+j).getCaptionLabel().align(ControlP5.LEFT, ControlP5.CENTER).toUpperCase(false);
+      controller.getTab("Flock "+j).setWidth(46).setHeight(39).getCaptionLabel().align(ControlP5.CENTER-10, ControlP5.CENTER).toUpperCase(false);
     } 
-    controller.getTab("default").setLabel("Tools").getCaptionLabel().align(ControlP5.LEFT, ControlP5.CENTER).toUpperCase(false);
+    controller.getTab("default").setWidth(46).setHeight(39).setLabel("Tools").getCaptionLabel().align(ControlP5.CENTER-10, ControlP5.CENTER).toUpperCase(false);
 
   }
   
@@ -443,7 +470,7 @@ class ControlFrame extends PApplet {
            s.apply[j] = controller.get(Button.class,"s"+i+"_f"+j).isOn();
        }
        if(theEvent.isFrom(controller.getController("src"+i+"_size"))) { 
-         s.r = controller.getController("src"+i+"_size").getValue(); 
+         s.r = map(controller.getController("src"+i+"_size").getValue(),0,100,0,0.5*parent.width); 
          s.rSq = s.r*s.r; 
        }
        if(theEvent.isFrom(controller.getController("src"+i+"_outflow"))){ 
@@ -514,8 +541,13 @@ class ControlFrame extends PApplet {
          if(theEvent.isFrom(controller.getController("o"+i+"_f"+j)))
            o.apply[j] = controller.get(Button.class,"o"+i+"_f"+j).isOn();
        }
-       if(theEvent.isFrom(controller.getController("obs"+i+"_size"))) { o.r = controller.getController("obs"+i+"_size").getValue(); o.rSq = o.r*o.r; }
+       if(theEvent.isFrom(controller.getController("obs"+i+"_size"))) { 
+         o.r = map(controller.getController("obs"+i+"_size").getValue(),0,100,0,0.5*parent.width); 
+         o.rSq = o.r*o.r; 
+         o.e = map(controller.getController("obs"+i+"_e").getValue(),0,100,0,o.r);
+     }
        if(theEvent.isFrom(controller.getController("obs"+i+"_angle"))) o.angle = radians(controller.getController("obs"+i+"_angle").getValue());
+       if(theEvent.isFrom(controller.getController("obs"+i+"_e"))) o.e = map(controller.getController("obs"+i+"_e").getValue(),0,100,0,o.r);
      }
      if(theEvent.isFrom(controller.get(DropdownList.class,"Select a obstacle"))){ 
        for (int i =0; i< obstacles.size(); i++){
@@ -550,6 +582,7 @@ class ControlFrame extends PApplet {
         cp5.get(Textfield.class, "save as").show();
         cp5.get(Textfield.class, "save as").keepFocus(true);
         cp5TabToSave = j;
+        parent.focusGained();
       }
       if(theEvent.isFrom(controllerFlock[j].get(DropdownList.class, "Select a preset"))){
         selectedPreset = controllerFlock[j].get(DropdownList.class, "Select a preset").getValue();
@@ -568,7 +601,7 @@ class ControlFrame extends PApplet {
       if(theEvent.isFrom(controllerFlock[j].get(Button.class,"show flowfield"))){
         flocks[j].flowfield.isVisible = controllerFlock[j].get(Button.class,"show flowfield").isOn();
         controllerFlock[j].get(Button.class,"show flowfield").setLabel(
-           controllerFlock[j].get(Button.class,"show flowfield").isOn() ? "hide" : "show");
+           controllerFlock[j].get(Button.class,"show flowfield").isOn() ? "Hide" : "Show");
       }      
       if(theEvent.isFrom(controllerFlock[j].get(Button.class,"toggle flowfield")))
         flocks[j].flowfield.isActivated = controllerFlock[j].get(Button.class,"toggle flowfield").isOn();
@@ -603,7 +636,7 @@ class ControlFrame extends PApplet {
       if(theEvent.isFrom(controllerFlock[j].get(Button.class,"show links"))){
         flocks[j].connectionsDisplayed = controllerFlock[j].get(Button.class,"show links").isOn();
         controllerFlock[j].get(Button.class,"show links").setLabel(
-           controllerFlock[j].get(Button.class,"show links").isOn() ? "hide" : "show");
+           controllerFlock[j].get(Button.class,"show links").isOn() ? "Hide" : "Show");
       }
       if(theEvent.isFrom(controllerFlock[j].get(DropdownList.class,"Select a connection"))){
         flocks[j].connectionsType = int(controllerFlock[j].get(DropdownList.class,"Select a connection").getValue());
@@ -643,7 +676,7 @@ class ControlFrame extends PApplet {
 
        //Particles design 
         if(theEvent.isFrom(controllerFlock[j].getController("is Spinning")))     b.isSpinning = controllerFlock[j].get(Button.class,"is Spinning").getBooleanValue();
-        if(theEvent.isFrom(controllerFlock[j].getController("spin speed")))     b.spinSpeed = theEvent.getController().getValue();        
+        if(theEvent.isFrom(controllerFlock[j].getController("spin_speed")))     b.spinSpeed = theEvent.getController().getValue();        
         if(theEvent.isFrom(controllerFlock[j].getController("random r")))     b.random_r = controllerFlock[j].get(Button.class,"random r").getBooleanValue();
         if(theEvent.isFrom(controllerFlock[j].getController("size")))     b.size = theEvent.getController().getValue();
         if(theEvent.isFrom(controllerFlock[j].get(RadioButton.class,"boidMove"))) b.boidMove = int(controllerFlock[j].get(RadioButton.class,"boidMove").getValue());

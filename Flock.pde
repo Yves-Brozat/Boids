@@ -387,7 +387,7 @@ class Flock {
       for(Boid b : boids){
         if (b.position.x < -b.r*b.size) b.position.x = width+b.r*b.size;
         if (b.position.y < -b.r*b.size) b.position.y = height+b.r*b.size;
-        if (b.position.x > width+b.r*b.size) b.position.x = b.r*b.size;
+        if (b.position.x > width+b.r*b.size) b.position.x = -b.r*b.size;
         if (b.position.y > height+b.r*b.size) b.position.y = -b.r*b.size;
       }
       break;
@@ -409,7 +409,7 @@ class Flock {
       case PIXEL : bornList.add(new PixelBoid(x, y, vx, vy, index)); break;
       case LEAF : bornList.add(new AnimationBoid(x, y, vx, vy, index, texture_Leaf)); break;
       case BIRD : bornList.add(new AnimationBoid(x, y, vx, vy, index, texture_Bird)); break;
-      default : bornList.add(new ImageBoid(x, y, vx, vy, index, texture[boidType])); break;
+      default : bornList.add(new ImageBoid(x, y, vx, vy, index, texture[boidType-6])); break;
     }
   }
   

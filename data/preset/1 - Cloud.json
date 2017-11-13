@@ -1,5 +1,6 @@
 {
   "is Spinning" : false,
+  "spin_speed" : 1,
   "strength_noise": 0.009999999776482582,
   "boidMove": 1,
   "borderType": 1,
