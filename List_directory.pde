@@ -12,7 +12,6 @@ class List_directory {
    this.extension=extension;
    fichiers = listFileNames(dataPath("")+dossier, extension);
    nb_items=fichiers.length;
-   println(fichiers.length + "elements");
  }
  
  // listage le contenu d'un dossier en ne prenant que les extensions fournies -------------------------

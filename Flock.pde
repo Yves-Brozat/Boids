@@ -39,7 +39,7 @@ class Flock {
     bornList = new ArrayList<Boid>();
     
     setAlphabet();
-    flowfield = new FlowField(20);
+    flowfield = new FlowField(i);
     
     loadPreset(preset.get(0),cf.controllerFlock[index]);
     d_maxSq = d_max*d_max;
@@ -424,6 +424,13 @@ class Flock {
     }
   }
   
+  void mouseDragged(){
+    if(cf.controllerFlock[index].get(Button.class,"Draw particles").isOn()){
+      addBoid(mouseX,mouseY, 0, 0);
+      bornList.get(bornList.size()-1).mortal = false; 
+    }
+  }  
+  
   void createGrid(int x, int y){
     for(int i = 0; i<x; i++){
       for(int j = 0; j<y; j++){
@@ -502,4 +509,6 @@ class Flock {
     cf.updateControllerValues(preset, c);
     this.updateParameters(preset);
   }
+  
+
 }

@@ -43,8 +43,10 @@ abstract class Boid {
   float k_density;  // Global coefficient to increase/decrease density of all particles 
   float trailLength;  //static or brushable
   ArrayList<PVector> history; 
+  ArrayList<Float> history_angle; 
   boolean isSpinning;
   float spinSpeed;
+  float angle;
   
   //Colors
   color c;
@@ -66,6 +68,8 @@ abstract class Boid {
     
     r = 1;
     history = new ArrayList<PVector>();  
+    angle = 0;
+    history_angle = new ArrayList<Float>();  
     density = 1.0;
    
     xoff = random(0,10);
@@ -163,8 +167,10 @@ abstract class Boid {
   void savePosition(){    
     while (history.size() > trailLength) {
       history.remove(0);
+      history_angle.remove(0);
     }
     history.add(new PVector(position.x,position.y));    
+    history_angle.add(angle);    
   }
   
   // Method to update position
@@ -195,7 +201,6 @@ abstract class Boid {
 
   void follow(FlowField flow){
     PVector desired = flow.getVector(position);
-    desired.mult(flow.strength);
     desired.sub(velocity);
     if (paramToggle[0])  desired.limit(maxforce);
     sumForces.add(desired);
@@ -252,12 +257,12 @@ abstract class Boid {
   
   void draw(ArrayList<Boid> boids){
     c = getColor();
-    float angle = (isSpinning ? random*TWO_PI+(0.02*spinSpeed*frameCount)%TWO_PI : velocity.heading() + HALF_PI);
+    angle = (isSpinning ? random*TWO_PI+(0.02*spinSpeed*frameCount)%TWO_PI : velocity.heading() + HALF_PI);
     r = getR(boids);
     draw(position.x, position.y, r*size, angle, alpha);
     if(history.size() > 0){
       for (int i=0; i< history.size(); i++)
-        draw(history.get(i).x, history.get(i).y, map(i,0,history.size(),0,r*size), angle, map(i,0,history.size(),0,alpha));
+        draw(history.get(i).x, history.get(i).y, map(i,0,history.size(),0,r*size), history_angle.get(i), map(i,0,history.size(),0,alpha));
     }
   }
   

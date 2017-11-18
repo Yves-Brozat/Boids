@@ -313,6 +313,8 @@ void displayFrameRate(){
 void mouseDragged(){   
   for (Brush b : brushes)
     b.mouseDragged();
+  for (Flock f : flocks)
+    f.mouseDragged();
 }
 
 void mousePressed(){
