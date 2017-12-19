@@ -81,6 +81,8 @@ final int POINT = 0;
 final int LINE = 1;
 final int BOWL = 2;
 
+final int GUI_WIDTH = 200;
+
 OscP5 osc;
 ControlFrame cf;
 List_directory presetNames;
@@ -96,10 +98,10 @@ ArrayList<Brush> brushes;
 ArrayList<Magnet> magnets;
 ArrayList<Obstacle> obstacles;
 ArrayList<Source> sources;
-int blendMode;
 
 
 //Data
+boolean isLoading = true;
 PImage[] texture;
 List_directory texture_list;
 PImage[] texture_Leaf;
@@ -112,9 +114,7 @@ PImage flowfield_Sil;
 
 PFont pfont;
 
-
-
-void settings(){
+void loadData(){
   //Data loading
   texture_list = new List_directory("/texture", "png");
   texture = new PImage[texture_list.nb_items];
@@ -134,35 +134,64 @@ void settings(){
   flowfield_Sil = loadImage("/flowfield/flowfield_Sil.png");
 
   pfont = loadFont("/font/MalgunGothic-Semilight-12.vlw"); // use true/false for smooth/no-smooth
-  cf = new ControlFrame(this, 200, 703, "Controls");
+
   presetNames = new List_directory("/preset","json");
   preset = new ArrayList<JSONObject>();
   for (int i = 0; i<presetNames.fichiers.length; i++)
-    preset.add(loadJSONObject(presetNames.fichiers[i]));
-  size(1366 - cf.w,703,P2D);
+    preset.add(loadJSONObject(presetNames.fichiers[i]));  
+  cf = new ControlFrame(this, GUI_WIDTH, 703, "Controls");
+       
+  isLoading = false;
 }
 
-void setup(){ 
+void settings(){
+  size(1366 - GUI_WIDTH,703,P2D);
+
   brushes = new ArrayList<Brush>();
   magnets = new ArrayList<Magnet>();
   obstacles = new ArrayList<Obstacle>();
   sources = new ArrayList<Source>();
+    
+  loadData();
+}
+
+void setup(){ 
   flocks = new Flock[3];
   for (int i = 0 ; i< flocks.length; i++)
     flocks[i] = new Flock(i);
-
-  surface.setLocation(cf.w,0);
-  osc = new OscP5(this,12000);
-  //sablier.resize(400,703);
+    
+  //TO MOVE INTO ControlFrame
   cp5 = new ControlP5(this);
   cp5.addTextfield("save as").setPosition(0.5*width,0.5*height).setSize(100,20).setFocus(true).hide();
 
+  //OSC INITIALIZATION
+  osc = new OscP5(this,12000);
+  //MIDI INITIALIZATION
   MidiBus.list();
   bus = new MidiBus(this, 0, 1);
-  blendMode = 0;
   
+  surface.setLocation(cf.w,0);  
   surface.setResizable(true);
 }
+
+void draw(){
+  if (isLoading){
+    stroke(255);
+    text("LOADING",0.5*width,0.5*height);
+  }
+  else{
+    for (int i = 0; i< flocks.length; i++){
+      flocks[i].run();
+      flocks[i].flowfield.run();
+    }
+    for (Brush b : brushes)
+       b.run(); 
+    
+    String rec = record();
+    surface.setTitle("[FPS : " + int(frameRate)+"] ["+ rec+"]");
+  }
+}
+
 void savePreset(int i, String name){
    JSONObject newPreset = new JSONObject();
    newPreset.setFloat("maxforce",cf.controllerFlock[i].getController("maxforce").getValue());
@@ -184,7 +213,6 @@ void savePreset(int i, String name){
    newPreset.setFloat("gravity",cf.controllerFlock[i].getController("gravity").getValue());
    newPreset.setFloat("gravity_angle",cf.controllerFlock[i].getController("gravity_Angle").getValue());
    newPreset.setFloat("size",cf.controllerFlock[i].getController("size").getValue());
-   newPreset.setBoolean("random_r", cf.controllerFlock[i].get(Button.class,"random r").getBooleanValue());
    newPreset.setFloat("alpha",cf.controllerFlock[i].getController("alpha").getValue());
    newPreset.setFloat("d_max",cf.controllerFlock[i].getController("d_max").getValue());
    newPreset.setFloat("maxConnections",cf.controllerFlock[i].getController("N_links").getValue());
@@ -200,8 +228,11 @@ void savePreset(int i, String name){
    newPreset.setInt("connectionsType",int(cf.controllerFlock[i].get(DropdownList.class, "Select a connection").getValue()));
    newPreset.setInt("boidMove",int(cf.controllerFlock[i].get(RadioButton.class,"boidMove").getValue()));
    newPreset.setBoolean("connectionsDisplayed", cf.controllerFlock[i].get(Button.class,"show links").getBooleanValue());
+   newPreset.setBoolean("particlesDisplayed", cf.controllerFlock[i].get(Button.class,"show particles").getBooleanValue());
    newPreset.setFloat("ff_strength", cf.controllerFlock[i].getController("ff_strength").getValue());
    newPreset.setFloat("spin_speed", cf.controllerFlock[i].getController("spin_speed").getValue());
+   newPreset.setBoolean("random_r", cf.controllerFlock[i].get(Button.class,"random r").getBooleanValue());
+   newPreset.setBoolean("is Spinning", cf.controllerFlock[i].get(Button.class,"is Spinning").getBooleanValue());
    
    JSONArray parametersToggle = new JSONArray();
    for (int j = 0; j< cf.controllerFlock[i].get(CheckBox.class, "parametersToggle").getArrayValue().length; j++)
@@ -260,54 +291,13 @@ void YB(){
   }
 }
 
-void setBlendMode(int i){
-  switch(i){
-    case 0 : blendMode(BLEND); break;
-    case 1 : blendMode(ADD); break;
-    case 2 : blendMode(SUBTRACT); break;
-    case 3 : blendMode(DARKEST); break;
-    case 4 : blendMode(LIGHTEST); break;
-    case 5 : blendMode(DIFFERENCE); break;
-    case 6 : blendMode(EXCLUSION); break;
-    case 7 : blendMode(MULTIPLY); break;
-    case 8 : blendMode(SCREEN); break;
-    case 9 : blendMode(REPLACE); break;
-  }
-}
-
-void draw(){
-  background(backgroundColor);
-  setBlendMode(blendMode);
-  for (int i = 0; i< flocks.length; i++){
-    flocks[i].run();
-    flocks[i].flowfield.run();
-  }
-  for (Brush b : brushes)
-     b.run(); 
-  
-  record();
-  displayFrameRate();
-}
-
-void record(){
+String record(){
   if(isRecording){
     saveFrame("output/accelerometer_####.png");
-    fill(255,0,0);
+    return "isRecording";
   }
   else
-    noFill();
-  strokeWeight(1);
-  stroke(255,0,0);
-  ellipse(width-15,15,10,10);
-}
-
-void displayFrameRate(){
-  textAlign(RIGHT);
-  textSize(12);
-  if(cf.controller.get(ColorWheel.class,"backgroundColor").getRGB() != -16777216)
-    fill(0);
-  else fill(255);
-  text(frameRate,width-30,15);
+    return "Press SPACE to record";
 }
 
 void mouseDragged(){   
@@ -325,6 +315,11 @@ void mousePressed(){
 void mouseReleased(){
   for (Brush b : brushes)
     b.mouseReleased();
+}
+
+void mouseClicked(){
+  for (Flock f : flocks)
+    f.mouseClicked();  
 }
 
 void keyPressed(){
@@ -384,6 +379,15 @@ void oscEvent(OscMessage theOscMessage) {
   //    }
   //  }
   //}
+  if(theOscMessage.checkAddrPattern("/impulsion")==true) {
+    println("OK");
+    String x = theOscMessage.get(0).stringValue();
+    String y = theOscMessage.get(1).stringValue();
+    //sources.get(0).position
+    println(y);
+
+  }
+
   if(theOscMessage.checkAddrPattern("/accelerometer")==true) {
     if(theOscMessage.checkTypetag("fff")) {
       //float x = theOscMessage.get(0).floatValue();

@@ -31,9 +31,10 @@ abstract class Brush{
   
   void update(){
     if (isSelected && mousePressed){
-      PVector oldPosition = position.copy();
+      //PVector oldPosition = position.copy();
       position.set(mouseX,mouseY);
-      velocity = PVector.sub(position,oldPosition);
+      //velocity = PVector.sub(position,oldPosition);
+      velocity.set(pmouseX,pmouseY);
     }
   }
   

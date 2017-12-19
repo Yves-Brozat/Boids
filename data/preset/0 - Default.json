@@ -7,6 +7,7 @@
 	"boidMove" : 0,
 	"connectionsType" : 0,
 	"connectionsDisplayed" : false,
+	"particlesDisplayed" : true,
 	"forceToggle" : [
 		false,
 		false,

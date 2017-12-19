@@ -255,18 +255,18 @@ abstract class Boid {
     return _r;
   }
   
-  void draw(ArrayList<Boid> boids){
+  void draw(PGraphics f, ArrayList<Boid> boids){
     c = getColor();
     angle = (isSpinning ? random*TWO_PI+(0.02*spinSpeed*frameCount)%TWO_PI : velocity.heading() + HALF_PI);
     r = getR(boids);
-    draw(position.x, position.y, r*size, angle, alpha);
+    draw(f, position.x, position.y, r*size, angle, alpha);
     if(history.size() > 0){
       for (int i=0; i< history.size(); i++)
-        draw(history.get(i).x, history.get(i).y, map(i,0,history.size(),0,r*size), history_angle.get(i), map(i,0,history.size(),0,alpha));
+        draw(f, history.get(i).x, history.get(i).y, map(i,0,history.size(),0,r*size), history_angle.get(i), map(i,0,history.size(),0,alpha));
     }
   }
   
-  abstract void draw(float x, float y, float r, float theta, float alpha);
+  abstract void draw(PGraphics f, float x, float y, float r, float theta, float alpha);
   
   void sortNeighboors(ArrayList<Boid> boids){  
     java.util.Collections.sort(boids,  new java.util.Comparator<Boid>() {
@@ -333,18 +333,18 @@ class TriangleBoid extends Boid {
     super(x,y,vx,vy,i);
   }
   
-  void draw(float x, float y, float r, float theta, float alpha){
-    pushMatrix();
-    translate(x, y);
-    rotate(theta);
-    fill(c,alpha);
-    noStroke();
-    beginShape(TRIANGLES);
-    vertex(0, -0.73*r);
-    vertex(-r, r);
-    vertex(r, r);
-    endShape();
-    popMatrix();
+  void draw(PGraphics f, float x, float y, float r, float theta, float alpha){
+    f.pushMatrix();
+    f.translate(x, y);
+    f.rotate(theta);
+    f.fill(c,alpha);
+    f.noStroke();
+    f.beginShape(TRIANGLES);
+    f.vertex(0, -0.73*r);
+    f.vertex(-r, r);
+    f.vertex(r, r);
+    f.endShape();
+    f.popMatrix();
   }
 }
 
@@ -354,10 +354,10 @@ class PixelBoid extends Boid {
     super(x,y,vx,vy,i);
   }
   
-  void draw(float x, float y, float r, float theta, float alpha){
+  void draw(PGraphics f, float x, float y, float r, float theta, float alpha){
     if(0 <= y && y < height && 0 <= x && x < width){
       color pixelColor = (c & 0xffffff) | ((int)alpha << 24);  // color pixelColor = color(c,alpha); doesn't work
-      pixels[width*int(y) + int(x)] = pixelColor;
+      f.pixels[width*int(y) + int(x)] = pixelColor;
     }
   }
 }
@@ -370,15 +370,15 @@ class LetterBoid extends Boid {
     super(x,y,vx,vy,i);
   }
   
-  void draw(float x, float y, float r, float theta, float alpha){
-    pushMatrix(); 
-    translate(x, y);
-    rotate(theta);
-    fill(c,alpha);
-    noStroke();
-    textSize(2*r);
-    text(letter,0,0);
-    popMatrix();
+  void draw(PGraphics f, float x, float y, float r, float theta, float alpha){
+    f.pushMatrix(); 
+    f.translate(x, y);
+    f.rotate(theta);
+    f.fill(c,alpha);
+    f.noStroke();
+    f.textSize(2*r);
+    f.text(letter,0,0);
+    f.popMatrix();
   }
 }
 
@@ -388,10 +388,10 @@ class CircleBoid extends Boid {
     super(x,y,vx,vy,i);
   }
   
-  void draw(float x, float y, float r, float theta, float alpha){
-    fill(c,alpha);
-    noStroke();
-    ellipse(x, y, 2*r, 2*r);
+  void draw(PGraphics f, float x, float y, float r, float theta, float alpha){
+    f.fill(c,alpha);
+    f.noStroke();
+    f.ellipse(x, y, 2*r, 2*r);
   } 
 }
 
@@ -404,14 +404,14 @@ class ImageBoid extends Boid {
     image = img;
   }
   
-  void draw(float x, float y, float r, float theta, float alpha){
-    pushMatrix();
-    imageMode(CENTER);
-    tint(c,alpha);
-    translate(x,y);
-    rotate(theta - HALF_PI);
-    image(image,0,0,2*r,2*r);
-    popMatrix();
+  void draw(PGraphics f, float x, float y, float r, float theta, float alpha){
+    f.pushMatrix();
+    f.imageMode(CENTER);
+    f.tint(c,alpha);
+    f.translate(x,y);
+    f.rotate(theta - HALF_PI);
+    f.image(image,0,0,2*r,2*r);
+    f.popMatrix();
   } 
 }
 
@@ -427,17 +427,17 @@ class AnimationBoid extends Boid {
     frame = int(random(0,images.length));
   }
   
-  void draw(float x, float y, float r, float theta, float alpha){
-    pushMatrix();
-    imageMode(CENTER);
-    translate(x,y);
-    rotate(theta - HALF_PI);
-    tint(c,alpha);
+  void draw(PGraphics f, float x, float y, float r, float theta, float alpha){
+    f.pushMatrix();
+    f.imageMode(CENTER);
+    f.translate(x,y);
+    f.rotate(theta - HALF_PI);
+    f.tint(c,alpha);
     int animationSpeed = int(constrain(map(velocity.magSq(),0, 25, 10, 1),1,10));
     if (frameCount%animationSpeed == 0)
       frame = (frame+1) % images.length;
-    image(images[frame], 0, 0, r, r);
-    popMatrix();
+    f.image(images[frame], 0, 0, r, r);
+    f.popMatrix();
   } 
 }
 

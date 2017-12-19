@@ -5,6 +5,7 @@
   "boidMove": 1,
   "borderType": 1,
   "connectionsDisplayed" : false,
+  "particlesDisplayed" : true,
   "gravity_angle": 273.5999755859375,
   "connectionsType": 0,
   "parametersToggle": [

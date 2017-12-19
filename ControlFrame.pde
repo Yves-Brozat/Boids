@@ -158,7 +158,9 @@ class ControlFrame extends PApplet {
    c.getController("blue").setValue(preset.getInt("randomBlue"));
    c.getController("size").setValue(preset.getFloat("size"));
    if(preset.getBoolean("connectionsDisplayed"))  c.get(Button.class,"show links").setOn();
-   else  c.get(Button.class,"show links").setOff();    
+   else  c.get(Button.class,"show links").setOff();   
+   if(preset.getBoolean("particlesDisplayed"))  c.get(Button.class,"show particles").setOn();
+   else  c.get(Button.class,"show particles").setOff();   
    if(preset.getBoolean("random_r"))  c.get(Button.class,"random r").setOn();
    else  c.get(Button.class,"random r").setOff(); 
    c.get(DropdownList.class,"Select a type").setValue(preset.getInt("boidType"));
@@ -181,6 +183,7 @@ class ControlFrame extends PApplet {
    if(preset.getBoolean("is Spinning"))  c.get(Button.class,"is Spinning").setOn();
    else  c.get(Button.class,"is Spinning").setOff();
    c.getController("spin_speed").setValue(preset.getFloat("spin_speed"));
+   c.getController("ff_strength").setValue(preset.getFloat("ff_strength"));
    
   }
   
@@ -221,9 +224,6 @@ class ControlFrame extends PApplet {
     controller.addColorWheel("backgroundColor",10,10,180).setLabel("Background Color").setRGB(color(0)).plugTo(parent, "backgroundColor").moveTo(c0).getCaptionLabel().align(ControlP5.CENTER, ControlP5.BOTTOM).toUpperCase(false);
     controller.addBang("Black&White").setLabel("Black & White").setPosition(10,210).setSize(85,20).moveTo(c0).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
     controller.addButton("Show brushes").setPosition(105,210).setSize(85,20).setSwitch(true).setOff().moveTo(c0).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-    controller.addDropdownList("Select a blendMode").setPosition(25,250).setSize(150,100).setBarHeight(20).setItemHeight(20).setHeight(20*11).close().moveTo(c0).onEnter(toFront).onLeave(close)
-              .addItem("blend",0).addItem("add",1).addItem("subtract",2).addItem("darkest",3).addItem("lightest",4).addItem("difference",5).addItem("exclusion",6).addItem("multiply",7).addItem("screen",8).addItem("replace",9)
-              .getCaptionLabel().align(ControlP5.CENTER, ControlP5.BOTTOM).toUpperCase(false);
     
     //Group 1 : Sources  
     Group c1 = controller.addGroup("Sources").setBackgroundColor(color(0, 64)).setBackgroundHeight(50).setBarHeight(20);
@@ -301,7 +301,7 @@ class ControlFrame extends PApplet {
     for (int j = 0; j<controllerFlock.length; j++){
       
       //Group 1 : Global parameters
-      Group g1 = controllerFlock[j].addGroup("Global physical parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(220).setBarHeight(20);
+      Group g1 = controllerFlock[j].addGroup("Global physical parameters").setBackgroundColor(color(0, 64)).setBackgroundHeight(310).setBarHeight(20);
       g1.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       controllerFlock[j].addSlider("N").setPosition(115,20).setSize(50,130).setNumberOfTickMarks(6).snapToTickMarks(false).setRange(0,1000).moveTo(g1);
       controllerFlock[j].getController("N").getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).setPaddingX(0);
@@ -321,6 +321,12 @@ class ControlFrame extends PApplet {
       controllerFlock[j].addRadioButton("Borders type").setPosition(5,5).setSize(15,15).moveTo(borders)
                 .addItem("[ - ]", WALLS).addItem(">->", LOOPS).addItem("<->", NOBORDER).activate(2);
       controllerFlock[j].addButton("Draw particles").setPosition(10,185).setSize(180,30).setSwitch(true).setOff().moveTo(g1).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
+      controllerFlock[j].addBang("Erase").setPosition(10,220).setSize(180,30).moveTo(g1).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
+      controllerFlock[j].addSlider("background alpha").setPosition(10,255).setSize(120,15).setLabel("alpha").setRange(0,255).setValue(0).setNumberOfTickMarks(256).showTickMarks(false).moveTo(g1).getCaptionLabel().toUpperCase(false);  
+      controllerFlock[j].addDropdownList("Select a blendMode").setPosition(25,275).setSize(150,100).setBarHeight(20).setItemHeight(20).setHeight(20*11).close().moveTo(g1).onEnter(toFront).onLeave(close)
+              .addItem("blend",0).addItem("add",1).addItem("subtract",2).addItem("darkest",3).addItem("lightest",4).addItem("difference",5).addItem("exclusion",6).addItem("multiply",7).addItem("screen",8).addItem("replace",9)
+              .getCaptionLabel().align(ControlP5.CENTER, ControlP5.BOTTOM).toUpperCase(false);
+    
       
       //Group 2 : Flowfield      
       Group ff = controllerFlock[j].addGroup("Flowfield").setBackgroundColor(color(0, 64)).setBackgroundHeight(145).setBarHeight(20);
@@ -359,10 +365,9 @@ class ControlFrame extends PApplet {
       
        
       //Group 6 : Particle design
-      Group g6 = controllerFlock[j].addGroup("Particles design").setBackgroundColor(color(0, 64)).setBackgroundHeight(160).setBarHeight(20);
+      Group g6 = controllerFlock[j].addGroup("Particles design").setBackgroundColor(color(0, 64)).setBackgroundHeight(150).setBarHeight(20);
       g6.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addButton("is Spinning").setLabel("Spin").setPosition(20,40).setSize(45,45).setSwitch(true).setOff().moveTo(g6).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
-      controllerFlock[j].addSlider("spin_speed").setLabel("Spin speed").setPosition(72,55).setSize(110,20).setRange(0.1,10).setValue(1.0).moveTo(g6).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).toUpperCase(false).setPaddingX(0); 
+      controllerFlock[j].addButton("show particles").setPosition(10,10).setLabel("Show").setSize(35,35).setSwitch(true).setOff().moveTo(g6).getCaptionLabel().toUpperCase(false);
       
       Group radius = controllerFlock[j].addGroup("Radius").setPosition(10,105).setBackgroundColor(color(0, 64)).setBackgroundHeight(290).setBarHeight(15).setWidth(180).moveTo(g6);
       radius.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
@@ -382,15 +387,20 @@ class ControlFrame extends PApplet {
       trail.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       controllerFlock[j].addSlider("trailLength").setLabel("Length").setPosition(10,10).setSize(100,15).setRange(0,1000).setValue(0).moveTo(trail).getCaptionLabel().toUpperCase(false); 
       
-      DropdownList ddl_type = controllerFlock[j].addDropdownList("Select a type").setPosition(10,10).setSize(180,100).setBarHeight(20).setItemHeight(20).setHeight(17*20).close().onEnter(toFront).onLeave(close); //
+      Group spin = controllerFlock[j].addGroup("Spin").setPosition(10,455).setBackgroundColor(color(0, 64)).setBarHeight(15).setBackgroundHeight(70).setWidth(180).moveTo(g6);
+      spin.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      controllerFlock[j].addButton("is Spinning").setLabel("Spin").setPosition(10,10).setSize(45,45).setSwitch(true).setOff().moveTo(spin).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
+      controllerFlock[j].addSlider("spin_speed").setLabel("Spin speed").setPosition(62,25).setSize(110,20).setRange(0.1,10).setValue(1.0).moveTo(spin).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).toUpperCase(false).setPaddingX(0); 
+      
+      DropdownList ddl_type = controllerFlock[j].addDropdownList("Select a type").setPosition(52,20).setSize(135,100).setBarHeight(20).setItemHeight(20).setHeight(17*20).close().onEnter(toFront).onLeave(close); //
       ddl_type.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       ddl_type.addItem("Circle", CIRCLE).addItem("Triangle", TRIANGLE).addItem("Letter", LETTER).addItem("Pixel", PIXEL).addItem("Leaf", LEAF).addItem("Bird", BIRD).moveTo(g6);
       for (int i = 0; i< texture_list.fichiers.length;i++){
         String name_i = texture_list.fichiers[i].substring("/texture/texture_XX_".length(),texture_list.fichiers[i].length()-".png".length());
         ddl_type.addItem(name_i,i+6);
       }
-      controllerFlock[j].addAccordion("acc_partdesign").setPosition(10,105).setWidth(180).setMinItemHeight(20).setCollapseMode(Accordion.MULTI)
-                .addItem(radius).addItem(density).addItem(trail).close().moveTo(g6);
+      controllerFlock[j].addAccordion("acc_partdesign").setPosition(10,65).setWidth(180).setMinItemHeight(20).setCollapseMode(Accordion.MULTI)
+                .addItem(radius).addItem(density).addItem(trail).addItem(spin).close().moveTo(g6);
       
       //Group Connections design        
       Group connex = controllerFlock[j].addGroup("Connections design").setBackgroundColor(color(0, 64)).setBackgroundHeight(100).setBarHeight(20);
@@ -434,6 +444,7 @@ class ControlFrame extends PApplet {
       radius.addListener(new GroupListener(radius,g6,controllerFlock[j].get(Accordion.class, "acc")));
       density.addListener(new GroupListener(density,g6,controllerFlock[j].get(Accordion.class, "acc")));
       trail.addListener(new GroupListener(trail,g6,controllerFlock[j].get(Accordion.class, "acc")));
+      spin.addListener(new GroupListener(spin,g6,controllerFlock[j].get(Accordion.class, "acc")));
       //ddl_type.addListener(new DdlListener(ddl_type,g6,controllerFlock[j].get(Accordion.class, "acc")));
   }
     
@@ -466,9 +477,6 @@ class ControlFrame extends PApplet {
           controllerFlock[j].get(ColorWheel.class,"particleColor").setRGB(color(0));
         controller.get(ColorWheel.class,"backgroundColor").setRGB(color(255));
       }
-    }
-    if(theEvent.isFrom(controller.getController("Select a blendMode"))){
-      blendMode = int(controller.get(DropdownList.class,"Select a blendMode").getValue());
     }
     
     //Sources
@@ -615,8 +623,10 @@ class ControlFrame extends PApplet {
       if(theEvent.isFrom(controllerFlock[j].getController("grid"))) flocks[j].grid = true;
       if(theEvent.isFrom(controllerFlock[j].getController("kill"))) flocks[j].killAll();
       if(theEvent.isFrom(controllerFlock[j].getController("N"))) flocks[j].NChange = true;
-      if (theEvent.isFrom(controllerFlock[j].get(RadioButton.class,"Borders type"))) {
-        flocks[j].borderType = int(theEvent.getValue());
+      if (theEvent.isFrom(controllerFlock[j].get(RadioButton.class,"Borders type")))  flocks[j].borderType = int(theEvent.getValue());
+      if(theEvent.isFrom(controllerFlock[j].getController("Erase")))  flocks[j].clearLayer = true;
+      if(theEvent.isFrom(controller.getController("Select a blendMode"))){
+        flocks[j].blendMode = int(controller.get(DropdownList.class,"Select a blendMode").getValue());
       }     
       
       //Flowfield
@@ -653,6 +663,11 @@ class ControlFrame extends PApplet {
       }      
       
       //Particle design
+      if(theEvent.isFrom(controllerFlock[j].get(Button.class,"show particles"))){
+        flocks[j].particlesDisplayed = controllerFlock[j].get(Button.class,"show particles").isOn();
+        controllerFlock[j].get(Button.class,"show particles").setLabel(
+           controllerFlock[j].get(Button.class,"show particles").isOn() ? "Hide" : "Show");
+      }
       if(theEvent.isFrom(controllerFlock[j].get(DropdownList.class,"Select a type"))){
         flocks[j].boidType = int(controllerFlock[j].get(DropdownList.class, "Select a type").getValue());
         flocks[j].boidTypeChange = true;
@@ -676,7 +691,9 @@ class ControlFrame extends PApplet {
       //Symmetry
       if(theEvent.isFrom(controllerFlock[j].getController("symmetry"))) 
         flocks[j].symmetry = (int)controllerFlock[j].getController("symmetry").getValue();
-     
+      
+      if(theEvent.isFrom(controllerFlock[j].getController("background alpha")))
+        flocks[j].alpha = int(controllerFlock[j].getController("background alpha").getValue());
      
      //== BOIDS PARAMETERS ==    
      for (Boid b : flocks[j].boids){
@@ -710,7 +727,7 @@ class ControlFrame extends PApplet {
         if(theEvent.isFrom(controllerFlock[j].getController("shining_frequence")))     b.shining_frequence = theEvent.getController().getValue();
         if(theEvent.isFrom(controllerFlock[j].getController("shining_phase")))     b.shining_phase = theEvent.getController().getValue();
         if(theEvent.isFrom(controllerFlock[j].getController("strength_noise")))     b.strength_noise = theEvent.getController().getValue();
-        if(theEvent.isFrom(controllerFlock[j].getController("trailLength")))     b.trailLength = (int)controllerFlock[j].getController("trailLength").getValue();
+        //if(theEvent.isFrom(controllerFlock[j].getController("trailLength")))     b.trailLength = (int)controllerFlock[j].getController("trailLength").getValue();
 
        //Colors 
         if(theEvent.isFrom(controllerFlock[j].getController("alpha")))     b.alpha = (int)controllerFlock[j].getController("alpha").getValue();

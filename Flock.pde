@@ -1,6 +1,9 @@
 class Flock {
   int index;
-  
+  PGraphics layer;
+  int alpha;
+  int blendMode;
+
   ArrayList<Boid> boids; // An ArrayList for all the boids  
   ArrayList<Boid> deathList;
   ArrayList<Boid> bornList; 
@@ -12,8 +15,10 @@ class Flock {
   boolean boidTypeChange;
   boolean NChange;
   boolean grid;
+  boolean clearLayer;
   int gridX, gridY;
   boolean connectionsDisplayed;
+  boolean particlesDisplayed;
     
   boolean[] forcesToggle;
   boolean[] flockForcesToggle;
@@ -28,11 +33,19 @@ class Flock {
   Flock(int i) {
     
     index = i;
+    layer = createGraphics(width, height, P2D);
+    layer.beginDraw();
+    layer.clear();
+    layer.endDraw();
+    alpha = int(cf.controllerFlock[i].getController("background alpha").getValue());
+    blendMode = 0;
     NChange = false;
     grid = false;
+    clearLayer = false;
     gridX = 0;
     gridY = 0;
     connectionsDisplayed = false;
+    particlesDisplayed = true;
     boidTypeChange = false;
     boids = new ArrayList<Boid>(); // Initialize the ArrayList
     deathList = new ArrayList<Boid>(); 
@@ -204,15 +217,15 @@ class Flock {
   void reflectParticles(ArrayList<Boid> boids, float n){
     for(Boid b : boids){
       if ((int)n > 1){  
-        PVector center = new PVector(0.5*width,0.5*height);
+        PVector center = new PVector(0.5*layer.width,0.5*layer.height);
         float section = TWO_PI/(int)n; 
         for (int i=0; i<n-1; i++){ 
-          pushMatrix();
-          translate(center.x,center.y);     
-          rotate(section*(i+1));
-          translate(-center.x,-center.y);
-          b.draw(boids);
-          popMatrix();
+          layer.pushMatrix();
+          layer.translate(center.x,center.y);     
+          layer.rotate(section*(i+1));
+          layer.translate(-center.x,-center.y);
+          b.draw(layer,boids);
+          layer.popMatrix();
         }
       }
     }
@@ -220,35 +233,44 @@ class Flock {
   
   void reflectConnections(ArrayList<Boid> boids, float n){
     if ((int)n > 1){  
-      PVector center = new PVector(0.5*width,0.5*height);
+      PVector center = new PVector(0.5*layer.width,0.5*layer.height);
       float section = TWO_PI/(int)n; 
       for (int i=0; i<n-1; i++){ 
-        pushMatrix();
-        translate(center.x,center.y);     
-        rotate(section*(i+1));
-        translate(-center.x,-center.y);
+        layer.pushMatrix();
+        layer.translate(center.x,center.y);     
+        layer.rotate(section*(i+1));
+        layer.translate(-center.x,-center.y);
         drawConnections(boids);
-        popMatrix();
+        layer.popMatrix();
       }
     }
   } 
+  
   void drawParticles(){
-    reflectParticles(boids, symmetry);
-    for(Boid b : boids){
-      b.draw(boids);
+    if (boidType == PIXEL){
+      loadPixels();
+      reflectParticles(boids, symmetry);
+      for(Boid b : boids)
+        b.draw(layer, boids);
+      updatePixels();
+    }
+    else{
+      reflectParticles(boids, symmetry);
+      for(Boid b : boids)
+        b.draw(layer, boids);
     }
   }
   
   void drawQueue(ArrayList<Boid> boidsToConnect){
-    noFill();
-    strokeWeight(1);
-    beginShape();
+    layer.noFill();
+    layer.strokeWeight(1);
+    layer.beginShape();
     for (int i=0; i<boidsToConnect.size(); i++) {
       Boid bi = boidsToConnect.get(i);
-      stroke(bi.c, bi.alpha);
-      curveVertex(bi.position.x, bi.position.y);
+      layer.stroke(bi.c, bi.alpha);
+      layer.curveVertex(bi.position.x, bi.position.y);
     }
-    endShape();
+    layer.endShape();
   }
   
   void drawMesh(ArrayList<Boid> boidsToConnect){
@@ -286,19 +308,20 @@ class Flock {
   
   void drawLine(Boid bi, Boid bj, float dist, float alpha){
     float a = map(dist,0,d_maxSq, alpha, 0); 
-    stroke(bi.c, a);
-    strokeWeight(1);
-    line(bi.position.x, bi.position.y, bj.position.x, bj.position.y);
+    layer.stroke(bi.c, a);
+    layer.strokeWeight(1);
+    layer.line(bi.position.x, bi.position.y, bj.position.x, bj.position.y);
     
     if (bj.history.size() >= bi.history.size()){
       for ( int j=0; j<bi.history.size(); j++){
-        stroke(bi.c, a/bi.history.size()*(j+1));
-        line(bi.history.get(j).x, bi.history.get(j).y, bj.history.get(j).x, bj.history.get(j).y);
+        layer.stroke(bi.c, a/bi.history.size()*(j+1));
+        layer.line(bi.history.get(j).x, bi.history.get(j).y, bj.history.get(j).x, bj.history.get(j).y);
       }
     }     
   }
   
   void drawConnections(ArrayList<Boid> boidsToConnect){
+    reflectConnections(boids, symmetry);
     switch(connectionsType){
       case MESH : drawMesh(boidsToConnect); break;
       case QUEUE : drawQueue(boidsToConnect); break;
@@ -307,18 +330,13 @@ class Flock {
   }
   
   void render(){
-    if (boidType == PIXEL){
-      loadPixels();
-      drawParticles();
-      updatePixels();
-    }
-    else
-      drawParticles();
-    
-    if (connectionsDisplayed){
-      reflectConnections(boids, symmetry);
-      drawConnections(boids);
-    }
+    layer.beginDraw();
+    setBlendMode(blendMode);
+    setBackground(backgroundColor);
+    if (particlesDisplayed)  drawParticles();
+    if (connectionsDisplayed)  drawConnections(boids);
+    layer.endDraw();
+    image(layer, 0, 0);
   }
   
   void removeDeads(){
@@ -368,27 +386,27 @@ class Flock {
           b.velocity.x *= -1;
           b.position.x = -b.r*b.size;
         }
-        if (b.position.x > width+b.r*b.size) {
+        if (b.position.x > layer.width+b.r*b.size) {
           b.velocity.x *= -1;
-          b.position.x = width+b.r*b.size;
+          b.position.x = layer.width+b.r*b.size;
         }
         if (b.position.y < -b.r*b.size) {
           b.velocity.y *= -1;
           b.position.y = -b.r*b.size;
         }
-        if (b.position.y > height+b.r*b.size) {
+        if (b.position.y > layer.height+b.r*b.size) {
           b.velocity.y *= -1;
-          b.position.y = height+b.r*b.size;
+          b.position.y = layer.height+b.r*b.size;
         }
       }
       break;
     
       case LOOPS : 
       for(Boid b : boids){
-        if (b.position.x < -b.r*b.size) b.position.x = width+b.r*b.size;
-        if (b.position.y < -b.r*b.size) b.position.y = height+b.r*b.size;
-        if (b.position.x > width+b.r*b.size) b.position.x = -b.r*b.size;
-        if (b.position.y > height+b.r*b.size) b.position.y = -b.r*b.size;
+        if (b.position.x < -b.r*b.size) b.position.x = layer.width+b.r*b.size;
+        if (b.position.y < -b.r*b.size) b.position.y = layer.height+b.r*b.size;
+        if (b.position.x > layer.width+b.r*b.size) b.position.x = -b.r*b.size;
+        if (b.position.y > layer.height+b.r*b.size) b.position.y = -b.r*b.size;
       }
       break;
       
@@ -424,17 +442,27 @@ class Flock {
     }
   }
   
+  void clearLayer(){
+  }
+  
   void mouseDragged(){
     if(cf.controllerFlock[index].get(Button.class,"Draw particles").isOn()){
       addBoid(mouseX,mouseY, 0, 0);
       bornList.get(bornList.size()-1).mortal = false; 
     }
-  }  
+  }
+  
+  void mouseClicked(){
+    if(cf.controllerFlock[index].get(Button.class,"Draw particles").isOn()){
+      addBoid(mouseX,mouseY, 0, 0);
+      bornList.get(bornList.size()-1).mortal = false; 
+    }    
+  }
   
   void createGrid(int x, int y){
     for(int i = 0; i<x; i++){
       for(int j = 0; j<y; j++){
-        addBoid(map(i,0,x,0,width)+map(0.5,0,x,0,width),map(j,0,y,0,height)+map(0.5,0,y,0,height),0,0);
+        addBoid(map(i,0,x,0,layer.width)+map(0.5,0,x,0,layer.width),map(j,0,y,0,layer.height)+map(0.5,0,y,0,layer.height),0,0);
         bornList.get(bornList.size()-1).xoff = 0.01*i+0.1*j;
         bornList.get(bornList.size()-1).yoff = 0.1*i+0.01*j;       
         bornList.get(bornList.size()-1).mortal = false; 
@@ -442,10 +470,34 @@ class Flock {
     }
   }
   
+  void setBlendMode(int i){
+    switch(i){
+      case 0 : layer.blendMode(BLEND); break;
+      case 1 : layer.blendMode(ADD); break;
+      case 2 : layer.blendMode(SUBTRACT); break;
+      case 3 : layer.blendMode(DARKEST); break;
+      case 4 : layer.blendMode(LIGHTEST); break;
+      case 5 : layer.blendMode(DIFFERENCE); break;
+      case 6 : layer.blendMode(EXCLUSION); break;
+      case 7 : layer.blendMode(MULTIPLY); break;
+      case 8 : layer.blendMode(SCREEN); break;
+      case 9 : layer.blendMode(REPLACE); break;
+    }
+  }
+  
+  void setBackground(color c){
+    if (clearLayer){
+      layer.background(c);
+      clearLayer = false;
+    }
+    else
+      layer.background(c, alpha);
+  }
+  
   void setSize() {
     int f = boids.size() - (int)cf.controllerFlock[index].getController("N").getValue();
     while(f < 0){      
-      addBoid(random(0,width),random(0,height),random(-3,3),random(-3,3));
+      addBoid(random(0,layer.width),random(0,layer.height),random(-3,3),random(-3,3));
       bornList.get(bornList.size()-1).mortal = false;
       f++;
     }
@@ -501,6 +553,7 @@ class Flock {
     d_max = preset.getFloat("d_max");
     maxConnections = preset.getInt("maxConnections");
     connectionsDisplayed = preset.getBoolean("connectionsDisplayed");
+    particlesDisplayed = preset.getBoolean("particlesDisplayed");
     flowfield.strength = preset.getFloat("ff_strength");
   }
   
