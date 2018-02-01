@@ -1,6 +1,6 @@
 /*
 YVES BROZAT - BOIDS : MODELE PHYSIQUE DE SYSTEME PARTICULAIRE
-
+ 
 IDEES : 
 - Creer des bangs (WALL puis NO_BORDER, MASSE = 0 puis normal, FORCE = 0, SPEED = 0, ...) pour une interaction ponctuelle (type break) ou répétitive (type beat)
 - Création de chemins à suivre (droite, courbe, cercle)
