@@ -14,16 +14,20 @@ abstract class Brush{
     velocity = new PVector();
     isActivated = true;
     isSelected = false;
-    isVisible = cf.controller.get(Button.class,"Show brushes").isOn();    
+    isVisible = cf.controllerTool.get(Button.class,"Show tools").isOn();    
     apply = new boolean[flocks.length];
-    for (int i = 0; i< apply.length; i++) apply[i] = false;
+    for (int i = 0; i< apply.length; i++) apply[i] = true;
     brushes.add(this);
   }
   
   void run(){
     if (isActivated)
     {
-      if (isVisible) render();
+      if (isVisible){
+        toolLayer.beginDraw();
+        render();
+        toolLayer.endDraw();
+      }
       update();
       apply();
     }
@@ -31,20 +35,20 @@ abstract class Brush{
   
   void update(){
     if (isSelected && mousePressed){
-      //PVector oldPosition = position.copy();
+      PVector oldPosition = position.copy();
       position.set(mouseX,mouseY);
-      //velocity = PVector.sub(position,oldPosition);
-      velocity.set(pmouseX,pmouseY);
+      velocity = PVector.sub(position,oldPosition);
     }
   }
   
   void render(){
-    noFill();
-    stroke(100);
-    strokeWeight(1);
-    rectMode(CENTER);
-    textMode(CENTER);
-    text(index,position.x+5,position.y+5);
+    toolLayer.noFill();
+    toolLayer.stroke(100);
+    // toolLayer.strokeWeight(isSelected? 2 : 1);
+    toolLayer.rectMode(CENTER);
+    toolLayer.textMode(CENTER);
+    toolLayer.textAlign(CENTER);
+    toolLayer.text(index,position.x+5,position.y+5);
   }
   
   abstract void apply();
@@ -86,17 +90,17 @@ class Source extends Brush {
   
   Source(float x, float y, int index){
     super(x,y,index);
-    r = map(cf.controller.getController("src"+index+"_size").getValue(),0,100,0,0.5*width);
+    r = map(cf.controllerTool.getController("src"+index+"_size").getValue(),0,100,0,0.5*width);
     rSq = r*r;
-    outflow = int(cf.controller.getController("src"+index+"_outflow").getValue());
-    angle = radians(cf.controller.getController("src"+index+"_angle").getValue());
-    strength = cf.controller.getController("src"+index+"_strength").getValue();
+    outflow = int(cf.controllerTool.getController("src"+index+"_outflow").getValue());
+    angle = radians(cf.controllerTool.getController("src"+index+"_angle").getValue());
+    strength = cf.controllerTool.getController("src"+index+"_strength").getValue();
     vel = new PVector(strength*cos(angle+HALF_PI),strength*sin(angle+HALF_PI));
-    lifespan = int(cf.controller.getController("lifespan "+ index).getValue());
-    type = int(cf.controller.get(RadioButton.class,"src"+index+"_type").getValue());
-    randomStrength = cf.controller.get(Button.class,"randomStrength " + index).isOn();
-    randomAngle = cf.controller.get(Button.class,"randomAngle " + index).isOn();
-    ejected = cf.controller.get(Button.class,"ejected " + index).isOn();
+    lifespan = int(cf.controllerTool.getController("lifespan "+ index).getValue());
+    type = int(cf.controllerTool.get(RadioButton.class,"src"+index+"_type").getValue());
+    randomStrength = cf.controllerTool.get(Button.class,"randomStrength " + index).isOn();
+    randomAngle = cf.controllerTool.get(Button.class,"randomAngle " + index).isOn();
+    ejected = cf.controllerTool.get(Button.class,"ejected " + index).isOn();
   }
   
   void apply(){
@@ -152,37 +156,43 @@ class Source extends Brush {
     super.render();
     switch(type){
       case POINT : 
-      ellipse(position.x,position.y,2*r,2*r);
-      rect(position.x,position.y,20,20);
+      toolLayer.ellipse(position.x,position.y,2*r,2*r);
+      toolLayer.rect(position.x,position.y,20,20);
       break;
       
       case LINE : 
-      pushMatrix();
-      translate(position.x,position.y);
+      toolLayer.pushMatrix();
+      toolLayer.translate(position.x,position.y);
       float a = (ejected ? velocity.heading() + HALF_PI : angle);
-      rotate(a);
-      rect(0,0, 2*r, 10);
-      rect(0,0,20,20);
-      popMatrix();
+      toolLayer.rotate(a);
+      toolLayer.rect(0,0, 2*r, 10);
+      toolLayer.rect(0,0,20,20);
+      toolLayer.popMatrix();
       break;     
     }
+    
   }
   
   void select(){
+    cf.controllerTool.getTab("default").bringToFront();
+    cf.controllerTool.get(Accordion.class,"accDefault").open(0);
     for (int i =0; i< sources.size(); i++)
-      cf.controller.getGroup("Source "+i).hide();
-    cf.controller.getGroup("Source "+index).show();
-    cf.controller.get(DropdownList.class,"Select a source").setValue(index);
+      cf.controllerTool.getGroup("Source "+i).hide();
+    cf.controllerTool.getGroup("Source "+index).show();
+    cf.controllerTool.getGroup("Source "+index).open();
+    cf.controllerTool.get(DropdownList.class,"Select a source").setValue(index);
   }
 }
 
 class Magnet extends Brush {
 
   float strength;
-  
+  boolean isAudioReactive;
+
   Magnet(float x, float y, int index){
     super(x,y,index);
-    strength = cf.controller.getController("mag"+index+"_strength").getValue();
+    strength = (float)cf.controllerTool.getController("mag"+index+"_strength").getValue();
+    isAudioReactive = true;
   }
   
   void apply(){
@@ -194,21 +204,32 @@ class Magnet extends Brush {
     }
   }
   
+  void update(){
+    super.update();
+    
+    if(isAudioReactive){
+      strength = constrain(map(audioInput.left.level(),0.001,0.05,100,-100),-100,100);
+    }
+  }
+  
   void render(){
     super.render();
-    pushMatrix();
-    translate(position.x,position.y);
-    rect(0,0,20,20);
-    rotate(QUARTER_PI);
-    rect(0,0,20,20);
-    popMatrix();
+    toolLayer.pushMatrix();
+    toolLayer.translate(position.x,position.y);
+    toolLayer.rect(0,0,20,20);
+    toolLayer.rotate(QUARTER_PI);
+    toolLayer.rect(0,0,20,20);
+    toolLayer.popMatrix();
   }
   
   void select(){
+    cf.controllerTool.getTab("default").bringToFront();
+    cf.controllerTool.get(Accordion.class,"accDefault").open(1);
     for (int i =0; i< magnets.size(); i++)
-      cf.controller.getGroup("Magnet "+i).hide();
-    cf.controller.getGroup("Magnet "+index).show();
-    cf.controller.get(DropdownList.class,"Select a magnet").setValue(index);
+      cf.controllerTool.getGroup("Magnet "+i).hide();
+    cf.controllerTool.getGroup("Magnet "+index).show();
+    cf.controllerTool.getGroup("Magnet "+index).open();
+    cf.controllerTool.get(DropdownList.class,"Select a magnet").setValue(index);
   }
 }
 
@@ -220,10 +241,10 @@ class Obstacle extends Brush {
   
   Obstacle(float x, float y, int index){
     super(x,y, index);
-    e = cf.controller.getController("obs"+index+"_e").getValue();
-    angle = radians(cf.controller.getController("obs"+index+"_angle").getValue());
-    type = int(cf.controller.get(RadioButton.class,"obs"+index+"_type").getValue());
-    r = map(cf.controller.getController("obs"+index+"_size").getValue(),0,100,0,0.5*width);
+    e = cf.controllerTool.getController("obs"+index+"_e").getValue();
+    angle = radians(cf.controllerTool.getController("obs"+index+"_angle").getValue());
+    type = int(cf.controllerTool.get(RadioButton.class,"obs"+index+"_type").getValue());
+    r = map(cf.controllerTool.getController("obs"+index+"_size").getValue(),0,100,0,0.5*width);
     rSq= r*r;   
   }
   
@@ -295,31 +316,34 @@ class Obstacle extends Brush {
     super.render();
     switch(type){
       case POINT :
-      ellipse(position.x,position.y,2*r,2*r);
-      ellipse(position.x,position.y,20,20);
+      toolLayer.ellipse(position.x,position.y,2*r,2*r);
+      toolLayer.ellipse(position.x,position.y,20,20);
       break;
       
       case LINE :
-      pushMatrix();
-      translate(position.x,position.y);
-      rotate(angle);
-      rect(0,0, 2*r, 2*e);
-      ellipse(0,0,20,20);
-      popMatrix();
+      toolLayer.pushMatrix();
+      toolLayer.translate(position.x,position.y);
+      toolLayer.rotate(angle);
+      toolLayer.rect(0,0, 2*r, 2*e);
+      toolLayer.ellipse(0,0,20,20);
+      toolLayer.popMatrix();
       break;
       
       case BOWL :
-      arc(position.x, position.y, 2*(r-e), 2*(r-e), angle, angle + PI);
-      arc(position.x, position.y, 2*(r+e), 2*(r+e), angle, angle + PI);
-      ellipse(position.x,position.y,20,20);
+      toolLayer.arc(position.x, position.y, 2*(r-e), 2*(r-e), angle, angle + PI);
+      toolLayer.arc(position.x, position.y, 2*(r+e), 2*(r+e), angle, angle + PI);
+      toolLayer.ellipse(position.x,position.y,20,20);
       break;
     }
   }
   
   void select(){
+    cf.controllerTool.getTab("default").bringToFront();
+    cf.controllerTool.get(Accordion.class,"accDefault").open(2);
     for (int i =0; i< obstacles.size(); i++)
-      cf.controller.getGroup("Obstacle "+i).hide();
-    cf.controller.getGroup("Obstacle "+index).show();
-    cf.controller.get(DropdownList.class,"Select a obstacle").setValue(index);
+      cf.controllerTool.getGroup("Obstacle "+i).hide();
+    cf.controllerTool.getGroup("Obstacle "+index).show();
+    cf.controllerTool.getGroup("Obstacle "+index).open();
+    cf.controllerTool.get(DropdownList.class,"Select a obstacle").setValue(index);
   }
 }

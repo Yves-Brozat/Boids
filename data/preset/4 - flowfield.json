@@ -44,7 +44,6 @@
   "d_max": 500,
   "shining_phase": 1,
   "cloud_spreading": 100,
-  "ff_strength": 4,
   "friction": 4,
   "maxforce": 0.029999999329447746,
   "size": 0.10000000149011612,

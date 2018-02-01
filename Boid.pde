@@ -58,7 +58,7 @@ abstract class Boid {
   Boid(float x, float y, float vx, float vy, int i) {
     index = i;
     lifetime = 0;
-    lifespan = 100;    
+    lifespan = 1000;    
     mortal = true;    
     position = new PVector(x, y);
     position0 = position.copy();
@@ -123,7 +123,7 @@ abstract class Boid {
   }
   
   boolean isDead(){
-    if (mortal) return (lifetime > lifespan) ? true : false;
+    if (mortal) return (lifetime > lifespan);
     else return false;
   }
   
@@ -158,7 +158,7 @@ abstract class Boid {
     if (k > 0) att.div(k);
     else if(k < 0) att.div(-k);
     float d = att.magSq();
-    if (d > 10) att.setMag(k*density*r*r/d);
+    if (d > 1) att.setMag(k*density*r*r/d);
     else att.setMag(0);
     sumForces.add(att);
   }
@@ -207,12 +207,13 @@ abstract class Boid {
   }
   
   color getColor(){
-    float a = alpha;
-    if (mortal) a = map(lifetime,0,lifespan,alpha,20);
-    return color(red + randomBrightness + randomRed - randomGreen - randomBlue,
+    float a = mortal ? map(lifetime,0,lifespan,alpha,20) : alpha;
+    color c = color(red + randomBrightness + randomRed - randomGreen - randomBlue,
               green + randomBrightness - randomRed + randomGreen - randomBlue,
               blue + randomBrightness - randomRed - randomGreen + randomBlue,
               a);
+
+    return c;
   }
   
   float getR(ArrayList<Boid> boids){
@@ -440,97 +441,3 @@ class AnimationBoid extends Boid {
     f.popMatrix();
   } 
 }
-
-//abstract class Connection extends Boid{
-  
-//  float d_max, d_maxSq;
-//  int maxConnections;
-  
-//  Connection(float x, float y, float vx, float vy, int i){
-//    super(x,y,vx,vy,i);
-//    d_max = cf.controllerFlock[index].getController("d_max").getValue();
-//    d_maxSq = d_max*d_max;
-//    maxConnections = (int)cf.controllerFlock[index].getController("N_links").getValue();
-//  }
-  
-//  abstract void draw(PVector origin, PVector neighboor, float alpha);
-  
-//  //Draw connexions between 3 closest particles
-//  void draw(ArrayList<Boid> boids){
-//    setColor();
-//    ArrayList<Boid> neighboors = new ArrayList<Boid>();
-//    for(int i = 0; i<boids.size(); i++)
-//      neighboors.add(boids.get(i));
-//    sortNeighboors(neighboors);
-//    neighboors.remove(0); //Remove itself
-//    if(neighboors.size()>maxConnections){
-//      for (int i = 0; i<maxConnections; i++){
-//        float d = distSq(position,neighboors.get(i).position);
-//        if ((d > 0) && (d < d_maxSq)){
-//          float a = map(d,0,d_maxSq, alpha, 0); 
-//          draw(position,neighboors.get(i).position,a);
-//          if (neighboors.get(i).history.size() >= history.size()){
-//            for ( int j=0; j<history.size(); j++)  
-//              draw(history.get(j), neighboors.get(i).history.get(j), a/history.size()*(j+1));
-//          }
-//        }
-//      }
-//    }
-//  }
-//}
-
-//class LineBoid extends Connection {
-  
-//  LineBoid(float x, float y, float vx, float vy, int i){
-//    super(x,y,vx,vy,i);
-//  }
-
-//  void draw(float x, float y, float r, float theta, float alpha){}
-
-//  void draw(PVector origin, PVector neighboor, float alpha){
-//      stroke(c,alpha);
-//      strokeWeight(1);
-//      line(origin.x, origin.y, neighboor.x, neighboor.y);
-//  }
-//}
-
-//class CurveBoid extends Connection {
-
-//  CurveBoid(float x, float y, float vx, float vy, int i){
-//    super(x,y,vx,vy,i);
-//  }
-
-//  void draw(float x, float y, float r, float theta, float alpha){}
-  
-//  void draw(ArrayList<Boid> boids){
-//    super.draw(boids);
-//    for ( int j=0; j<history.size(); j++){
-//      float a = alpha/history.size()*(j+1);
-//      beginShape();
-//      curveVertex(history.get(j).x,history.get(j).y);
-//      ArrayList<Boid> neighboors = new ArrayList<Boid>();
-//      for(int i = 0; i<boids.size(); i++)
-//        neighboors.add(boids.get(i));
-//      sortNeighboors(neighboors);
-//      neighboors.remove(0); //Remove itself
-//      if(neighboors.size()>maxConnections){
-//        for (int i = 0; i<maxConnections; i++){
-//          if (neighboors.get(i).history.size() >= history.size()){    
-//            float scope = distSq(history.get(j), neighboors.get(i).history.get(j)); 
-//            if ((scope > 0) && (scope < d_maxSq)) {
-//              //count++;            // Keep track of how many            
-//              stroke(c,a);
-//              noFill();
-//              strokeWeight(1);
-//              curveVertex(neighboors.get(i).history.get(j).x,neighboors.get(i).history.get(j).y);
-//            }  
-//          }
-//        }
-//      }
-//      endShape();
-//    }
-//  }
-    
-//  void draw(PVector origin, PVector neighboor, float alpha){ 
-//  } 
-//} 

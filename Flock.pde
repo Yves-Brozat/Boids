@@ -1,8 +1,6 @@
 class Flock {
   int index;
   PGraphics layer;
-  int alpha;
-  int blendMode;
 
   ArrayList<Boid> boids; // An ArrayList for all the boids  
   ArrayList<Boid> deathList;
@@ -15,7 +13,7 @@ class Flock {
   boolean boidTypeChange;
   boolean NChange;
   boolean grid;
-  boolean clearLayer;
+  boolean drawMode;
   int gridX, gridY;
   boolean connectionsDisplayed;
   boolean particlesDisplayed;
@@ -27,9 +25,7 @@ class Flock {
   
   float d_max, d_maxSq;
   int maxConnections;
-  
-  FlowField flowfield;
-  
+    
   Flock(int i) {
     
     index = i;
@@ -37,11 +33,9 @@ class Flock {
     layer.beginDraw();
     layer.clear();
     layer.endDraw();
-    alpha = int(cf.controllerFlock[i].getController("background alpha").getValue());
-    blendMode = 0;
     NChange = false;
     grid = false;
-    clearLayer = false;
+    drawMode = false;
     gridX = 0;
     gridY = 0;
     connectionsDisplayed = false;
@@ -52,7 +46,6 @@ class Flock {
     bornList = new ArrayList<Boid>();
     
     setAlphabet();
-    flowfield = new FlowField(i);
     
     loadPreset(preset.get(0),cf.controllerFlock[index]);
     d_maxSq = d_max*d_max;
@@ -77,7 +70,6 @@ class Flock {
     if(forcesToggle[2]){ for(Boid b : boids) b.applyNoise(); }
     if(forcesToggle[3]){ for(Boid b : boids) b.applyOrigin(); }
     if(forcesToggle[4]) applyFlock(); 
-    if(flowfield.isActivated) { for(Boid b : boids) b.follow(flowfield); }
   }
   
   void applyFlock(){
@@ -267,7 +259,7 @@ class Flock {
     layer.beginShape();
     for (int i=0; i<boidsToConnect.size(); i++) {
       Boid bi = boidsToConnect.get(i);
-      layer.stroke(bi.c, bi.alpha);
+      layer.stroke(bi.getColor(), bi.alpha);
       layer.curveVertex(bi.position.x, bi.position.y);
     }
     layer.endShape();
@@ -285,7 +277,7 @@ class Flock {
     for (int i = 0; i<n; i++){
       Boid bi = boidsToConnect.get(i);
       for (int j = i+1; j<n; j++) {
-        Boid bj = boids.get(j);
+        Boid bj = boidsToConnect.get(j);
         float dij = distSq(bi.position, bj.position);
         if ((dij > 0) && (dij < d_maxSq)){
           boidsNear[i].add(bj);
@@ -308,7 +300,7 @@ class Flock {
   
   void drawLine(Boid bi, Boid bj, float dist, float alpha){
     float a = map(dist,0,d_maxSq, alpha, 0); 
-    layer.stroke(bi.c, a);
+    layer.stroke(bi.getColor(), a);
     layer.strokeWeight(1);
     layer.line(bi.position.x, bi.position.y, bj.position.x, bj.position.y);
     
@@ -331,8 +323,7 @@ class Flock {
   
   void render(){
     layer.beginDraw();
-    setBlendMode(blendMode);
-    setBackground(backgroundColor);
+    if (!drawMode)  layer.clear();
     if (particlesDisplayed)  drawParticles();
     if (connectionsDisplayed)  drawConnections(boids);
     layer.endDraw();
@@ -470,30 +461,6 @@ class Flock {
     }
   }
   
-  void setBlendMode(int i){
-    switch(i){
-      case 0 : layer.blendMode(BLEND); break;
-      case 1 : layer.blendMode(ADD); break;
-      case 2 : layer.blendMode(SUBTRACT); break;
-      case 3 : layer.blendMode(DARKEST); break;
-      case 4 : layer.blendMode(LIGHTEST); break;
-      case 5 : layer.blendMode(DIFFERENCE); break;
-      case 6 : layer.blendMode(EXCLUSION); break;
-      case 7 : layer.blendMode(MULTIPLY); break;
-      case 8 : layer.blendMode(SCREEN); break;
-      case 9 : layer.blendMode(REPLACE); break;
-    }
-  }
-  
-  void setBackground(color c){
-    if (clearLayer){
-      layer.background(c);
-      clearLayer = false;
-    }
-    else
-      layer.background(c, alpha);
-  }
-  
   void setSize() {
     int f = boids.size() - (int)cf.controllerFlock[index].getController("N").getValue();
     while(f < 0){      
@@ -554,7 +521,6 @@ class Flock {
     maxConnections = preset.getInt("maxConnections");
     connectionsDisplayed = preset.getBoolean("connectionsDisplayed");
     particlesDisplayed = preset.getBoolean("particlesDisplayed");
-    flowfield.strength = preset.getFloat("ff_strength");
   }
   
   void loadPreset(JSONObject preset, ControlP5 c){

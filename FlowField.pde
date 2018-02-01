@@ -11,15 +11,17 @@ class FlowField{
   PImage img;
   int type;
   int index;
+  boolean[] apply;
+
   
   FlowField(int index){
    this.index = index;
-   r = int(cf.controllerFlock[index].getController("ff_resolution").getValue());
-   strength = cf.controllerFlock[index].getController("ff_strength").getValue();
-   speed = cf.controllerFlock[index].getController("ff_speed").getValue();
-   noise = cf.controllerFlock[index].getController("ff_noise").getValue();
-   isVisible = cf.controllerFlock[index].get(Button.class,"show flowfield").isOn();
-   isActivated = cf.controllerFlock[index].get(Button.class,"toggle flowfield").isOn();
+   r = int(cf.controllerTool.getController("ff_resolution"+index).getValue());
+   strength = cf.controllerTool.getController("ff_strength"+index).getValue();
+   speed = cf.controllerTool.getController("ff_speed"+index).getValue();
+   noise = cf.controllerTool.getController("ff_noise"+index).getValue();
+   isVisible = cf.controllerTool.get(Button.class,"Show tools").isOn();  
+   isActivated = true;
    
    type = NOISE;
    
@@ -28,20 +30,28 @@ class FlowField{
    zoff = 0;   
    img = texture[0];  
    noiseSeed((int)random(10000));
+   
+   apply = new boolean[flocks.length];
+   for (int i = 0; i< apply.length; i++) apply[i] = true;
   }
   
   void initArray(){
-    cols = width/r;
-    rows = height/r;
-    field = new ArrayList<ArrayList<PVector>>(cols);
-    for (int i = 0; i< cols; i++){
-      field.add(new ArrayList<PVector>(rows));
-      for (int j = 0; j< rows; j++)
-        field.get(i).add(j, new PVector());
+    try{
+      cols = width/r;
+      rows = height/r;
+      field = new ArrayList<ArrayList<PVector>>(cols);
+      for (int i = 0; i< cols; i++){
+        field.add(new ArrayList<PVector>(rows));
+        for (int j = 0; j< rows; j++)
+          field.get(i).add(j, new PVector());
+      }
+    }
+    catch (NullPointerException e) {
+      println("Issue during initialisation of Flowfield");
     }
   }
   
-  PVector getNoiseCell(int x, int y){
+  PVector computeNoiseCell(int x, int y){
     float noiseX = map(noise(noise*x,noise*y,zoff),0,1,-strength,strength);
     float noiseY = map(noise(1000+noise*x,noise*y,zoff),0,1,-strength,strength);
     //if (noiseX*noiseX + noiseY*noiseY <1)
@@ -51,7 +61,7 @@ class FlowField{
   void setNoiseCell(int i, int j){
     if (i < field.size()){
       if (j < field.get(i).size())
-        field.get(i).set(j, getNoiseCell(i,j));
+        field.get(i).set(j, computeNoiseCell(i,j));
     }
   }
   
@@ -96,22 +106,22 @@ class FlowField{
     return field.get(column).get(row).copy();
   }
   
-  void drawCell(int i, int j){
+  void drawCell(PGraphics pg, int i, int j){
     if (i < field.size()){
       if (j < field.get(i).size()){
-        pushMatrix();
-        translate((0.5+i)*r,(0.5+j)*r);
-        line(0,0,0.5*r*field.get(i).get(j).x,0.5*r*field.get(i).get(j).y);
-        popMatrix();
+        pg.pushMatrix();
+        pg.translate((0.5+i)*r,(0.5+j)*r);
+        pg.line(0,0,0.5*r*field.get(i).get(j).x,0.5*r*field.get(i).get(j).y);
+        pg.popMatrix();
       }
     }
   }
   
-  void draw(){
-    stroke(255,50);
+  void render(PGraphics pg){
+    pg.stroke(255);
     for (int i = 0; i<cols; i++){
       for (int j = 0; j<rows; j++)
-        drawCell(i,j);
+        drawCell(pg,i,j);
     }
   }
  
@@ -122,8 +132,27 @@ class FlowField{
    update();
  }
  
- void run(){
-   update();
-   if (isVisible) this.draw();
+ void apply(){
+   for (int i = 0; i< flocks.length; i++){
+      if (apply[i]){ 
+        for (Boid b : flocks[i].boids)
+          b.follow(this);
+      }
+   }
  }
+ 
+ 
+ void run(PGraphics pg){
+   if (isActivated)
+   {
+     if (isVisible){
+       pg.beginDraw();
+       render(pg);
+       pg.endDraw();
+     }
+     update();
+     apply();
+   }
+ }
+ 
 }

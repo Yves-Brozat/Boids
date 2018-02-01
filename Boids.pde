@@ -48,6 +48,8 @@ import controlP5.*;
 import netP5.*;
 import oscP5.*;
 import java.util.Collections.*;
+import spout.*;
+import ddf.minim.*;
 
 //boidType : Natural static shapes of particles
 final int CIRCLE = 0;
@@ -91,15 +93,21 @@ int cp5TabToSave = 0;
 ArrayList<JSONObject> preset;
 color backgroundColor;
 MidiBus bus;
+Minim minim;
+AudioInput audioInput;
 
 boolean isRecording = false;
 Flock[] flocks;
+Spout[] senders;
+int nFlocks;
 ArrayList<Brush> brushes; 
 ArrayList<Magnet> magnets;
 ArrayList<Obstacle> obstacles;
 ArrayList<Source> sources;
-
-
+ArrayList<FlowField> flowfields;
+PGraphics toolLayer;
+int blendMode;
+ 
 //Data
 boolean isLoading = true;
 PImage[] texture;
@@ -139,59 +147,111 @@ void loadData(){
   preset = new ArrayList<JSONObject>();
   for (int i = 0; i<presetNames.fichiers.length; i++)
     preset.add(loadJSONObject(presetNames.fichiers[i]));  
-  cf = new ControlFrame(this, GUI_WIDTH, 703, "Controls");
+  cf = new ControlFrame(this, GUI_WIDTH, 1080, "Controls");
        
   isLoading = false;
 }
 
 void settings(){
-  size(1366 - GUI_WIDTH,703,P2D);
-
+  size(1920-GUI_WIDTH , 980 ,P2D);
+  
+  nFlocks = 2;
+  
+  blendMode = 0;
   brushes = new ArrayList<Brush>();
   magnets = new ArrayList<Magnet>();
   obstacles = new ArrayList<Obstacle>();
   sources = new ArrayList<Source>();
+  flowfields = new ArrayList<FlowField>();
     
   loadData();
+
 }
 
 void setup(){ 
-  flocks = new Flock[3];
+  //cf.setup_Workshop();
+  flocks = new Flock[nFlocks];
+  senders = new Spout[nFlocks];
+  
   for (int i = 0 ; i< flocks.length; i++)
     flocks[i] = new Flock(i);
+    
+  for (int i = 0; i < senders.length; i++) { 
+    senders[i] = new Spout(this);
+    String sendername = "Processing Spout "+i;
+    senders[i].createSender(sendername, 1920, 1080);
+  }
+  toolLayer = createGraphics(1920, 1080, P2D);
+  toolLayer.beginDraw();
+  toolLayer.clear();
+  toolLayer.endDraw();  
     
   //TO MOVE INTO ControlFrame
   cp5 = new ControlP5(this);
   cp5.addTextfield("save as").setPosition(0.5*width,0.5*height).setSize(100,20).setFocus(true).hide();
 
   //OSC INITIALIZATION
-  osc = new OscP5(this,12000);
+  osc = new OscP5(this,8000);
   //MIDI INITIALIZATION
   MidiBus.list();
   bus = new MidiBus(this, 0, 1);
-  
+  //MINIM INITIALIZATION
+  minim = new Minim(this);
+  audioInput = minim.getLineIn();
+
   surface.setLocation(cf.w,0);  
   surface.setResizable(true);
+  
 }
 
+
+
 void draw(){
+  background(0);
+  setBlendMode(blendMode);
+  surface.setTitle("[FPS : " + int(frameRate)+"] ["+ record() +"]");
+  
   if (isLoading){
-    stroke(255);
-    text("LOADING",0.5*width,0.5*height);
+    toolLayer.beginDraw();
+    toolLayer.stroke(255);
+    toolLayer.text("LOADING",0.5*width,0.5*height);
+    toolLayer.endDraw();
   }
   else{
     for (int i = 0; i< flocks.length; i++){
       flocks[i].run();
-      flocks[i].flowfield.run();
+      senders[i].sendTexture(flocks[i].layer);
     }
+    for (FlowField ff : flowfields)
+      ff.run(toolLayer);
     for (Brush b : brushes)
-       b.run(); 
-    
-    String rec = record();
-    surface.setTitle("[FPS : " + int(frameRate)+"] ["+ rec+"]");
+      b.run();     
   }
+  for (int i =0; i<senders.length; i++)
+    
+  image(toolLayer, 0, 0);
+  toolLayer.beginDraw();
+  toolLayer.clear();
+  toolLayer.endDraw();
+
+  //println(audioInput.left.level());
 }
 
+void setBlendMode(int i){
+  switch(i){
+    case 0 : blendMode(BLEND); break;
+    case 1 : blendMode(ADD); break;
+    case 2 : blendMode(SUBTRACT); break;
+    case 3 : blendMode(DARKEST); break;
+    case 4 : blendMode(LIGHTEST); break;
+    case 5 : blendMode(DIFFERENCE); break;
+    case 6 : blendMode(EXCLUSION); break;
+    case 7 : blendMode(MULTIPLY); break;
+    case 8 : blendMode(SCREEN); break;
+    case 9 : blendMode(REPLACE); break;
+  }
+}
+  
 void savePreset(int i, String name){
    JSONObject newPreset = new JSONObject();
    newPreset.setFloat("maxforce",cf.controllerFlock[i].getController("maxforce").getValue());
@@ -229,7 +289,6 @@ void savePreset(int i, String name){
    newPreset.setInt("boidMove",int(cf.controllerFlock[i].get(RadioButton.class,"boidMove").getValue()));
    newPreset.setBoolean("connectionsDisplayed", cf.controllerFlock[i].get(Button.class,"show links").getBooleanValue());
    newPreset.setBoolean("particlesDisplayed", cf.controllerFlock[i].get(Button.class,"show particles").getBooleanValue());
-   newPreset.setFloat("ff_strength", cf.controllerFlock[i].getController("ff_strength").getValue());
    newPreset.setFloat("spin_speed", cf.controllerFlock[i].getController("spin_speed").getValue());
    newPreset.setBoolean("random_r", cf.controllerFlock[i].get(Button.class,"random r").getBooleanValue());
    newPreset.setBoolean("is Spinning", cf.controllerFlock[i].get(Button.class,"is Spinning").getBooleanValue());
@@ -344,6 +403,127 @@ PVector vector(float mag, float angle){
 
 //OSC
 void oscEvent(OscMessage theOscMessage) {
+  
+  
+  //TOUCH OSC
+  
+  String addr = theOscMessage.addrPattern();
+  print(" addrpattern: " + addr + "    ");
+  String typetag = theOscMessage.typetag();
+  println(" typetag: " + typetag);
+  
+  float val1 = 0, val2 = 0, val3 = 0;
+  if(typetag.equals("fff")){ 
+    val1  = theOscMessage.get(0).floatValue();
+    val2  = theOscMessage.get(1).floatValue();
+    val3  = theOscMessage.get(2).floatValue();
+  }
+  if(typetag.equals("ff")){ 
+    val1  = theOscMessage.get(0).floatValue();
+    val2  = theOscMessage.get(1).floatValue();
+  }
+  if(typetag.equals("f")){ 
+    val1  = theOscMessage.get(0).floatValue();
+  }    
+  switch (addr){
+    case "/Position/Position/z" :    println(val1); sources.get(1).isActivated = (val1 > 0.5); break;
+    case "/Position/Position/1/z" :    println(val1); sources.get(1).isActivated = (val1 > 0.5); break;
+    case "/Position/Position/1" : sources.get(1).position.set(val2*width, (1-val1)*height); break;
+    case "/Position/Position/2/z" :    println(val1); sources.get(2).isActivated = (val1 > 0.5); break;
+    case "/Position/Position/2" : sources.get(2).position.set(val2*width, (1-val1)*height); break;
+    case "/Position/Position/3/z" :    println(val1); sources.get(3).isActivated = (val1 > 0.5); break;
+    case "/Position/Position/3" : sources.get(3).position.set(val2*width, (1-val1)*height); break;
+    case "/Position/Position/4/z" :    println(val1); sources.get(4).isActivated = (val1 > 0.5); break;
+    case "/Position/Position/4" : sources.get(4).position.set(val2*width, (1-val1)*height); break;
+    case "/Position/Erase" : 
+      for (int i=0; i<flocks.length; i++){ 
+        flocks[i].drawMode = false; 
+        flocks[i].killAll();    
+      }
+    break;
+    case "/Position/Erase/z" : 
+      for (int i=0; i<flocks.length; i++){ 
+        flocks[i].drawMode = true; 
+      }
+    break;
+    case "/Position/Drawmode" : 
+      for (int i=0; i<flocks.length; i++){ 
+        flocks[i].drawMode = (val1 > 0.5);
+      }
+    break;
+    
+    case "/accxyz" : break;
+    case "/accelerometer" : ; break;
+    default : println("Message received from " + addr + " . Unknown command."); break;
+  }
+  
+  if(theOscMessage.checkAddrPattern("/ping")==true){
+    println("Ping");
+  }
+
+
+
+    //AUDIO REACTIF SPATIALISATION WORKSHOP
+    
+//  if(theOscMessage.checkAddrPattern("/src1")==true){
+//  float deg1 = theOscMessage.get(0).floatValue();
+//  float proxi1 = theOscMessage.get(1).floatValue();
+  
+//  deg1 = map(deg1,0,360,0,TWO_PI);
+//  float diam = map(proxi1,0,1,0.45*width,0 );
+  
+//  sources.get(0).position.set(0.45*width + diam*cos(deg1), 0.45*width + diam*sin(deg1));
+//  sources.get(0).outflow = int(map(proxi1,0,1,10,15));
+//  obstacles.get(1).position.set(0.45*width + diam*cos(deg1), 0.45*width + diam*sin(deg1));
+//  obstacles.get(1).r = int(map(proxi1,0,1,0.01*width,0.05*width));
+  
+//  //println(deg1);
+
+//}
+//  if(theOscMessage.checkAddrPattern("/src2")==true){
+//  float deg2 = theOscMessage.get(0).floatValue();
+//  float proxi2 = theOscMessage.get(1).floatValue();
+  
+//  deg2 = map(deg2,0,360,0,TWO_PI);
+
+//  float diam = map(proxi2,0,1,0.45*width,0 );
+  
+//  sources.get(1).position.set(0.45*width + diam*cos(deg2), 0.45*width + diam*sin(deg2));
+//  sources.get(1).outflow = int(map(proxi2,0,1,10,15));
+//  obstacles.get(0).position.set(0.45*width + diam*cos(deg2), 0.45*width + diam*sin(deg2));
+//  obstacles.get(0).r = int(map(proxi2,0,1,0.01*width,0.05*width));
+
+  
+//  }
+  
+//  if(theOscMessage.checkAddrPattern("/sc")==true){
+//    float noiseLevel = theOscMessage.get(0).floatValue();
+//    for (Boid b: flocks[0].boids) b.noise = noiseLevel;
+//    for (Boid b: flocks[1].boids) b.noise = noiseLevel;
+   
+//  }
+  
+//  if(theOscMessage.checkAddrPattern("/src1_on")==true){
+//    int activeSrc1 = theOscMessage.get(0).intValue();
+//    for (Boid b: flocks[0].boids) b.size = map(activeSrc1, 0, 127, 0, 50);
+//    cf.controllerFlock[1].getController("size").setValue(activeSrc1);
+//  }
+
+//  if(theOscMessage.checkAddrPattern("/src2_on")==true){
+//    int activeSrc2 = theOscMessage.get(0).intValue();
+//    for (Boid b: flocks[1].boids) b.size = map(activeSrc2, 0, 127, 0, 50);
+//    cf.controllerFlock[1].getController("size").setValue(activeSrc2);
+//  }
+  
+//  if(theOscMessage.checkAddrPattern("/dly")==true){
+//    int lifetime = theOscMessage.get(0).intValue();
+//    sources.get(0).lifespan = int(map(lifetime, 0, 127, 0, 50));
+//    sources.get(1).lifespan = int(map(lifetime, 0, 127, 0, 50));
+   
+//  }
+
+  ////TEST ACCELEROMETRE
+  
   //if(theOscMessage.checkAddrPattern("/capteurPosition")==true){
   //  float xRaw = theOscMessage.get(1).floatValue();
   //  float yRaw = theOscMessage.get(1).floatValue();
@@ -379,46 +559,46 @@ void oscEvent(OscMessage theOscMessage) {
   //    }
   //  }
   //}
-  if(theOscMessage.checkAddrPattern("/impulsion")==true) {
-    println("OK");
-    String x = theOscMessage.get(0).stringValue();
-    String y = theOscMessage.get(1).stringValue();
-    //sources.get(0).position
-    println(y);
+  //if(theOscMessage.checkAddrPattern("/impulsion")==true) {
+  //  println("OK");
+  //  String x = theOscMessage.get(0).stringValue();
+  //  String y = theOscMessage.get(1).stringValue();
+  //  //sources.get(0).position
+  //  println(y);
 
-  }
+  //}
 
-  if(theOscMessage.checkAddrPattern("/accelerometer")==true) {
-    if(theOscMessage.checkTypetag("fff")) {
-      //float x = theOscMessage.get(0).floatValue();
-      float y = theOscMessage.get(1).floatValue();
-      float z = theOscMessage.get(2).floatValue();
-      //println(x + " " + y + " " + z);
+  //if(theOscMessage.checkAddrPattern("/accelerometer")==true) {
+  //  if(theOscMessage.checkTypetag("fff")) {
+  //    //float x = theOscMessage.get(0).floatValue();
+  //    float y = theOscMessage.get(1).floatValue();
+  //    float z = theOscMessage.get(2).floatValue();
+  //    //println(x + " " + y + " " + z);
       
-      float value = map(y,0,125,-1,1);
-      value = constrain(value,-1,1);
-      float theta;
-      if( z > 62.5)
-        theta = 0.5*PI + asin(value);
-      else 
-        theta = 1.5*PI - asin(value);
+  //    float value = map(y,0,125,-1,1);
+  //    value = constrain(value,-1,1);
+  //    float theta;
+  //    if( z > 62.5)
+  //      theta = 0.5*PI + asin(value);
+  //    else 
+  //      theta = 1.5*PI - asin(value);
         
-      cf.controllerFlock[0].getController("gravity_Angle").setValue(degrees(theta));
-      PVector center = new PVector(0.5*width,0.5*height);
-      PVector angle = new PVector(-sin(theta),cos(theta));
-      float r = 0.5*height;
-      for (int i = 0; i<sources.size(); i++){
-        sources.get(i).position.set(center.x + angle.x * r/8*(2*i+1)+r/8*sin(millis()/1000+i), center.y + angle.y * r/8*(2*i+1)+r/8*sin(millis()/1000+i));
-      }
-      for (int i = 0; i<magnets.size(); i++){
-        magnets.get(i).position.set(center.x + angle.x * r/8*(2*i+1)+r/8*sin(millis()/1000+i), center.y + angle.y * r/8*(2*i+1)+r/8*sin(millis()/1000+i));
-      }
-      for (int i = 0; i<obstacles.size(); i++){
-        obstacles.get(i).position.set(center.x + angle.x * r/8*(2*i+1)+r/8*sin(millis()/1000+i), center.y + angle.y * r/8*(2*i+1)+r/8*sin(millis()/1000+i));
-      }
+  //    cf.controllerFlock[0].getController("gravity_Angle").setValue(degrees(theta));
+  //    PVector center = new PVector(0.5*width,0.5*height);
+  //    PVector angle = new PVector(-sin(theta),cos(theta));
+  //    float r = 0.5*height;
+  //    for (int i = 0; i<sources.size(); i++){
+  //      sources.get(i).position.set(center.x + angle.x * r/8*(2*i+1)+r/8*sin(millis()/1000+i), center.y + angle.y * r/8*(2*i+1)+r/8*sin(millis()/1000+i));
+  //    }
+  //    for (int i = 0; i<magnets.size(); i++){
+  //      magnets.get(i).position.set(center.x + angle.x * r/8*(2*i+1)+r/8*sin(millis()/1000+i), center.y + angle.y * r/8*(2*i+1)+r/8*sin(millis()/1000+i));
+  //    }
+  //    for (int i = 0; i<obstacles.size(); i++){
+  //      obstacles.get(i).position.set(center.x + angle.x * r/8*(2*i+1)+r/8*sin(millis()/1000+i), center.y + angle.y * r/8*(2*i+1)+r/8*sin(millis()/1000+i));
+  //    }
       
-    }
-  }
+  //  }
+  //}
 }
 
 void controlEvent(ControlEvent theEvent) {

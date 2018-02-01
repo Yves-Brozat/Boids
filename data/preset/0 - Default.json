@@ -1,7 +1,6 @@
 {
 	"is Spinning" : false,
 	"spin_speed" : 1,
-	"ff_strength" : 1,
 	"boidType" : 0,
 	"borderType" : 2,
 	"boidMove" : 0,
