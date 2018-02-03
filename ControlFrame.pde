@@ -271,9 +271,9 @@ class ControlFrame extends PApplet {
       for (int j = 0; j<controllerFlock.length; j++) 
         controllerTool.addButton("s"+i+"_f"+j).setPosition(5+57*j,10).setSize(55,20).setLabel("Flock "+j).setSwitch(true).setOn().moveTo(s1).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
       controllerTool.addSlider("src"+i+"_size").setPosition(5,35).setSize(100,15).setLabel("Size").setRange(50/parent.width,100).setValue(0.).moveTo(s1).getCaptionLabel().toUpperCase(false);  
-      controllerTool.addSlider("src"+i+"_outflow").setPosition(5,55).setSize(100,15).setLabel("Outflow").setRange(1,20).setNumberOfTickMarks(20).showTickMarks(false).setValue(10).moveTo(s1).getCaptionLabel().toUpperCase(false);
+      controllerTool.addSlider("src"+i+"_outflow").setPosition(5,55).setSize(100,15).setLabel("Outflow").setRange(1,20).setNumberOfTickMarks(20).showTickMarks(false).setValue(SRC_OUTFLOW).moveTo(s1).getCaptionLabel().toUpperCase(false);
       controllerTool.addSlider("src"+i+"_strength").setPosition(5,75).setSize(100,15).setLabel("Strength").setRange(0,10).setValue(0).moveTo(s1).getCaptionLabel().toUpperCase(false); 
-      controllerTool.addSlider("lifespan " + i).setPosition(5,95).setSize(100,15).setLabel("Lifespan").setRange(0,1000).setNumberOfTickMarks(21).showTickMarks(false).setValue(1000).moveTo(s1).getCaptionLabel().toUpperCase(false);
+      controllerTool.addSlider("lifespan " + i).setPosition(5,95).setSize(100,15).setLabel("Lifespan").setRange(0,1000).setNumberOfTickMarks(21).showTickMarks(false).setValue(SRC_LIFESPAN).moveTo(s1).getCaptionLabel().toUpperCase(false);
       RadioButton rb_src_type = controllerTool.addRadioButton("src"+i+"_type").setPosition(15,120).setSize(20,20).setItemsPerRow(1).setSpacingColumn(25).addItem("0 ("+i+")", 0).addItem("| ("+i+")", 1).activate(0).moveTo(s1);
       rb_src_type.getItem(0).setLabel("O");
       rb_src_type.getItem(1).setLabel("/");      

@@ -362,6 +362,8 @@ class Flock {
     for (Boid b : deathList) boids.remove(b);
     for (Boid b : bornList) boids.add(b);
     
+    if(deathList.size()>0) println("death " + deathList);
+    if(bornList.size()>0) println("born " + bornList);
     deathList.clear();
     bornList.clear();
     

@@ -58,8 +58,8 @@ abstract class Boid {
   Boid(float x, float y, float vx, float vy, int i) {
     index = i;
     lifetime = 0;
-    lifespan = 1000;    
-    mortal = true;    
+    lifespan = SRC_LIFESPAN;    
+    mortal = false;    
     position = new PVector(x, y);
     position0 = position.copy();
     velocity = new PVector(vx,vy);    
@@ -207,7 +207,7 @@ abstract class Boid {
   }
   
   color getColor(){
-    float a = mortal ? map(lifetime,0,lifespan,alpha,20) : alpha;
+    float a = mortal ? map(lifetime,0,lifespan,alpha, 0) : alpha;
     color c = color(red + randomBrightness + randomRed - randomGreen - randomBlue,
               green + randomBrightness - randomRed + randomGreen - randomBlue,
               blue + randomBrightness - randomRed - randomGreen + randomBlue,
@@ -356,9 +356,9 @@ class PixelBoid extends Boid {
   }
   
   void draw(PGraphics f, float x, float y, float r, float theta, float alpha){
-    if(0 <= y && y < height && 0 <= x && x < width){
+    if(0 <= y && y < f.height && 0 <= x && x < f.width){
       color pixelColor = (c & 0xffffff) | ((int)alpha << 24);  // color pixelColor = color(c,alpha); doesn't work
-      f.pixels[width*int(y) + int(x)] = pixelColor;
+      f.pixels[f.width*int(y) + int(x)] = pixelColor;
     }
   }
 }

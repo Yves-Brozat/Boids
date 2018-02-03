@@ -16,7 +16,8 @@ abstract class Brush{
     isSelected = false;
     isVisible = cf.controllerTool.get(Button.class,"Show tools").isOn();    
     apply = new boolean[flocks.length];
-    for (int i = 0; i< apply.length; i++) apply[i] = true;
+    apply[0] = true;
+    for (int i = 1; i< apply.length; i++) apply[i] = false;
     brushes.add(this);
   }
   
@@ -92,11 +93,11 @@ class Source extends Brush {
     super(x,y,index);
     r = map(cf.controllerTool.getController("src"+index+"_size").getValue(),0,100,0,0.5*width);
     rSq = r*r;
-    outflow = int(cf.controllerTool.getController("src"+index+"_outflow").getValue());
+    outflow = SRC_OUTFLOW;
     angle = radians(cf.controllerTool.getController("src"+index+"_angle").getValue());
     strength = cf.controllerTool.getController("src"+index+"_strength").getValue();
     vel = new PVector(strength*cos(angle+HALF_PI),strength*sin(angle+HALF_PI));
-    lifespan = int(cf.controllerTool.getController("lifespan "+ index).getValue());
+    lifespan = SRC_LIFESPAN;
     type = int(cf.controllerTool.get(RadioButton.class,"src"+index+"_type").getValue());
     randomStrength = cf.controllerTool.get(Button.class,"randomStrength " + index).isOn();
     randomAngle = cf.controllerTool.get(Button.class,"randomAngle " + index).isOn();
@@ -120,6 +121,7 @@ class Source extends Brush {
     PVector pos = getBoidInitPosition(r);
     PVector vel = getBoidInitVelocity();  
     flocks[index].addBoid(pos.x,pos.y,vel.x,vel.y);
+    flocks[index].bornList.get(flocks[index].bornList.size()-1).mortal = true;      
     flocks[index].bornList.get(flocks[index].bornList.size()-1).lifespan = lifespan;      
   }
   

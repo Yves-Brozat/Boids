@@ -42,6 +42,12 @@ FAIT :
 - Reorganiser l'accordeon : Extraire "Visuel particule", "Visuel Connection", "Source", 
 
 */
+//Constantes
+final int N_SRC_MAX = 8;
+
+//INITIAL PARAMETERS
+final int SRC_OUTFLOW = 10;
+final int SRC_LIFESPAN = 500;
 
 import themidibus.*;
 import controlP5.*;
@@ -155,15 +161,15 @@ void loadData(){
 void settings(){
   size(1920-GUI_WIDTH , 980 ,P2D);
   
-  nFlocks = 2;
+  nFlocks = 1;
   
   blendMode = 0;
   brushes = new ArrayList<Brush>();
   magnets = new ArrayList<Magnet>();
   obstacles = new ArrayList<Obstacle>();
   sources = new ArrayList<Source>();
-  flowfields = new ArrayList<FlowField>();
-    
+  flowfields = new ArrayList<FlowField>();  
+  
   loadData();
 
 }
