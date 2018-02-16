@@ -13,10 +13,12 @@ class Flock {
   boolean boidTypeChange;
   boolean NChange;
   boolean grid;
+  boolean square;
   boolean drawMode;
   int gridX, gridY;
   boolean connectionsDisplayed;
   boolean particlesDisplayed;
+  boolean colorReactive;
     
   boolean[] forcesToggle;
   boolean[] flockForcesToggle;
@@ -29,12 +31,13 @@ class Flock {
   Flock(int i) {
     
     index = i;
-    layer = createGraphics(width, height, P2D);
+    layer = createGraphics(OUTPUT_WIDTH, OUTPUT_HEIGHT,P2D);
     layer.beginDraw();
     layer.clear();
     layer.endDraw();
     NChange = false;
     grid = false;
+    square = false;
     drawMode = false;
     gridX = 0;
     gridY = 0;
@@ -49,6 +52,8 @@ class Flock {
     
     loadPreset(preset.get(0),cf.controllerFlock[index]);
     d_maxSq = d_max*d_max;
+    
+    colorReactive = true;
   }
   
   void run() {
@@ -242,14 +247,20 @@ class Flock {
     if (boidType == PIXEL){
       loadPixels();
       reflectParticles(boids, symmetry);
-      for(Boid b : boids)
-        b.draw(layer, boids);
+      for(Boid b : boids){        
+        b.draw(layer, boids);        
+     }
       updatePixels();
     }
-    else{
+    else
+    {
       reflectParticles(boids, symmetry);
-      for(Boid b : boids)
+      for(Boid b : boids){
+        if(index == 0 && colorReactive){
+          //b.c = map(audioInput.left.level(),0.001,0.03,strength,-strength);
+        }
         b.draw(layer, boids);
+      }         
     }
   }
   
@@ -313,7 +324,6 @@ class Flock {
   }
   
   void drawConnections(ArrayList<Boid> boidsToConnect){
-    reflectConnections(boids, symmetry);
     switch(connectionsType){
       case MESH : drawMesh(boidsToConnect); break;
       case QUEUE : drawQueue(boidsToConnect); break;
@@ -325,9 +335,12 @@ class Flock {
     layer.beginDraw();
     if (!drawMode)  layer.clear();
     if (particlesDisplayed)  drawParticles();
-    if (connectionsDisplayed)  drawConnections(boids);
+    if (connectionsDisplayed){
+      reflectConnections(boids,symmetry);
+      drawConnections(boids);
+    }
     layer.endDraw();
-    image(layer, 0, 0);
+    image(layer, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
   }
   
   void removeDeads(){
@@ -359,15 +372,23 @@ class Flock {
       grid = false;
     }
     
+    if (square){
+      int size = int(map(cf.controllerFlock[index].getController("square_size").getValue(), 0, 100, 0, min(0.5*layer.width, 0.5*layer.height)));
+      int N = int(cf.controllerFlock[index].getController("square_N").getValue());
+      createSquare(size, N);
+      square = false;
+    }
+    
     for (Boid b : deathList) boids.remove(b);
     for (Boid b : bornList) boids.add(b);
     
-    if(deathList.size()>0) println("death " + deathList);
-    if(bornList.size()>0) println("born " + bornList);
     deathList.clear();
     bornList.clear();
     
-    cf.controllerFlock[index].getController("N").setValue(boids.size());
+    //Update the controller as a feedback
+    cf.controllerFlock[index].getController("Particles").setValue(boids.size());
+    //Skip the updated controller's event not due to user interaction
+    NChange = false;
   }
   
   void borders(){
@@ -439,16 +460,14 @@ class Flock {
   }
   
   void mouseDragged(){
-    if(cf.controllerFlock[index].get(Button.class,"Draw particles").isOn()){
-      addBoid(mouseX,mouseY, 0, 0);
-      bornList.get(bornList.size()-1).mortal = false; 
+    if(cf.controllerFlock[index].get(Button.class,"  Draw"+"\n"+"particles").isOn()){
+      addBoid(mouseX*DISPLAY_SCALE,mouseY*DISPLAY_SCALE, 0, 0);
     }
   }
   
   void mouseClicked(){
-    if(cf.controllerFlock[index].get(Button.class,"Draw particles").isOn()){
-      addBoid(mouseX,mouseY, 0, 0);
-      bornList.get(bornList.size()-1).mortal = false; 
+    if(cf.controllerFlock[index].get(Button.class,"  Draw"+"\n"+"particles").isOn()){
+      addBoid(mouseX*DISPLAY_SCALE,mouseY*DISPLAY_SCALE, 0, 0);
     }    
   }
   
@@ -458,16 +477,32 @@ class Flock {
         addBoid(map(i,0,x,0,layer.width)+map(0.5,0,x,0,layer.width),map(j,0,y,0,layer.height)+map(0.5,0,y,0,layer.height),0,0);
         bornList.get(bornList.size()-1).xoff = 0.01*i+0.1*j;
         bornList.get(bornList.size()-1).yoff = 0.1*i+0.01*j;       
-        bornList.get(bornList.size()-1).mortal = false; 
       }
     }
   }
   
+  void createSquare(int r, int N){
+    int n = N/4;
+    PVector[] corners = new PVector[4];
+    corners[0] = new PVector(0.5*layer.width - r, 0.5*layer.height - r);  //0 - 1
+    corners[1] = new PVector(0.5*layer.width + r, 0.5*layer.height - r);  //
+    corners[2] = new PVector(0.5*layer.width + r, 0.5*layer.height + r);  //3 - 2
+    corners[3] = new PVector(0.5*layer.width - r, 0.5*layer.height + r);
+    
+    for (int i = 0; i<n; i++)
+      addBoid(map(i,0,n,corners[0].x, corners[1].x), map(i,0,n,corners[0].y, corners[1].y), 0, 0);
+    for (int i = 0; i<n; i++)
+      addBoid(map(i,0,n,corners[1].x, corners[2].x), map(i,0,n,corners[1].y, corners[2].y), 0, 0);
+    for (int i = 0; i<n; i++)
+      addBoid(map(i,0,n,corners[2].x, corners[3].x), map(i,0,n,corners[2].y, corners[3].y), 0, 0);
+    for (int i = 0; i<n; i++)
+      addBoid(map(i,0,n,corners[3].x, corners[0].x), map(i,0,n,corners[3].y, corners[0].y), 0, 0);      
+  }
+  
   void setSize() {
-    int f = boids.size() - (int)cf.controllerFlock[index].getController("N").getValue();
+    int f = boids.size() - (int)cf.controllerFlock[index].getController("Particles").getValue();
     while(f < 0){      
       addBoid(random(0,layer.width),random(0,layer.height),random(-3,3),random(-3,3));
-      bornList.get(bornList.size()-1).mortal = false;
       f++;
     }
     while (f > 0){
@@ -519,7 +554,7 @@ class Flock {
     forcesToggle = preset.getJSONArray("forceToggle").getBooleanArray();
     flockForcesToggle = preset.getJSONArray("flockForceToggle").getBooleanArray();
     symmetry = preset.getInt("symmetry");
-    d_max = preset.getFloat("d_max");
+    d_max = map(preset.getFloat("d_max"), 0, 100, 0, OUTPUT_WIDTH);
     maxConnections = preset.getInt("maxConnections");
     connectionsDisplayed = preset.getBoolean("connectionsDisplayed");
     particlesDisplayed = preset.getBoolean("particlesDisplayed");

@@ -31,8 +31,10 @@ class FlowField{
    img = texture[0];  
    noiseSeed((int)random(10000));
    
-   apply = new boolean[flocks.length];
-   for (int i = 0; i< apply.length; i++) apply[i] = true;
+   apply = new boolean[N_FLOCK_MAX];
+   for (int i = 0; i< apply.length; i++) {
+      apply[i] = i<flocks.size();
+   }
   }
   
   void initArray(){
@@ -42,6 +44,8 @@ class FlowField{
       field = new ArrayList<ArrayList<PVector>>(cols);
       for (int i = 0; i< cols; i++){
         field.add(new ArrayList<PVector>(rows));
+      }
+      for (int i = 0; i< cols; i++){
         for (int j = 0; j< rows; j++)
           field.get(i).add(j, new PVector());
       }
@@ -59,10 +63,8 @@ class FlowField{
   }
   
   void setNoiseCell(int i, int j){
-    if (i < field.size()){
-      if (j < field.get(i).size())
-        field.get(i).set(j, computeNoiseCell(i,j));
-    }
+    if(isActivated)
+      field.get(i).set(j, computeNoiseCell(i,j));
   }
   
   
@@ -70,8 +72,9 @@ class FlowField{
     switch(type){
       case NOISE :
       for (int i = 0; i<cols; i++){
-        for (int j = 0; j<rows; j++){
-          setNoiseCell(i,j);
+        if(isActivated){
+          for (int j = 0; j<rows; j++)
+            setNoiseCell(i,j);
         }
       }
       zoff+=0.001*speed;
@@ -101,27 +104,31 @@ class FlowField{
   }
   
   PVector getVector(PVector pos){
-    int column = int(constrain(pos.x/r,0,cols-1));
-    int row = int(constrain(pos.y/r,0,rows-1));
-    return field.get(column).get(row).copy();
+    PVector particlePosition = PVector.div(pos,DISPLAY_SCALE);
+    if(isActivated){
+      int column = int(constrain(particlePosition.x/r, 0, cols-1));
+      int row = int(constrain(particlePosition.y/r, 0, rows-1));
+      return field.get(column).get(row).copy();
+    }
+    else return new PVector();
   }
   
   void drawCell(PGraphics pg, int i, int j){
-    if (i < field.size()){
-      if (j < field.get(i).size()){
-        pg.pushMatrix();
-        pg.translate((0.5+i)*r,(0.5+j)*r);
-        pg.line(0,0,0.5*r*field.get(i).get(j).x,0.5*r*field.get(i).get(j).y);
-        pg.popMatrix();
-      }
+    if(isActivated){
+      pg.pushMatrix();
+      pg.translate((0.5+i)*r,(0.5+j)*r);
+      pg.line(0,0,0.5*r*field.get(i).get(j).x,0.5*r*field.get(i).get(j).y);
+      pg.popMatrix();
     }
   }
   
   void render(PGraphics pg){
     pg.stroke(255);
     for (int i = 0; i<cols; i++){
-      for (int j = 0; j<rows; j++)
-        drawCell(pg,i,j);
+      if(isActivated){
+        for (int j = 0; j<rows; j++)
+          drawCell(pg,i,j);
+      }
     }
   }
  
@@ -129,13 +136,13 @@ class FlowField{
    field.clear();
    r = res;
    initArray();
-   update();
+   isActivated = true;
  }
  
  void apply(){
-   for (int i = 0; i< flocks.length; i++){
+   for (int i = 0; i< flocks.size(); i++){
       if (apply[i]){ 
-        for (Boid b : flocks[i].boids)
+        for (Boid b : flocks.get(i).boids)
           b.follow(this);
       }
    }
@@ -145,13 +152,13 @@ class FlowField{
  void run(PGraphics pg){
    if (isActivated)
    {
+     update();
+     apply();
      if (isVisible){
        pg.beginDraw();
        render(pg);
        pg.endDraw();
      }
-     update();
-     apply();
    }
  }
  

@@ -1,5 +1,6 @@
 abstract class Brush{
   PVector position;
+  PVector pos_output;
   PVector velocity;
   boolean isActivated;
   boolean isSelected;
@@ -11,26 +12,29 @@ abstract class Brush{
   Brush(float x, float y, int index){
     this.index = index;
     position = new PVector(x,y);
+    pos_output = PVector.mult(position,DISPLAY_SCALE);
     velocity = new PVector();
     isActivated = true;
     isSelected = false;
     isVisible = cf.controllerTool.get(Button.class,"Show tools").isOn();    
-    apply = new boolean[flocks.length];
-    apply[0] = true;
-    for (int i = 1; i< apply.length; i++) apply[i] = false;
+    apply = new boolean[N_FLOCK_MAX];
+    for (int i = 0; i< apply.length; i++) {
+      apply[i] = i<flocks.size();
+    }
     brushes.add(this);
   }
   
   void run(){
     if (isActivated)
     {
+      update();
+      apply();
       if (isVisible){
         toolLayer.beginDraw();
         render();
         toolLayer.endDraw();
       }
-      update();
-      apply();
+
     }
   }
   
@@ -38,6 +42,7 @@ abstract class Brush{
     if (isSelected && mousePressed){
       PVector oldPosition = position.copy();
       position.set(mouseX,mouseY);
+      pos_output.set(mouseX*DISPLAY_SCALE, mouseY*DISPLAY_SCALE); 
       velocity = PVector.sub(position,oldPosition);
     }
   }
@@ -45,7 +50,6 @@ abstract class Brush{
   void render(){
     toolLayer.noFill();
     toolLayer.stroke(100);
-    // toolLayer.strokeWeight(isSelected? 2 : 1);
     toolLayer.rectMode(CENTER);
     toolLayer.textMode(CENTER);
     toolLayer.textAlign(CENTER);
@@ -53,7 +57,10 @@ abstract class Brush{
   }
   
   abstract void apply();
-  abstract void select();
+  
+  void select(){
+    cf.controllerVisual.getTab("Tools").bringToFront();
+  }
   
   void mousePressed(){
     if (isActivated)
@@ -91,7 +98,7 @@ class Source extends Brush {
   
   Source(float x, float y, int index){
     super(x,y,index);
-    r = map(cf.controllerTool.getController("src"+index+"_size").getValue(),0,100,0,0.5*width);
+    r = map(cf.controllerTool.getController("src"+index+"_size").getValue(),0,100,0,OUTPUT_WIDTH);
     rSq = r*r;
     outflow = SRC_OUTFLOW;
     angle = radians(cf.controllerTool.getController("src"+index+"_angle").getValue());
@@ -105,7 +112,7 @@ class Source extends Brush {
   }
   
   void apply(){
-    for (int i = 0; i< flocks.length; i++){
+    for (int i = 0; i< flocks.size(); i++){
       if (apply[i]){         
         if (outflow > 0 && outflow <= 10){
           if (frameCount % (11-outflow) == 0) createBoid(i);
@@ -118,11 +125,12 @@ class Source extends Brush {
   }
   
   void createBoid(int index){
-    PVector pos = getBoidInitPosition(r);
+    Flock f = flocks.get(index);
+    PVector pos = getBoidInitPosition(r*DISPLAY_SCALE);
     PVector vel = getBoidInitVelocity();  
-    flocks[index].addBoid(pos.x,pos.y,vel.x,vel.y);
-    flocks[index].bornList.get(flocks[index].bornList.size()-1).mortal = true;      
-    flocks[index].bornList.get(flocks[index].bornList.size()-1).lifespan = lifespan;      
+    f.addBoid(pos.x,pos.y,vel.x,vel.y);
+    f.bornList.get(f.bornList.size()-1).mortal = true;      
+    f.bornList.get(f.bornList.size()-1).lifespan = lifespan;      
   }
   
   PVector getBoidInitPosition(float r){
@@ -131,12 +139,12 @@ class Source extends Brush {
       case POINT : 
       float amp = random(r);
       float heading = random(TWO_PI);
-      pos.set(position.x + amp*cos(heading),position.y + amp*sin(heading));  
+      pos.set(pos_output.x + amp*cos(heading),pos_output.y + amp*sin(heading));  
       break;
       case LINE : 
       float z = random(-r,r);
       float a = (ejected ? velocity.heading() + HALF_PI : angle);
-      pos.set(position.x + z*cos(a),position.y + z*sin(a));  
+      pos.set(pos_output.x + z*cos(a),pos_output.y + z*sin(a));
       break;
     }
     return pos;
@@ -176,8 +184,8 @@ class Source extends Brush {
   }
   
   void select(){
-    cf.controllerTool.getTab("default").bringToFront();
-    cf.controllerTool.get(Accordion.class,"accDefault").open(0);
+    super.select();
+    cf.controllerTool.get(Accordion.class,"acc").open(0);
     for (int i =0; i< sources.size(); i++)
       cf.controllerTool.getGroup("Source "+i).hide();
     cf.controllerTool.getGroup("Source "+index).show();
@@ -198,20 +206,23 @@ class Magnet extends Brush {
   }
   
   void apply(){
-    for (int i = 0; i< flocks.length; i++){
+    for (int i = 0; i< flocks.size(); i++){
       if (apply[i]){
-        for (Boid b : flocks[i].boids)
-          b.applyAttraction(position,strength);
+        for (Boid b : flocks.get(i).boids)
+        {
+          if(isAudioReactive){
+            float intensity = map(audioInput.left.level(),0.001,0.03,strength,-strength);
+            b.applyAttraction(pos_output,intensity);
+          }
+          else
+            b.applyAttraction(pos_output,strength);
+        }
       }
     }
   }
   
   void update(){
-    super.update();
-    
-    if(isAudioReactive){
-      strength = constrain(map(audioInput.left.level(),0.001,0.05,100,-100),-100,100);
-    }
+    super.update();    
   }
   
   void render(){
@@ -225,8 +236,8 @@ class Magnet extends Brush {
   }
   
   void select(){
-    cf.controllerTool.getTab("default").bringToFront();
-    cf.controllerTool.get(Accordion.class,"accDefault").open(1);
+    super.select();
+    cf.controllerTool.get(Accordion.class,"acc").open(1);
     for (int i =0; i< magnets.size(); i++)
       cf.controllerTool.getGroup("Magnet "+i).hide();
     cf.controllerTool.getGroup("Magnet "+index).show();
@@ -253,16 +264,16 @@ class Obstacle extends Brush {
   void apply(){     
     switch(type){
       case POINT :
-      for (int i = 0; i< flocks.length; i++){
+      for (int i = 0; i< flocks.size(); i++){
         if (apply[i]){
-          for (Boid b: flocks[i].boids){
-            if (distSq(b.position,position) < rSq){
+          for (Boid b: flocks.get(i).boids){
+            if (distSq(b.position,pos_output) < rSq){
               PVector n = PVector.sub(position,b.position);
               float theta = b.velocity.heading() - n.heading();
               b.velocity.rotate(PI-2*theta);
               PVector ray = n.copy();
               ray.setMag(-r);
-              b.position = PVector.add(position,ray);
+              b.position = PVector.add(pos_output,ray);
               b.sumForces.add(velocity);
             }
           }
@@ -270,11 +281,11 @@ class Obstacle extends Brush {
       }
       break;
       case BOWL : 
-      for (int i = 0; i< flocks.length; i++){
+      for (int i = 0; i< flocks.size(); i++){
         if (apply[i]){
-          for (Boid b: flocks[i].boids){
+          for (Boid b: flocks.get(i).boids){
             PVector a = new PVector(sin(angle),-cos(angle));
-            PVector n = PVector.sub(position,b.position);
+            PVector n = PVector.sub(pos_output,b.position);
             if (n.magSq() > (r-e)*(r-e) && n.magSq() < (r+e)*(r+e) && n.x*a.x > - n.y*a.y){
               float theta = b.velocity.heading() - n.heading();
               b.velocity.rotate(PI-2*theta);
@@ -283,7 +294,7 @@ class Obstacle extends Brush {
                 v.setMag(-r+e);
               else
                 v.setMag(-r-e);
-              b.position = PVector.add(position,v);
+              b.position = PVector.add(pos_output,v);
               b.sumForces.add(velocity);
             }
           }
@@ -291,11 +302,11 @@ class Obstacle extends Brush {
       }
       break;
       case LINE :
-      for (int i = 0; i< flocks.length; i++){
+      for (int i = 0; i< flocks.size(); i++){
         if (apply[i]){
-          for (Boid b: flocks[i].boids){
+          for (Boid b: flocks.get(i).boids){
             PVector n = new PVector(sin(angle),-cos(angle));
-            PVector d = PVector.sub(b.position,position);
+            PVector d = PVector.sub(b.position,pos_output);
             if (d.x*n.x < -d.y*n.y + e  && d.x*n.x > -d.y*n.y - e && -d.x*n.y < -d.y*n.x + r && -d.x*n.y > -d.y*n.x - r )
             {          
               float theta = b.velocity.heading() - n.heading();
@@ -303,9 +314,9 @@ class Obstacle extends Brush {
               b.sumForces.add(velocity);         
               float dAngle = d.y*n.x - d.x*n.y;
               if (d.x*n.x > - d.y*n.y)
-                b.position = new PVector(position.x - dAngle*n.y + e*n.x, position.y + dAngle*n.x + e*n.y);
+                b.position = new PVector(pos_output.x - dAngle*n.y + e*n.x, pos_output.y + dAngle*n.x + e*n.y);
               else
-                b.position = new PVector(position.x - dAngle*n.y - e*n.x, position.y + dAngle*n.x - e*n.y);
+                b.position = new PVector(pos_output.x - dAngle*n.y - e*n.x, pos_output.y + dAngle*n.x - e*n.y);
             }
           } 
         }
@@ -340,8 +351,8 @@ class Obstacle extends Brush {
   }
   
   void select(){
-    cf.controllerTool.getTab("default").bringToFront();
-    cf.controllerTool.get(Accordion.class,"accDefault").open(2);
+    super.select();
+    cf.controllerTool.get(Accordion.class,"acc").open(2);
     for (int i =0; i< obstacles.size(); i++)
       cf.controllerTool.getGroup("Obstacle "+i).hide();
     cf.controllerTool.getGroup("Obstacle "+index).show();

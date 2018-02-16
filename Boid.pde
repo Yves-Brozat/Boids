@@ -58,8 +58,8 @@ abstract class Boid {
   Boid(float x, float y, float vx, float vy, int i) {
     index = i;
     lifetime = 0;
-    lifespan = SRC_LIFESPAN;    
-    mortal = false;    
+    lifespan = int(cf.controllerFlock[index].getController("lifespan").getValue());    
+    mortal = cf.controllerFlock[index].get(Toggle.class, "Immortal").getState();    
     position = new PVector(x, y);
     position0 = position.copy();
     velocity = new PVector(vx,vy);    
@@ -181,7 +181,7 @@ abstract class Boid {
     if (paramToggle[1]) velocity.limit(maxspeed);  // Limit speed
     position.add(velocity); 
     sumForces.mult(0);  // Reset forces to 0 each cycle
-    if(mortal) lifetime++;
+    if(mortal && lifetime <= lifespan) lifetime++;
   }
 
   // A method that calculates and applies a steering force towards a target
@@ -201,13 +201,13 @@ abstract class Boid {
 
   void follow(FlowField flow){
     PVector desired = flow.getVector(position);
-    desired.sub(velocity);
+    desired.sub(PVector.mult(velocity,DISPLAY_SCALE));
     if (paramToggle[0])  desired.limit(maxforce);
     sumForces.add(desired);
   }
   
   color getColor(){
-    float a = mortal ? map(lifetime,0,lifespan,alpha, 0) : alpha;
+    float a = mortal ? constrain(map(lifetime,0,lifespan,alpha, 0), 0, alpha) : alpha;
     color c = color(red + randomBrightness + randomRed - randomGreen - randomBlue,
               green + randomBrightness - randomRed + randomGreen - randomBlue,
               blue + randomBrightness - randomRed - randomGreen + randomBlue,

@@ -1,3 +1,11 @@
+import themidibus.*;
+import controlP5.*;
+import netP5.*;
+import oscP5.*;
+import java.util.Collections.*;
+import spout.*;
+import ddf.minim.*;
+
 /*
 YVES BROZAT - BOIDS : MODELE PHYSIQUE DE SYSTEME PARTICULAIRE
  
@@ -5,8 +13,6 @@ IDEES :
 - Creer des bangs (WALL puis NO_BORDER, MASSE = 0 puis normal, FORCE = 0, SPEED = 0, ...) pour une interaction ponctuelle (type break) ou répétitive (type beat)
 - Création de chemins à suivre (droite, courbe, cercle)
 - Ressorts entre particules pour creer des tissus
-- Ajout slider visuel particule : influence de la proximité sur la taille des particules
-- Améliorer lettres de grande taille (avec scale() p.e au lieu de textSize())
 - Creer une fonction grow dans boids 
 - Boucler les interactions par rapport aux murs (avec un %)
 - Séparer reception data, traitement et affichage
@@ -17,7 +23,6 @@ IDEES :
        - Menu déroulant : type (obstacle, magnet, source, spring, gravity, black hole, noise, speed, slow, friction, go back, ...)
        - Group : hidden sauf quand le type est choisi. -> Paramètres propres au type.
 - Utiliser thread("nameOfTheFunctionToExecuteOnTheSeparatedThread") pour gérer tout ce qui n'est pas de la visualisation
-- Utiliser des PGraphic pour chaque flock -> facilite les empilements, les symmétries et transformations
 
 EN COURS :
 
@@ -40,22 +45,36 @@ FAIT :
 - Ajout slider source : taille, orientation (velocity.heading() initiale), force (vitesse initiale), débit (nombre de particule créée par cycle)
 - Chaque source produit des particules qui ont une esperance de vie propre a la source
 - Reorganiser l'accordeon : Extraire "Visuel particule", "Visuel Connection", "Source", 
+- Ajout slider visuel particule : influence de la proximité sur la taille des particules
+- Utiliser des PGraphic pour chaque flock -> facilite les empilements, les symmétries et transformations
 
 */
-//Constantes
+
+//Model limits
 final int N_SRC_MAX = 8;
+final int N_FLOCK_MAX = 3;
+
+//Output settings
+final float ASPECT_RATIO = sqrt(2)/2;
+final int OUTPUT_WIDTH = 1754;
+final int OUTPUT_HEIGHT = int(OUTPUT_WIDTH/ASPECT_RATIO);
+
+//Layout settings
+final int TASKBAR_HEIGHT = 85;
+final int SCREEN_WIDTH = 1920;
+final int SCREEN_HEIGHT = 1080;
+final int GUI_WIDTH = 200;
+
+final int FRAMERATE = 60;
+
+int DISPLAY_WIDTH = min(SCREEN_WIDTH - GUI_WIDTH, OUTPUT_WIDTH);
+int DISPLAY_HEIGHT = min(SCREEN_HEIGHT - TASKBAR_HEIGHT, int(DISPLAY_WIDTH/ASPECT_RATIO));
+float DISPLAY_SCALE;
 
 //INITIAL PARAMETERS
 final int SRC_OUTFLOW = 10;
 final int SRC_LIFESPAN = 500;
-
-import themidibus.*;
-import controlP5.*;
-import netP5.*;
-import oscP5.*;
-import java.util.Collections.*;
-import spout.*;
-import ddf.minim.*;
+final int BACKGROUND_COLOR = 255;
 
 //boidType : Natural static shapes of particles
 final int CIRCLE = 0;
@@ -89,7 +108,6 @@ final int POINT = 0;
 final int LINE = 1;
 final int BOWL = 2;
 
-final int GUI_WIDTH = 200;
 
 OscP5 osc;
 ControlFrame cf;
@@ -97,15 +115,14 @@ List_directory presetNames;
 ControlP5 cp5;
 int cp5TabToSave = 0;
 ArrayList<JSONObject> preset;
-color backgroundColor;
+color backgroundColor = BACKGROUND_COLOR;
 MidiBus bus;
 Minim minim;
 AudioInput audioInput;
 
 boolean isRecording = false;
-Flock[] flocks;
-Spout[] senders;
-int nFlocks;
+ArrayList<Flock> flocks;
+ArrayList<Spout> senders;
 ArrayList<Brush> brushes; 
 ArrayList<Magnet> magnets;
 ArrayList<Obstacle> obstacles;
@@ -153,17 +170,20 @@ void loadData(){
   preset = new ArrayList<JSONObject>();
   for (int i = 0; i<presetNames.fichiers.length; i++)
     preset.add(loadJSONObject(presetNames.fichiers[i]));  
-  cf = new ControlFrame(this, GUI_WIDTH, 1080, "Controls");
+  cf = new ControlFrame(this, GUI_WIDTH, SCREEN_HEIGHT - TASKBAR_HEIGHT, "Controls");
        
   isLoading = false;
 }
 
 void settings(){
-  size(1920-GUI_WIDTH , 980 ,P2D);
-  
-  nFlocks = 1;
-  
+  DISPLAY_WIDTH = (DISPLAY_HEIGHT == SCREEN_HEIGHT - TASKBAR_HEIGHT) ? int(DISPLAY_HEIGHT*ASPECT_RATIO) : DISPLAY_WIDTH;
+  DISPLAY_SCALE = float(OUTPUT_WIDTH)/DISPLAY_WIDTH;
+  size(DISPLAY_WIDTH, DISPLAY_HEIGHT, P2D);
+    
   blendMode = 0;
+  
+  flocks = new ArrayList<Flock>();
+  senders = new ArrayList<Spout>();
   brushes = new ArrayList<Brush>();
   magnets = new ArrayList<Magnet>();
   obstacles = new ArrayList<Obstacle>();
@@ -174,20 +194,9 @@ void settings(){
 
 }
 
-void setup(){ 
-  //cf.setup_Workshop();
-  flocks = new Flock[nFlocks];
-  senders = new Spout[nFlocks];
-  
-  for (int i = 0 ; i< flocks.length; i++)
-    flocks[i] = new Flock(i);
-    
-  for (int i = 0; i < senders.length; i++) { 
-    senders[i] = new Spout(this);
-    String sendername = "Processing Spout "+i;
-    senders[i].createSender(sendername, 1920, 1080);
-  }
-  toolLayer = createGraphics(1920, 1080, P2D);
+void setup(){   
+
+  toolLayer = createGraphics(DISPLAY_WIDTH, DISPLAY_HEIGHT, P2D);
   toolLayer.beginDraw();
   toolLayer.clear();
   toolLayer.endDraw();  
@@ -198,9 +207,11 @@ void setup(){
 
   //OSC INITIALIZATION
   osc = new OscP5(this,8000);
+  
   //MIDI INITIALIZATION
   MidiBus.list();
   bus = new MidiBus(this, 0, 1);
+  
   //MINIM INITIALIZATION
   minim = new Minim(this);
   audioInput = minim.getLineIn();
@@ -213,8 +224,10 @@ void setup(){
 
 
 void draw(){
-  background(0);
-  setBlendMode(blendMode);
+  background(backgroundColor);
+  setBlendMode(blendMode, g);
+  for (int i = 0; i< flocks.size(); i++)
+    setBlendMode(blendMode, flocks.get(i).layer);
   surface.setTitle("[FPS : " + int(frameRate)+"] ["+ record() +"]");
   
   if (isLoading){
@@ -224,16 +237,17 @@ void draw(){
     toolLayer.endDraw();
   }
   else{
-    for (int i = 0; i< flocks.length; i++){
-      flocks[i].run();
-      senders[i].sendTexture(flocks[i].layer);
+    for (int i = 0; i< flocks.size(); i++){
+      flocks.get(i).run();
+      senders.get(i).sendTexture(flocks.get(i).layer);
     }
     for (FlowField ff : flowfields)
       ff.run(toolLayer);
     for (Brush b : brushes)
       b.run();     
   }
-  for (int i =0; i<senders.length; i++)
+  
+  if (flocks.size()>0) //println(flocks.get(0).NChange);
     
   image(toolLayer, 0, 0);
   toolLayer.beginDraw();
@@ -243,18 +257,18 @@ void draw(){
   //println(audioInput.left.level());
 }
 
-void setBlendMode(int i){
+void setBlendMode(int i, PGraphics pg){
   switch(i){
-    case 0 : blendMode(BLEND); break;
-    case 1 : blendMode(ADD); break;
-    case 2 : blendMode(SUBTRACT); break;
-    case 3 : blendMode(DARKEST); break;
-    case 4 : blendMode(LIGHTEST); break;
-    case 5 : blendMode(DIFFERENCE); break;
-    case 6 : blendMode(EXCLUSION); break;
-    case 7 : blendMode(MULTIPLY); break;
-    case 8 : blendMode(SCREEN); break;
-    case 9 : blendMode(REPLACE); break;
+    case 0 : pg.blendMode(BLEND); break;
+    case 1 : pg.blendMode(ADD); break;
+    case 2 : pg.blendMode(SUBTRACT); break;
+    case 3 : pg.blendMode(DARKEST); break;
+    case 4 : pg.blendMode(LIGHTEST); break;
+    case 5 : pg.blendMode(DIFFERENCE); break;
+    case 6 : pg.blendMode(EXCLUSION); break;
+    case 7 : pg.blendMode(MULTIPLY); break;
+    case 8 : pg.blendMode(SCREEN); break;
+    case 9 : pg.blendMode(REPLACE); break;
   }
 }
   
@@ -393,7 +407,8 @@ void keyPressed(){
     if (key == 's') {
       java.util.Date dNow = new java.util.Date( );
       java.text.SimpleDateFormat ft = new java.text.SimpleDateFormat ("yyyy_MM_dd_hhmmss_S");
-      saveFrame("Screenshot/"+this.getClass().getName()+"_"+ft.format(dNow)+  ".png");
+      for (int i = 0; i< flocks.size(); i++)
+        flocks.get(i).layer.save("Screenshot/"+this.getClass().getName()+"_"+ft.format(dNow)+  ".png");
       text("Screenshot done",0.5*width,15);
     }
   }
@@ -442,19 +457,19 @@ void oscEvent(OscMessage theOscMessage) {
     case "/Position/Position/4/z" :    println(val1); sources.get(4).isActivated = (val1 > 0.5); break;
     case "/Position/Position/4" : sources.get(4).position.set(val2*width, (1-val1)*height); break;
     case "/Position/Erase" : 
-      for (int i=0; i<flocks.length; i++){ 
-        flocks[i].drawMode = false; 
-        flocks[i].killAll();    
+      for (int i=0; i<flocks.size(); i++){ 
+        flocks.get(i).drawMode = false; 
+        flocks.get(i).killAll();    
       }
     break;
     case "/Position/Erase/z" : 
-      for (int i=0; i<flocks.length; i++){ 
-        flocks[i].drawMode = true; 
+      for (int i=0; i<flocks.size(); i++){ 
+        flocks.get(i).drawMode = true; 
       }
     break;
     case "/Position/Drawmode" : 
-      for (int i=0; i<flocks.length; i++){ 
-        flocks[i].drawMode = (val1 > 0.5);
+      for (int i=0; i<flocks.size(); i++){ 
+        flocks.get(i).drawMode = (val1 > 0.5);
       }
     break;
     
@@ -624,7 +639,7 @@ void noteOn(int channel, int pitch, int velocity) {
   println("Velocity:"+velocity);
   
   if (channel == 0){
-      for (Boid b : flocks[0].boids)
+      for (Boid b : flocks.get(0).boids)
         b.separation += 10;
   }
   
@@ -650,7 +665,7 @@ void noteOff(int channel, int pitch, int velocity) {
   println("Velocity:"+velocity);
   
   if (channel == 0){
-      for (Boid b : flocks[0].boids)
+      for (Boid b : flocks.get(0).boids)
         b.separation -=10;
   }
   
