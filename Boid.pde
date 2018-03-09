@@ -201,7 +201,7 @@ abstract class Boid {
 
   void follow(FlowField flow){
     PVector desired = flow.getVector(position);
-    desired.sub(PVector.mult(velocity,DISPLAY_SCALE));
+    desired.sub(velocity);
     if (paramToggle[0])  desired.limit(maxforce);
     sumForces.add(desired);
   }
@@ -226,13 +226,13 @@ abstract class Boid {
       r = proximityTo(boids, cloud_spreading*cloud_spreading);
       break;
       case SHINY : 
-      if (mortal)  {
-        r = 0.5*(1+sin(shining_frequence*frameCount+shining_phase*PI*lifetime/lifespan));
-      }
-      else {
+      //if (mortal)  {
+      //  r = 0.5*(1+sin(shining_frequence*frameCount+shining_phase*PI*lifetime/lifespan));
+      //}
+      //else {
         float phase = map(shining_phase, 0 ,16, 0, PI);
         r = 0.5*(1+sin(shining_frequence*frameCount+phase*boids.indexOf(this)));
-      }
+      //}
       break;
       case NOISY : 
       roff += strength_noise;

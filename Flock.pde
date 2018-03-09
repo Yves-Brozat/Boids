@@ -14,16 +14,20 @@ class Flock {
   boolean NChange;
   boolean grid;
   boolean square;
+  boolean delta;
   boolean drawMode;
+  boolean erase;
   int gridX, gridY;
   boolean connectionsDisplayed;
   boolean particlesDisplayed;
   boolean colorReactive;
+  int initialVelocity;
     
   boolean[] forcesToggle;
   boolean[] flockForcesToggle;
 
-  float symmetry;  //static
+  int symmetry;  
+  int sustain = SUSTAIN;
   
   float d_max, d_maxSq;
   int maxConnections;
@@ -32,13 +36,12 @@ class Flock {
     
     index = i;
     layer = createGraphics(OUTPUT_WIDTH, OUTPUT_HEIGHT,P2D);
-    layer.beginDraw();
-    layer.clear();
-    layer.endDraw();
     NChange = false;
     grid = false;
     square = false;
+    delta = false;
     drawMode = false;
+    erase = false;
     gridX = 0;
     gridY = 0;
     connectionsDisplayed = false;
@@ -47,6 +50,7 @@ class Flock {
     boids = new ArrayList<Boid>(); // Initialize the ArrayList
     deathList = new ArrayList<Boid>(); 
     bornList = new ArrayList<Boid>();
+    initialVelocity = NONE;
     
     setAlphabet();
     
@@ -211,11 +215,11 @@ class Flock {
     for (Boid b : boids) b.update();
   }
   
-  void reflectParticles(ArrayList<Boid> boids, float n){
+  void reflectParticles(ArrayList<Boid> boids, int n){
     for(Boid b : boids){
-      if ((int)n > 1){  
+      if (n > 1){  
         PVector center = new PVector(0.5*layer.width,0.5*layer.height);
-        float section = TWO_PI/(int)n; 
+        float section = TWO_PI/n; 
         for (int i=0; i<n-1; i++){ 
           layer.pushMatrix();
           layer.translate(center.x,center.y);     
@@ -228,29 +232,33 @@ class Flock {
     }
   }
   
-  void reflectConnections(ArrayList<Boid> boids, float n){
-    if ((int)n > 1){  
+  void reflectConnections(ArrayList<Boid> boids, int n){
+    if (n > 1){  
       PVector center = new PVector(0.5*layer.width,0.5*layer.height);
-      float section = TWO_PI/(int)n; 
+      float section = TWO_PI/n; 
       for (int i=0; i<n-1; i++){ 
+        layer.beginDraw();
         layer.pushMatrix();
         layer.translate(center.x,center.y);     
         layer.rotate(section*(i+1));
         layer.translate(-center.x,-center.y);
         drawConnections(boids);
         layer.popMatrix();
+        layer.endDraw();
       }
     }
   } 
   
   void drawParticles(){
+    layer.beginDraw();
+    layer.smooth(8);
     if (boidType == PIXEL){
-      loadPixels();
+      layer.loadPixels();
       reflectParticles(boids, symmetry);
       for(Boid b : boids){        
         b.draw(layer, boids);        
      }
-      updatePixels();
+      layer.updatePixels();
     }
     else
     {
@@ -262,6 +270,7 @@ class Flock {
         b.draw(layer, boids);
       }         
     }
+    layer.endDraw();
   }
   
   void drawQueue(ArrayList<Boid> boidsToConnect){
@@ -317,30 +326,63 @@ class Flock {
     
     if (bj.history.size() >= bi.history.size()){
       for ( int j=0; j<bi.history.size(); j++){
-        layer.stroke(bi.c, a/bi.history.size()*(j+1));
+        layer.stroke(bi.getColor(), a/bi.history.size()*(j+1));
         layer.line(bi.history.get(j).x, bi.history.get(j).y, bj.history.get(j).x, bj.history.get(j).y);
       }
     }     
   }
   
   void drawConnections(ArrayList<Boid> boidsToConnect){
+    layer.smooth(4);
     switch(connectionsType){
       case MESH : drawMesh(boidsToConnect); break;
       case QUEUE : drawQueue(boidsToConnect); break;
     }
     
   }
+
+  void fade(PGraphics c, int fadeAmount) {
+    if(fadeAmount >= 100)
+      clear(c);
+    else if(fadeAmount <= 0){
+      //don't clear at all
+    } else {
+      c.beginDraw();
+      c.loadPixels();
+      for (int i =0; i<c.pixels.length; i++) { 
+        int alpha = (c.pixels[i] >> 24) & 0xFF ;    // get alpha value
+        alpha = max(0, alpha-(fadeAmount-1));    // reduce alpha value 
+        c.pixels[i] = alpha<<24 | (c.pixels[i]) & 0xFFFFFF ;    // assign color with new alpha-value
+      } 
+      c.updatePixels();
+      c.endDraw();
+    }
+  }
   
-  void render(){
-    layer.beginDraw();
-    if (!drawMode)  layer.clear();
-    if (particlesDisplayed)  drawParticles();
+  void clear(PGraphics c){
+    c.beginDraw();
+    c.clear();
+    c.endDraw();
+  }
+  
+  void render(){    
+    if (erase){
+      clear(layer);
+      erase = false;
+    }
+    fade(layer, sustain);
+    if (particlesDisplayed)
+      drawParticles();
     if (connectionsDisplayed){
       reflectConnections(boids,symmetry);
+      layer.beginDraw();
       drawConnections(boids);
+      layer.endDraw();
     }
-    layer.endDraw();
+    
+    blendMode(SUBTRACT);
     image(layer, 0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    blendMode(BLEND);
   }
   
   void removeDeads(){
@@ -377,6 +419,34 @@ class Flock {
       int N = int(cf.controllerFlock[index].getController("square_N").getValue());
       createSquare(size, N);
       square = false;
+    }
+    
+    if (delta){
+      int size = int(map(cf.controllerFlock[index].getController("square_size").getValue(), 0, 100, 0, min(0.5*layer.width, 0.5*layer.height)));
+      int N = int(cf.controllerFlock[index].getController("square_N").getValue());
+      createDelta(size, N);
+      delta = false;
+    }
+    
+    
+    if (erase)  killAll();
+    
+    float v = cf.controllerFlock[index].getController("init_vel").getValue();
+    for (Boid b : bornList){
+      switch(initialVelocity){
+        case RANDOM : b.velocity.set(random(-v,v), random(-v,v));
+        break;
+        case INWARD : b.velocity = PVector.sub(new PVector(0.5*layer.width, 0.5*layer.height), b.position);
+        b.velocity.normalize();
+        b.velocity.mult(v);
+        break;
+        case OUTWARD : b.velocity = PVector.sub(new PVector(0.5*layer.width, 0.5*layer.height), b.position);
+        b.velocity.normalize();
+        b.velocity.mult(-v);
+        break;
+        case NONE : b.velocity.set(0,0);
+        break;
+      }
     }
     
     for (Boid b : deathList) boids.remove(b);
@@ -456,9 +526,6 @@ class Flock {
     }
   }
   
-  void clearLayer(){
-  }
-  
   void mouseDragged(){
     if(cf.controllerFlock[index].get(Button.class,"  Draw"+"\n"+"particles").isOn()){
       addBoid(mouseX*DISPLAY_SCALE,mouseY*DISPLAY_SCALE, 0, 0);
@@ -498,11 +565,41 @@ class Flock {
     for (int i = 0; i<n; i++)
       addBoid(map(i,0,n,corners[3].x, corners[0].x), map(i,0,n,corners[3].y, corners[0].y), 0, 0);      
   }
+
+  void createDelta(int r, int N){
+    int n = N/9;
+    PVector[] trapeze = new PVector[4];
+    trapeze[0] = new PVector(0.5*layer.width - 0.6*r, 0.5*layer.height - 1.5*r);  //   0-1
+    trapeze[1] = new PVector(0.5*layer.width + 0.6*r, 0.5*layer.height - 1.5*r);  //  /   \
+    trapeze[2] = new PVector(0.5*layer.width + r, 0.5*layer.height + 1.5*r);      // 3 --- 2
+    trapeze[3] = new PVector(0.5*layer.width - r, 0.5*layer.height + 1.5*r);
+
+    PVector[] triangle = new PVector[3];
+    triangle[0] = new PVector(0.5*layer.width, 0.5*layer.height - 1.2*r);           //    0
+    triangle[1] = new PVector(0.5*layer.width + 0.33*r, 0.5*layer.height + 0.9*r);  //   / \
+    triangle[2] = new PVector(0.5*layer.width - 0.33*r, 0.5*layer.height + 0.9*r);  //  2 - 1
+    
+    for (int i = 0; i<n/2; i++)
+      addBoid(map(i,0,n/2,trapeze[0].x, trapeze[1].x), map(i,0,n/2,trapeze[0].y, trapeze[1].y), 0, 0);
+    for (int i = 0; i<2*n; i++)
+      addBoid(map(i,0,2*n,trapeze[1].x, trapeze[2].x), map(i,0,2*n,trapeze[1].y, trapeze[2].y), 0, 0);
+    for (int i = 0; i<2*n; i++)
+      addBoid(map(i,0,2*n,trapeze[2].x, trapeze[3].x), map(i,0,2*n,trapeze[2].y, trapeze[3].y), 0, 0);
+    for (int i = 0; i<2*n; i++)
+      addBoid(map(i,0,2*n,trapeze[3].x, trapeze[0].x), map(i,0,2*n,trapeze[3].y, trapeze[0].y), 0, 0);
+      
+    for (int i = 0; i<n; i++)
+      addBoid(map(i,0,n,triangle[0].x, triangle[1].x), map(i,0,n,triangle[0].y, triangle[1].y), 0, 0);
+    for (int i = 0; i<n/2; i++)
+      addBoid(map(i,0,n/2,triangle[1].x, triangle[2].x), map(i,0,n/2,triangle[1].y, triangle[2].y), 0, 0);
+    for (int i = 0; i<n; i++)
+      addBoid(map(i,0,n,triangle[2].x, triangle[0].x), map(i,0,n,triangle[2].y, triangle[0].y), 0, 0);
+  }
   
   void setSize() {
     int f = boids.size() - (int)cf.controllerFlock[index].getController("Particles").getValue();
     while(f < 0){      
-      addBoid(random(0,layer.width),random(0,layer.height),random(-3,3),random(-3,3));
+      addBoid(random(0,layer.width),random(0,layer.height), 0, 0);
       f++;
     }
     while (f > 0){

@@ -55,8 +55,8 @@ final int N_SRC_MAX = 8;
 final int N_FLOCK_MAX = 3;
 
 //Output settings
-final float ASPECT_RATIO = sqrt(2)/2;
-final int OUTPUT_WIDTH = 1754;
+final float ASPECT_RATIO = 1.0/1;
+final int OUTPUT_WIDTH = 1080;         //[1920x1080] [1280x720]
 final int OUTPUT_HEIGHT = int(OUTPUT_WIDTH/ASPECT_RATIO);
 
 //Layout settings
@@ -73,8 +73,21 @@ float DISPLAY_SCALE;
 
 //INITIAL PARAMETERS
 final int SRC_OUTFLOW = 10;
-final int SRC_LIFESPAN = 500;
-final int BACKGROUND_COLOR = 255;
+final int SRC_LIFESPAN = 300; // 5 seconds
+final int BACKGROUND_COLOR = color(255);
+final int BLENDMODE = 1;
+final float FF_STRENGTH = 5.0;
+final float FF_SPEED = 0;
+final float FF_NOISE = 0.02;
+final int FF_RESOLUTION = 4;
+final int N_SQUARE = 5000;
+final int SUSTAIN = 0;
+
+//initialVelocity
+final int RANDOM = 0;
+final int INWARD = 1;
+final int OUTWARD = 2;
+final int NONE = 3;
 
 //boidType : Natural static shapes of particles
 final int CIRCLE = 0;
@@ -116,6 +129,7 @@ ControlP5 cp5;
 int cp5TabToSave = 0;
 ArrayList<JSONObject> preset;
 color backgroundColor = BACKGROUND_COLOR;
+int blendMode = BLENDMODE;
 MidiBus bus;
 Minim minim;
 AudioInput audioInput;
@@ -129,7 +143,6 @@ ArrayList<Obstacle> obstacles;
 ArrayList<Source> sources;
 ArrayList<FlowField> flowfields;
 PGraphics toolLayer;
-int blendMode;
  
 //Data
 boolean isLoading = true;
@@ -179,8 +192,8 @@ void settings(){
   DISPLAY_WIDTH = (DISPLAY_HEIGHT == SCREEN_HEIGHT - TASKBAR_HEIGHT) ? int(DISPLAY_HEIGHT*ASPECT_RATIO) : DISPLAY_WIDTH;
   DISPLAY_SCALE = float(OUTPUT_WIDTH)/DISPLAY_WIDTH;
   size(DISPLAY_WIDTH, DISPLAY_HEIGHT, P2D);
-    
-  blendMode = 0;
+  
+  smooth(8);
   
   flocks = new ArrayList<Flock>();
   senders = new ArrayList<Spout>();
@@ -219,45 +232,54 @@ void setup(){
   surface.setLocation(cf.w,0);  
   surface.setResizable(true);
   
+  //SPOUT INITIALIZATION
+  for (int i =0; i<N_FLOCK_MAX; i++){
+    String sendername = "Processing Spout "+i;
+    senders.add(new Spout(this));
+    senders.get(senders.size()-1).createSender(sendername, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+  }
+  
+  //colorMode(HSB, 360, 100, 100, 255);
+  //setBlendMode(blendMode, g);
+  background(backgroundColor);
 }
 
 
 
 void draw(){
+  surface.setTitle("[FPS : " + int(frameRate)+"] ["+ record() +"]");
+
+ // setBlendMode(REPLACE, g);
   background(backgroundColor);
-  setBlendMode(blendMode, g);
   for (int i = 0; i< flocks.size(); i++)
     setBlendMode(blendMode, flocks.get(i).layer);
-  surface.setTitle("[FPS : " + int(frameRate)+"] ["+ record() +"]");
   
-  if (isLoading){
-    toolLayer.beginDraw();
-    toolLayer.stroke(255);
-    toolLayer.text("LOADING",0.5*width,0.5*height);
-    toolLayer.endDraw();
-  }
-  else{
+  //if (isLoading){
+  //  toolLayer.beginDraw();
+  //  toolLayer.stroke(255);
+  //  toolLayer.text("LOADING",0.5*width,0.5*height);
+  //  toolLayer.endDraw();
+  //}
+  //else{
     for (int i = 0; i< flocks.size(); i++){
       flocks.get(i).run();
-      senders.get(i).sendTexture(flocks.get(i).layer);
+      //senders.get(i).sendTexture(flocks.get(i).layer);
     }
     for (FlowField ff : flowfields)
       ff.run(toolLayer);
     for (Brush b : brushes)
       b.run();     
-  }
-  
-  if (flocks.size()>0) //println(flocks.get(0).NChange);
-    
+  //}
+      
   image(toolLayer, 0, 0);
   toolLayer.beginDraw();
   toolLayer.clear();
   toolLayer.endDraw();
 
-  //println(audioInput.left.level());
 }
 
 void setBlendMode(int i, PGraphics pg){
+  pg.beginDraw();
   switch(i){
     case 0 : pg.blendMode(BLEND); break;
     case 1 : pg.blendMode(ADD); break;
@@ -270,6 +292,7 @@ void setBlendMode(int i, PGraphics pg){
     case 8 : pg.blendMode(SCREEN); break;
     case 9 : pg.blendMode(REPLACE); break;
   }
+  pg.endDraw();
 }
   
 void savePreset(int i, String name){
@@ -407,8 +430,12 @@ void keyPressed(){
     if (key == 's') {
       java.util.Date dNow = new java.util.Date( );
       java.text.SimpleDateFormat ft = new java.text.SimpleDateFormat ("yyyy_MM_dd_hhmmss_S");
-      for (int i = 0; i< flocks.size(); i++)
-        flocks.get(i).layer.save("Screenshot/"+this.getClass().getName()+"_"+ft.format(dNow)+  ".png");
+      for (int i = 0; i< flocks.size(); i++){
+        //PGraphics pg = flocks.get(i).layer;
+        //filter(INVERT);
+        //pg = image(pg,0,0);
+        save("Screenshot/"+this.getClass().getName()+"_"+ft.format(dNow)+  ".png");
+      }
       text("Screenshot done",0.5*width,15);
     }
   }

@@ -39,8 +39,8 @@ class FlowField{
   
   void initArray(){
     try{
-      cols = width/r;
-      rows = height/r;
+      cols = OUTPUT_WIDTH/r;
+      rows = OUTPUT_HEIGHT/r;
       field = new ArrayList<ArrayList<PVector>>(cols);
       for (int i = 0; i< cols; i++){
         field.add(new ArrayList<PVector>(rows));

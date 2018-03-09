@@ -35,7 +35,8 @@ class ControlFrame extends PApplet {
     } 
     
     gui();  
-  }
+
+}
   
 
   
@@ -101,11 +102,7 @@ class ControlFrame extends PApplet {
       int i = flocks.size();
       Flock f = new Flock(i);
       flocks.add(f);
-      
-      String sendername = "Processing Spout "+i;
-      senders.add(new Spout(parent));
-      senders.get(senders.size()-1).createSender(sendername, OUTPUT_WIDTH, OUTPUT_HEIGHT);
-    
+         
       for (int index =0; index< flocks.size()-1; index++){
           controllerFlock[index].get(Accordion.class, "acc").hide();
       }
@@ -146,6 +143,9 @@ class ControlFrame extends PApplet {
       controllerTool.get(DropdownList.class,"Select a flowfield").addItem("Flowfield "+i,i).setValue(i);
       controllerTool.getGroup("Flowfields").setSize(200,320);
       controllerTool.get(Accordion.class,"acc").updateItems();
+      
+     flowfields.get(i).isVisible = true;
+     controllerTool.get(Button.class, "Show tools").setOn();
     }
  }
  
@@ -325,18 +325,27 @@ class ControlFrame extends PApplet {
       controllerFlock[j].getController("grid").getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).setPaddingX(0);
 
       controllerFlock[j].addSlider("k_density").setPosition(30,60).setRange(0.1,2).setValue(1.0).hide().moveTo(g_model);
-      controllerFlock[j].addButton("  Draw"+"\n"+"particles").setPosition(15,115).setSize(70,30).setSwitch(true).setOff().moveTo(g_model).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP).toUpperCase(false); 
-      controllerFlock[j].addBang("Erase").setPosition(15,150).setSize(70,30).moveTo(g_model).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-      controllerFlock[j].addToggle("Immortal").setPosition(70,200).setSize(50,20).setMode(ControlP5.SWITCH).setValue(false).moveTo(g_model).getCaptionLabel().align(ControlP5.LEFT_OUTSIDE, ControlP5.CENTER).setPaddingX(10).toUpperCase(false);
-      controllerFlock[j].addSlider("lifespan").setPosition(15,230).setSize(100,15).setLabel("Lifespan").setRange(0,1000).setNumberOfTickMarks(21).showTickMarks(false).setValue(SRC_LIFESPAN).moveTo(g_model).hide().getCaptionLabel().toUpperCase(false);      
+      controllerFlock[j].addButton("  Draw"+"\n"+"particles").setPosition(15,105).setSize(70,30).setSwitch(true).setOff().moveTo(g_model).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP).toUpperCase(false); 
+      controllerFlock[j].addBang("Erase").setPosition(15,140).setSize(70,30).moveTo(g_model).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      controllerFlock[j].addToggle("Immortal").setPosition(115,180).setSize(50,20).setMode(ControlP5.SWITCH).setValue(false).moveTo(g_model).getCaptionLabel().align(ControlP5.LEFT_OUTSIDE, ControlP5.CENTER).setPaddingX(10).toUpperCase(false);
+      controllerFlock[j].addSlider("lifespan").setPosition(15,210).setSize(100,15).setLabel("Lifespan").setRange(0,1000).setNumberOfTickMarks(21).showTickMarks(false).setValue(SRC_LIFESPAN).moveTo(g_model).hide().getCaptionLabel().toUpperCase(false);      
       
-      Group g_square = controllerFlock[j].addGroup("Square").setPosition(10,300).setBarHeight(15).setBackgroundColor(color(0, 30)).setSize(180,58).moveTo(g_model);  
+      Group g_square = controllerFlock[j].addGroup("Square").setPosition(10,250).setBarHeight(15).setBackgroundColor(color(0, 30)).setSize(180,58).moveTo(g_model);  
       g_square.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       controllerFlock[j].addBang("square").setLabel("+").setPosition(10,10).setSize(30,30).moveTo(g_square).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       controllerFlock[j].addSlider("square_size").setLabel("Size").setPosition(50,10).setSize(100, 15).setRange(0,100).setValue(33).setNumberOfTickMarks(13).showTickMarks(false).moveTo(g_square).getCaptionLabel().toUpperCase(false);
-      controllerFlock[j].addSlider("square_N").setLabel("N").setPosition(50,30).setSize(100, 15).setRange(0,10000).setValue(2000).setNumberOfTickMarks(11).showTickMarks(false).moveTo(g_square).getCaptionLabel().toUpperCase(false);
-      
-      Group g_borders = controllerFlock[j].addGroup("Borders").setPosition(10,400).setBarHeight(15).setBackgroundColor(color(0, 30)).setSize(180,58).moveTo(g_model);  
+      controllerFlock[j].addSlider("square_N").setLabel("N").setPosition(50,30).setSize(100, 15).setRange(0,10000).setValue(N_SQUARE).setNumberOfTickMarks(11).showTickMarks(false).moveTo(g_square).getCaptionLabel().toUpperCase(false);
+     
+      Group g_initVel = controllerFlock[j].addGroup("Initial velocity").setPosition(10,325).setBarHeight(15).setBackgroundColor(color(0, 30)).setSize(180,75).moveTo(g_model);  
+      g_initVel.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      controllerFlock[j].addRadioButton("Initial speed").setPosition(5,5).setSize(15,15).moveTo(g_initVel)
+                .addItem("Random", RANDOM).toUpperCase(false)
+                .addItem("Inward", INWARD).toUpperCase(false)
+                .addItem("Outward", OUTWARD).toUpperCase(false)
+                .addItem("None", NONE).toUpperCase(false).activate(3);
+      controllerFlock[j].addKnob("init_vel").setLabel("Speed").setPosition(110,15).setResolution(100).setValue(1.0).setRange(0,5).setRadius(20).moveTo(g_initVel).getCaptionLabel().align(ControlP5.CENTER, ControlP5.BOTTOM_OUTSIDE).toUpperCase(false);               
+                 
+      Group g_borders = controllerFlock[j].addGroup("Borders").setPosition(10,420).setBarHeight(15).setBackgroundColor(color(0, 30)).setSize(180,58).moveTo(g_model);  
       g_borders.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       controllerFlock[j].addRadioButton("Borders type").setPosition(5,5).setSize(15,15).moveTo(g_borders)
                 .addItem("[ - ]  Bouncing Window", WALLS).toUpperCase(false)
@@ -416,7 +425,8 @@ class ControlFrame extends PApplet {
       Group g_effect = controllerFlock[j].addGroup("Effects").setBackgroundColor(color(0, 64)).setBackgroundHeight(130).setBarHeight(20);  
       g_effect.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       controllerFlock[j].addSlider("symmetry").setLabel("Symmetry").setPosition(20,30).setSize(160,30).setNumberOfTickMarks(12).setRange(1,12).setValue(1).moveTo(g_effect).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).toUpperCase(false);
-      controllerFlock[j].addButton("Painting mode").setPosition(20,90).setSize(160,30).setSwitch(true).setOff().moveTo(g_effect).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false); 
+      controllerFlock[j].addButton("Painting mode").setPosition(20,90).setSize(160,30).setSwitch(true).setOn().hide().moveTo(g_effect).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
+      controllerFlock[j].addSlider("Sustain").setPosition(20,90).setSize(160,30).setNumberOfTickMarks(101).showTickMarks(false).setRange(0,100).setValue(SUSTAIN).moveTo(g_effect).getCaptionLabel().align(ControlP5.CENTER, ControlP5.TOP_OUTSIDE).toUpperCase(false);    
 
       Group trail = controllerFlock[j].addGroup("Mark").setPosition(10,60).setBackgroundColor(color(0, 30)).setBarHeight(15).setBackgroundHeight(70).setWidth(180).moveTo(g_effect).hide();
       trail.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
@@ -448,7 +458,7 @@ class ControlFrame extends PApplet {
         
       //Accordion
       controllerFlock[j].addAccordion("acc").setPosition(0,140).setWidth(this.w).setMinItemHeight(20).setCollapseMode(Accordion.MULTI).moveTo(controllerVisual.getTab("default")).hide()
-                .addItem(g_model).addItem(g_particle).addItem(connex).addItem(g_color).addItem(g_forces).addItem(g_effect).addItem(g_preset).open(0,6);     
+                .addItem(g_model).addItem(g_effect).addItem(g_color).addItem(g_particle).addItem(connex).addItem(g_forces).addItem(g_preset).open(0,1,2);     
       g_radius.addListener(new GroupListener(g_radius,g_particle,controllerFlock[j].get(Accordion.class, "acc")));
       g_density.addListener(new GroupListener(g_density,g_particle,controllerFlock[j].get(Accordion.class, "acc")));
       g_spin.addListener(new GroupListener(g_spin,g_particle,controllerFlock[j].get(Accordion.class, "acc")));
@@ -543,14 +553,13 @@ class ControlFrame extends PApplet {
       ff_i.getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
       for (int j = 0; j<controllerFlock.length; j++) 
         controllerTool.addButton("f"+i+"_f"+j).setPosition(5+57*j,10).setSize(55,20).setLabel("Flock "+j).setSwitch(true).setOn().moveTo(ff_i).getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);      
-      controllerTool.addSlider("ff_strength"+i).setPosition(5,60).setSize(100,15).setLabel("Strength").setRange(0.01,10).setValue(5.0).moveTo(ff_i).getCaptionLabel().toUpperCase(false);  
-      controllerTool.addSlider("ff_speed"+i).setPosition(5,80).setSize(100,15).setLabel("Speed").setRange(0,10).setValue(1.0).moveTo(ff_i).getCaptionLabel().toUpperCase(false);  
-      controllerTool.addSlider("ff_noise"+i).setPosition(5,100).setSize(100,15).setLabel("Noise").setRange(0,0.2).setValue(0.05).moveTo(ff_i).getCaptionLabel().toUpperCase(false);  
-      controllerTool.addSlider("ff_resolution"+i).setPosition(5,120).setSize(100,15).setLabel("Resolution").setRange(1,100).setValue(10).moveTo(ff_i).getCaptionLabel().toUpperCase(false);  
+      controllerTool.addSlider("ff_strength"+i).setPosition(5,60).setSize(100,15).setLabel("Strength").setRange(0.01,20).setValue(FF_STRENGTH).moveTo(ff_i).getCaptionLabel().toUpperCase(false);  
+      controllerTool.addSlider("ff_speed"+i).setPosition(5,80).setSize(100,15).setLabel("Speed").setRange(0,10).setValue(FF_SPEED).moveTo(ff_i).getCaptionLabel().toUpperCase(false);  
+      controllerTool.addSlider("ff_noise"+i).setPosition(5,100).setSize(100,15).setLabel("Noise").setRange(0,0.1).setValue(FF_NOISE).moveTo(ff_i).getCaptionLabel().toUpperCase(false);  
+      controllerTool.addSlider("ff_resolution"+i).setPosition(5,120).setSize(100,15).setNumberOfTickMarks(11).showTickMarks(false).setLabel("Resolution").setRange(1,10).setValue(FF_RESOLUTION).moveTo(ff_i).getCaptionLabel().toUpperCase(false);  
     }
     controllerTool.addDropdownList("Select a flowfield").setPosition(40,10).setSize(150,100).setBarHeight(20).setItemHeight(20).close().onClick(toFront).onLeave(close).moveTo(ff)
                                                    .getCaptionLabel().align(ControlP5.CENTER, ControlP5.CENTER).toUpperCase(false);
-        
     
      //Accordion
     controllerTool.addAccordion("acc").setPosition(0,40).setWidth(this.w).setMinItemHeight(50).setCollapseMode(Accordion.MULTI)
@@ -831,7 +840,7 @@ class ControlFrame extends PApplet {
       
       //Generative parameters
       if(theEvent.isFrom(controllerFlock[j].getController("grid"))) flocks.get(j).grid = true;
-      if(theEvent.isFrom(controllerFlock[j].getController("square"))) flocks.get(j).square = true;
+      if(theEvent.isFrom(controllerFlock[j].getController("square"))) flocks.get(j).delta = true;
       if(theEvent.isFrom(controllerFlock[j].getController("kill"))) flocks.get(j).killAll();
       if(theEvent.isFrom(controllerFlock[j].get(Toggle.class, "Immortal"))){
         for(Boid b : flocks.get(j).boids)  b.mortal = cf.controllerFlock[j].get(Toggle.class, "Immortal").getState();
@@ -839,12 +848,12 @@ class ControlFrame extends PApplet {
         else controllerFlock[j].getController("lifespan").hide();
       }
       if(theEvent.isFrom(controllerFlock[j].getController("Particles"))) flocks.get(j).NChange = true;
-      if (theEvent.isFrom(controllerFlock[j].get(RadioButton.class,"Borders type")))  flocks.get(j).borderType = int(theEvent.getValue());
-      if(theEvent.isFrom(controllerFlock[j].get(Button.class, "Painting mode"))){  
-        flocks.get(j).drawMode = controllerFlock[j].get(Button.class,"Painting mode").isOn();
-          controllerFlock[j].get(Button.class,"Painting mode").setLabel(
-           controllerFlock[j].get(Button.class,"Painting mode").isOn() ? "Erase" : "Painting mode");
+      if(theEvent.isFrom(controllerFlock[j].get(RadioButton.class,"Borders type")))  flocks.get(j).borderType = int(theEvent.getValue());
+      if(theEvent.isFrom(controllerFlock[j].get(RadioButton.class,"Initial speed")))  flocks.get(j).initialVelocity = int(theEvent.getValue());
+      if(theEvent.isFrom(controllerFlock[j].getController("Erase"))){
+        flocks.get(j).erase = true;
       }
+      
       
       //Forces toggles
       if (theEvent.isFrom(controllerFlock[j].get(CheckBox.class,"forceToggle"))){
@@ -895,11 +904,18 @@ class ControlFrame extends PApplet {
       if(theEvent.isFrom(controllerFlock[j].getController("d_max"))) { 
         flocks.get(j).d_max = (int)map(controllerFlock[j].getController("d_max").getValue(),0,100, 0, OUTPUT_WIDTH); 
         flocks.get(j).d_maxSq = flocks.get(j).d_max*flocks.get(j).d_max;
-      }      
-      //Symmetry
+      } 
+      
+      //Effect
       if(theEvent.isFrom(controllerFlock[j].getController("symmetry"))) 
         flocks.get(j).symmetry = (int)controllerFlock[j].getController("symmetry").getValue();
-      
+      if(theEvent.isFrom(controllerFlock[j].get(Button.class, "Painting mode"))){  
+        flocks.get(j).drawMode = controllerFlock[j].get(Button.class,"Painting mode").isOn();
+          controllerFlock[j].get(Button.class,"Painting mode").setLabel(
+           controllerFlock[j].get(Button.class,"Painting mode").isOn() ? "Refresh background" : "Painting mode");
+      }
+      if(theEvent.isFrom(controllerFlock[j].getController("Sustain")))
+        flocks.get(j).sustain = (int)controllerFlock[j].getController("Sustain").getValue();
       
      //== BOIDS PARAMETERS ==    
      for (Boid b : flocks.get(j).boids){

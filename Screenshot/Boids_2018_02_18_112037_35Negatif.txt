@@ -1,0 +1,22 @@
+MODEL
+Lifespan = 700
+Square 41.66 (5/12), 2000 particles
+
+PARTICLES DESIGN
+Seed
+r = 5 constant
+
+COLORS
+brown, saturation = 40%, alpha = 255
+
+DISPLAY
+BlendMode = ADD, bgColor = black
+BlendMode = SUBSTRACT, bgColor = white
+
+FLOWFIELD
+Strength = 6, Noise = 0.006, Resolution = 3
+
+
+
+
+Note : +20% saturation
